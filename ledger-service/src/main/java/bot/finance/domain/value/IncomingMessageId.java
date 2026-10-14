@@ -9,6 +9,8 @@ public record IncomingMessageId(String value) {
 
     public static final int MAX_BYTES = 56;
 
+    private static final String WEB_PREFIX = "web:";
+
     public IncomingMessageId {
         if (value == null || value.isBlank()) {
             throw new InvalidIncomingMessageException("incoming message id must be present");
@@ -32,9 +34,15 @@ public record IncomingMessageId(String value) {
     }
 
     public Optional<Long> writtenMessageId() {
-        // stub-intent: the written message's id when the value names one as ofWrittenMessage writes it, `web:`
-        // followed by a positive id; empty for any other value
-        return Optional.empty();
+        if (!value.startsWith(WEB_PREFIX)) {
+            return Optional.empty();
+        }
+        try {
+            long id = Long.parseLong(value.substring(WEB_PREFIX.length()));
+            return id < 1 ? Optional.empty() : Optional.of(id);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /** Parses a stored or transported value, rejecting an absent, blank or over-long one. */

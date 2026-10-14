@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidIncomingTurnException;
 import bot.finance.domain.value.IncomingMessageId;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,8 +28,30 @@ public class IncomingTurn extends Entity {
             Optional<Instant> lastAttemptAt,
             Optional<Instant> handedOverAt) {
         super(id);
-        // TODO: assert a positive id and user id, a present conversation id, inbound message id, text and kept-at
-        // instant and present attempt and hand-over optionals, throwing InvalidIncomingTurnException
+        if (id != null && id < 1) {
+            throw new InvalidIncomingTurnException("id must be at least 1");
+        }
+        if (userId < 1) {
+            throw new InvalidIncomingTurnException("user id must be at least 1");
+        }
+        if (conversationId == null || conversationId.isBlank()) {
+            throw new InvalidIncomingTurnException("conversation id must be present");
+        }
+        if (inboundMessageId == null || inboundMessageId.isBlank()) {
+            throw new InvalidIncomingTurnException("inbound message id must be present");
+        }
+        if (text == null || text.isBlank()) {
+            throw new InvalidIncomingTurnException("text must be present");
+        }
+        if (keptAt == null) {
+            throw new InvalidIncomingTurnException("kept-at instant must be present");
+        }
+        if (lastAttemptAt == null) {
+            throw new InvalidIncomingTurnException("last attempt must be present");
+        }
+        if (handedOverAt == null) {
+            throw new InvalidIncomingTurnException("hand-over must be present");
+        }
         this.userId = userId;
         this.reference = IncomingMessageId.of(conversationId, inboundMessageId);
         this.text = text;
@@ -91,7 +114,6 @@ public class IncomingTurn extends Entity {
     }
 
     public LocalDate keptOn(ZoneId zone) {
-        // stub-intent: the day the turn was kept, read in the zone given
-        return null;
+        return keptAt.atZone(zone).toLocalDate();
     }
 }

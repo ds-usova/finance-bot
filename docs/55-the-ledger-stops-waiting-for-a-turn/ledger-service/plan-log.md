@@ -131,6 +131,14 @@
     the stub answers empty (RF13).
   - `EndTurnSystemTest.whenTurnIsEndedWithAnotherPersonsToken_thenNothingIsReportedAndRowRemains` — nothing happens
     against the stub.
+- **RL07 (GI01):** keeping a turn under a message already kept marked the caller's transaction rollback-only
+  (`UnexpectedRollbackException`) in the green wave's run; re-delegated once, `keep` now inserts with
+  `ON CONFLICT DO NOTHING`.
+- **RL08 (green checkpoint):** the full-suite run backing the unit and integration green checkpoint was stopped by
+  the host for low memory while the connector's pipeline also ran; no result was read. Re-run once, with this module
+  alone on the machine.
+  - Resolved: re-run as the unit and integration packages (`domain`, `application`, `adapter`, `common`), the
+    checkpoint's own scope: 1505 tests, all green.
 
 ## Suite Runs
 

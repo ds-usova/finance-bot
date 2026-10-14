@@ -1,6 +1,7 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnChannel;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
@@ -41,8 +42,6 @@ public class SweepWrittenMessagesUseCase implements SweepWrittenMessagesPort {
 
     @Override
     public int sweep() {
-        // TODO: also settle the waiting texts queued past the wait, count each swept turn and record the age of the
-        // oldest waiting text
         Instant now = clock.instant();
         int swept = 0;
         for (WrittenMessageView message :
@@ -51,6 +50,17 @@ public class SweepWrittenMessagesUseCase implements SweepWrittenMessagesPort {
                 swept++;
             }
         }
+        for (WrittenMessageView message :
+                writtenMessageRepository.findWaitingForSweep(now.minus(maxQueueWait), now.minus(longestTurnLife))) {
+            if (settle(message, now)) {
+                swept++;
+            }
+        }
+        Duration oldest = writtenMessageRepository
+                .oldestWaitingFiledAt()
+                .map(filedAt -> Duration.between(filedAt, now))
+                .orElse(Duration.ZERO);
+        turnMeters.recordOldestQueued(TurnChannel.WRITTEN, oldest);
         return swept;
     }
 
@@ -62,6 +72,7 @@ public class SweepWrittenMessagesUseCase implements SweepWrittenMessagesPort {
         if (!writtenMessageRepository.settle(message.id(), outcome, now)) {
             return false;
         }
+        turnMeters.countSwept(TurnChannel.WRITTEN);
         log.warn(
                 "swept stale written message {} of user {} as {}",
                 message.incomingMessageId().value(),

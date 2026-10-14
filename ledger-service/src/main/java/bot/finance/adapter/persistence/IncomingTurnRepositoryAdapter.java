@@ -1,15 +1,24 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.IncomingTurnRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidIncomingTurnException;
+import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.IncomingTurn;
 import bot.finance.domain.value.IncomingMessageId;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class IncomingTurnRepositoryAdapter implements IncomingTurnRepository {
+
+    private static final String REFERENCE_UNIQUE_INDEX = "ux_incoming_turn_incoming_message";
+    private static final String USER_FOREIGN_KEY = "incoming_turn_user_id_fkey";
 
     private final IncomingTurnEntityRepository incomingTurnEntityRepository;
 
@@ -18,60 +27,113 @@ public class IncomingTurnRepositoryAdapter implements IncomingTurnRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.NESTED)
     public boolean keep(IncomingTurn turn) {
-        // stub-intent: refuses a text over 4096 UTF-16 units, stores the turn, answers false on the unique index of
-        // the message reference, refuses an unknown user as not found, and wraps any other failure
-        return false;
+        if (turn.text().length() > ColumnLimits.TURN_TEXT) {
+            throw new InvalidIncomingTurnException("text exceeds " + ColumnLimits.TURN_TEXT + " characters");
+        }
+
+        try {
+            IncomingTurnEntity entity = IncomingTurnEntity.fromDomain(turn);
+            return incomingTurnEntityRepository.insertIfAbsent(
+                            entity.userId(),
+                            entity.incomingMessageId(),
+                            entity.text(),
+                            entity.conversationId(),
+                            entity.inboundMessageId(),
+                            entity.keptAt())
+                    > 0;
+        } catch (RuntimeException e) {
+            if (USER_FOREIGN_KEY.equals(ForeignKeyViolations.constraintName(e))) {
+                throw new EntityNotFoundException("user", "no user stored for id " + turn.userId());
+            }
+            throw new PersistenceFailedException(
+                    "failed to keep incoming turn " + turn.reference().value(), e);
+        }
     }
 
     @Override
     public Optional<IncomingTurn> findOldestQueuedKeptSince(Instant keptSince) {
-        // stub-intent: the queued turn with the lowest id kept at or after the instant, with its fields; empty when
-        // none is queued
-        return Optional.empty();
+        try {
+            return incomingTurnEntityRepository
+                    .findOldestQueuedKeptSince(micros(keptSince))
+                    .map(IncomingTurnEntity::toDomain);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find the oldest queued incoming turn", e);
+        }
     }
 
     @Override
     public void recordAttempt(long turnId, Instant now) {
-        // stub-intent: moves the turn's last attempt to the instant and leaves it queued
+        try {
+            incomingTurnEntityRepository.recordAttempt(turnId, micros(now));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to record an attempt on incoming turn " + turnId, e);
+        }
     }
 
     @Override
     public boolean markHandedOver(long turnId, Instant now) {
-        // stub-intent: stamps a queued turn handed over at the instant, answering false for a turn already handed
-        // over or deleted
-        return false;
+        try {
+            return incomingTurnEntityRepository.markHandedOver(turnId, micros(now)) > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to mark incoming turn " + turnId + " handed over", e);
+        }
     }
 
     @Override
     public Optional<IncomingTurn> findFor(long userId, IncomingMessageId reference) {
-        // stub-intent: the turn kept for the person under the reference; empty when it is kept for another person
-        // or not at all
-        return Optional.empty();
+        try {
+            return incomingTurnEntityRepository
+                    .findForUser(userId, reference.value())
+                    .map(IncomingTurnEntity::toDomain);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find incoming turn " + reference.value() + " for user " + userId, e);
+        }
     }
 
     @Override
     public boolean delete(long turnId) {
-        // stub-intent: deletes the row, answering whether one was removed
-        return false;
+        try {
+            return incomingTurnEntityRepository.deleteTurn(turnId) > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to delete incoming turn " + turnId, e);
+        }
     }
 
     @Override
     public List<IncomingTurn> findHandedOverBefore(Instant cutoff) {
-        // stub-intent: every turn handed over before the cutoff; a queued turn is never answered
-        return List.of();
+        try {
+            return incomingTurnEntityRepository.findHandedOverBefore(micros(cutoff)).stream()
+                    .map(IncomingTurnEntity::toDomain)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find handed-over incoming turns", e);
+        }
     }
 
     @Override
     public List<IncomingTurn> findQueuedForSweep(Instant keptBefore, Instant attemptBefore) {
-        // stub-intent: every queued turn kept before the first instant whose latest attempt, or kept-at where it
-        // has none, is before the second
-        return List.of();
+        try {
+            return incomingTurnEntityRepository.findQueuedForSweep(micros(keptBefore), micros(attemptBefore)).stream()
+                    .map(IncomingTurnEntity::toDomain)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find queued incoming turns for the sweep", e);
+        }
     }
 
     @Override
     public Optional<Instant> oldestQueuedKeptAt() {
-        // stub-intent: the earliest kept-at among queued turns; empty when none is queued
-        return Optional.empty();
+        try {
+            return incomingTurnEntityRepository.findOldestQueued().map(IncomingTurnEntity::keptAt);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to read the oldest queued kept-at instant", e);
+        }
+    }
+
+    private static Instant micros(Instant instant) {
+        return instant.truncatedTo(ChronoUnit.MICROS);
     }
 }

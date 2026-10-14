@@ -13,6 +13,7 @@ import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.InvalidTurnEndException;
 import java.time.Clock;
+import java.util.Optional;
 
 public class EndTurnUseCase implements EndTurnPort {
 
@@ -25,6 +26,8 @@ public class EndTurnUseCase implements EndTurnPort {
     private final TurnMeters turnMeters;
     private final Clock clock;
     private final Logger log;
+    private final WrittenTurnOutcome writtenTurnOutcome;
+    private final IncomingTurnReport incomingTurnReport;
 
     public EndTurnUseCase(
             IncomingTurnRepository incomingTurnRepository,
@@ -45,6 +48,16 @@ public class EndTurnUseCase implements EndTurnPort {
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.log = loggerFactory.getLogger(EndTurnUseCase.class);
+        this.writtenTurnOutcome = new WrittenTurnOutcome(
+                writtenMessageRepository, expenseRepository, spendingQueryRepository, turnMeters, clock, log);
+        this.incomingTurnReport = new IncomingTurnReport(
+                incomingTurnRepository,
+                expenseRepository,
+                spendingQueryRepository,
+                messageDeliveryPort,
+                proposalReportRepository,
+                turnMeters,
+                log);
     }
 
     @Override
@@ -52,8 +65,16 @@ public class EndTurnUseCase implements EndTurnPort {
         if (command == null) {
             throw new InvalidTurnEndException("turn end is absent");
         }
-        // stub-intent: a reference naming a written message settles that text of the caller's, found by its id;
-        // any other settles the Telegram turn kept under the caller and the reference; either settled with the
-        // command's ending, and nothing happens when none is found; a store failure propagates
+        long userId = command.userId().userId();
+        Optional<Long> writtenMessageId = command.reference().writtenMessageId();
+        if (writtenMessageId.isPresent()) {
+            writtenMessageRepository
+                    .findForUser(userId, writtenMessageId.get())
+                    .ifPresent(message -> writtenTurnOutcome.settle(message, command.ending()));
+            return;
+        }
+        incomingTurnRepository
+                .findFor(userId, command.reference())
+                .ifPresent(turn -> incomingTurnReport.settle(turn, command.ending()));
     }
 }

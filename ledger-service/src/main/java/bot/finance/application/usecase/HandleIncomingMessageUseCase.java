@@ -1,6 +1,7 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
+import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.IncomingTurnRepository;
 import bot.finance.application.port.InitializeUserPort;
@@ -8,6 +9,8 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.TurnHandOverDispatchPort;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.model.IncomingTurn;
+import bot.finance.domain.model.User;
 import java.time.Clock;
 
 public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
@@ -36,8 +39,17 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         if (command == null) {
             throw new InvalidIncomingMessageException("incoming message is absent");
         }
-        // stub-intent: resolves the person, keeps the message's turn queued at the clock's instant, and wakes the
-        // hand-over; a turn already kept under the message is logged once at info and nothing else happens; a
-        // store failure propagates
+        User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
+        IncomingTurn turn = IncomingTurn.newTurn(
+                user.id().orElseThrow(),
+                command.conversationId(),
+                command.inboundMessageId(),
+                command.text(),
+                clock.instant());
+        if (!incomingTurnRepository.keep(turn)) {
+            log.info("a turn is already kept for message {}", turn.reference());
+            return;
+        }
+        turnHandOverDispatchPort.dispatch();
     }
 }

@@ -73,10 +73,28 @@ public class TurnHandOverReader implements SmartLifecycle, TurnHandOverDispatchP
     }
 
     private void pass() {
-        // TODO: sweep the Telegram turns before the written ones and look for Telegram turns before the written
-        // texts, each look going on while it answers true
+        sweepTurns();
         sweep();
+        handOverUntilNothingWaits();
         readUntilNothingWaits();
+    }
+
+    private void sweepTurns() {
+        try {
+            sweepIncomingTurnsPort.sweep();
+        } catch (RuntimeException e) {
+            log.error("failed to sweep incoming turns", e);
+        }
+    }
+
+    private void handOverUntilNothingWaits() {
+        try {
+            while (handOverIncomingTurnPort.handOverNext()) {
+                // keep handing over while a turn was claimed
+            }
+        } catch (RuntimeException e) {
+            log.error("failed to hand over incoming turns", e);
+        }
     }
 
     private void sweep() {

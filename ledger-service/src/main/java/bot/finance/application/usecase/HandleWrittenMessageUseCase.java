@@ -1,5 +1,9 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.CatalogueEntry;
+import bot.finance.application.dto.IntentExtractionRequest;
+import bot.finance.application.dto.TurnEnding;
+import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleWrittenMessagePort;
@@ -10,8 +14,15 @@ import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.WrittenMessageRepository;
+import bot.finance.domain.exception.CatchAllGroupingMissingException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.CurrencyCode;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 
 public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
@@ -25,6 +36,8 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
     private final Clock clock;
     private final Duration maxQueueWait;
     private final Logger log;
+    private final ExtractionTurn extractionTurn;
+    private final WrittenTurnOutcome writtenTurnOutcome;
 
     public HandleWrittenMessageUseCase(
             WrittenMessageRepository writtenMessageRepository,
@@ -47,15 +60,57 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
         this.clock = clock;
         this.maxQueueWait = maxQueueWait;
         this.log = loggerFactory.getLogger(HandleWrittenMessageUseCase.class);
+        this.extractionTurn = new ExtractionTurn(spendingQueryRepository, log);
+        this.writtenTurnOutcome = new WrittenTurnOutcome(
+                writtenMessageRepository, expenseRepository, spendingQueryRepository, turnMeters, clock, log);
     }
 
     @Override
     public boolean handleNext() {
-        // stub-intent: takes the oldest text waiting since within the wait, prepares it — catalogue, catch-all,
-        // default currency —, records the attempt and hands it over for the day it was filed. Accepted: moves it to
-        // READING and answers true. Refused: settles it as failed and answers true. No catch-all: settles it FAILED
-        // and answers true. Nothing waiting, a store failure while preparing, or any other hand-over failure:
-        // answers false, leaving it waiting
-        return false;
+        Optional<WrittenMessageView> waiting = writtenMessageRepository.findOldestWaitingFiledSince(
+                clock.instant().minus(maxQueueWait));
+        if (waiting.isEmpty()) {
+            return false;
+        }
+        WrittenMessageView message = waiting.get();
+        IntentExtractionRequest request;
+        try {
+            request = prepare(message);
+        } catch (CatchAllGroupingMissingException e) {
+            log.warn("written message {} has no catch-all grouping: {}", message.id(), e.getMessage());
+            writtenTurnOutcome.settle(message, TurnEnding.FAILED);
+            return true;
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to prepare written message {}: {}", message.id(), e.getMessage());
+            return false;
+        }
+        writtenMessageRepository.recordAttempt(message.id(), clock.instant());
+        try {
+            intentExtractionPort.extract(request);
+        } catch (IntentExtractionRefusedException e) {
+            log.warn("hand-over of written message {} was refused: {}", message.id(), e.getMessage());
+            writtenTurnOutcome.settle(message, TurnEnding.FAILED);
+            return true;
+        } catch (RuntimeException e) {
+            log.warn("hand-over of written message {} failed: {}", message.id(), e.getMessage());
+            return false;
+        }
+        writtenMessageRepository.markHandedOver(message.id(), clock.instant());
+        return true;
+    }
+
+    private IntentExtractionRequest prepare(WrittenMessageView message) {
+        List<CatalogueEntry> catalogue = groupingRepository.findCatalogue(message.userId());
+        Optional<CurrencyCode> defaultCurrency = userPreferenceRepository.findDefaultCurrency(message.userId());
+        String catchAll = extractionTurn.catchAllAmong(
+                catalogue.stream().map(CatalogueEntry::grouping).toList());
+        return extractionTurn.request(
+                message.text(),
+                catalogue,
+                catchAll,
+                defaultCurrency,
+                message.userId(),
+                message.incomingMessageId(),
+                message.filedAt().atZone(ZoneOffset.UTC).toLocalDate());
     }
 }

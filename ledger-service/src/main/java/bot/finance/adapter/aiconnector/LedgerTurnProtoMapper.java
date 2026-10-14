@@ -49,8 +49,10 @@ public final class LedgerTurnProtoMapper {
     }
 
     public static TurnEnding toEnding(TurnEnd end) {
-        // stub-intent: TURN_END_ACTED_ON and TURN_END_UNAVAILABLE map to their own ending; TURN_END_FAILED,
-        // TURN_END_UNSPECIFIED and any value this build does not know map to FAILED
-        return null;
+        return switch (end) {
+            case TURN_END_ACTED_ON -> TurnEnding.ACTED_ON;
+            case TURN_END_UNAVAILABLE -> TurnEnding.UNAVAILABLE;
+            default -> TurnEnding.FAILED;
+        };
     }
 }

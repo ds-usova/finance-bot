@@ -66,36 +66,58 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
 
     @Override
     public Optional<WrittenMessageView> findOldestWaitingFiledSince(Instant filedSince) {
-        // stub-intent: the WAITING text with the lowest id filed at or after the instant
-        return Optional.empty();
+        try {
+            return writtenMessageEntityRepository
+                    .findOldestWaitingFiledSince(filedSince.truncatedTo(ChronoUnit.MICROS))
+                    .map(WrittenMessageEntity::toView);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find the oldest waiting written message", e);
+        }
     }
 
     @Override
     public void recordAttempt(long messageId, Instant now) {
-        // stub-intent: moves updated_at to the instant while the text is WAITING; any other text is untouched
+        try {
+            writtenMessageEntityRepository.recordAttempt(messageId, now.truncatedTo(ChronoUnit.MICROS));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to record an attempt on written message " + messageId, e);
+        }
     }
 
     @Override
     public boolean markHandedOver(long messageId, Instant now) {
-        // stub-intent: moves a WAITING text to READING with updated_at at the instant, answering whether it moved
-        return false;
+        try {
+            return writtenMessageEntityRepository.markHandedOver(messageId, now.truncatedTo(ChronoUnit.MICROS)) > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to mark written message " + messageId + " handed over", e);
+        }
     }
 
     @Override
     public List<WrittenMessageView> findWaitingForSweep(Instant filedBefore, Instant attemptBefore) {
-        // stub-intent: every WAITING text filed before the first instant whose updated_at is before the second
-        return List.of();
+        try {
+            return writtenMessageEntityRepository
+                    .findWaitingForSweep(
+                            filedBefore.truncatedTo(ChronoUnit.MICROS), attemptBefore.truncatedTo(ChronoUnit.MICROS))
+                    .stream()
+                    .map(WrittenMessageEntity::toView)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find waiting written messages for the sweep", e);
+        }
     }
 
     @Override
     public Optional<Instant> oldestWaitingFiledAt() {
-        // stub-intent: the earliest created_at among WAITING texts
-        return Optional.empty();
+        try {
+            return writtenMessageEntityRepository.findOldestWaiting().map(WrittenMessageEntity::createdAt);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to read the oldest waiting filing instant", e);
+        }
     }
 
     @Override
     public boolean settle(long messageId, ReportOutcome outcome, Instant now) {
-        // TODO: settle a WAITING text as well as a READING one
         try {
             return writtenMessageEntityRepository.settle(messageId, outcome.name(), now.truncatedTo(ChronoUnit.MICROS))
                     > 0;

@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 public class TurnOperationsSecurityConfiguration {
 
     private static final String TURN_SERVICE_METHODS = "bot.finance.ledger.v1.LedgerTurnService/*";
+    private static final String TURN_END_SERVICE_METHODS = "bot.finance.ledger.v1.LedgerTurnEndService/*";
 
     @Bean
     @GlobalServerInterceptor
@@ -29,7 +30,8 @@ public class TurnOperationsSecurityConfiguration {
         JwtDecoder decoder = turnJwtDecoder(properties, signingKeys);
         return grpcSecurity
                 .authorizeRequests(requests -> {
-                    requests.methods(TURN_SERVICE_METHODS).authenticated();
+                    requests.methods(TURN_SERVICE_METHODS, TURN_END_SERVICE_METHODS)
+                            .authenticated();
                     requests.allRequests().permitAll();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(decoder)))

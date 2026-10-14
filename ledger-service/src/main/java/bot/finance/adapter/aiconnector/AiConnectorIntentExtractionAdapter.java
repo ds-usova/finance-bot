@@ -8,8 +8,10 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.IntentExtractionFailedException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import io.grpc.Metadata;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.MetadataUtils;
 import org.springframework.stereotype.Component;
@@ -50,6 +52,11 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
                     .extractIntents(protoRequest);
         } catch (StatusRuntimeException e) {
             log.error("Failed to extract the intent:", e);
+            Status.Code code = e.getStatus().getCode();
+            if (code == Status.Code.UNAUTHENTICATED || code == Status.Code.INVALID_ARGUMENT) {
+                throw new IntentExtractionRefusedException(
+                        "Intent extraction call was refused with status " + code.name(), e);
+            }
             throw new IntentExtractionFailedException(
                     "Intent extraction call failed with status "
                             + e.getStatus().getCode().name(),

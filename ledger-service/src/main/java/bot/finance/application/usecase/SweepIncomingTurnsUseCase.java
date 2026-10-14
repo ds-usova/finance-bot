@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.TurnChannel;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.IncomingTurnRepository;
 import bot.finance.application.port.Logger;
@@ -9,8 +10,10 @@ import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SweepIncomingTurnsPort;
 import bot.finance.application.port.TurnMeters;
+import bot.finance.domain.model.IncomingTurn;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 
 public class SweepIncomingTurnsUseCase implements SweepIncomingTurnsPort {
 
@@ -24,6 +27,7 @@ public class SweepIncomingTurnsUseCase implements SweepIncomingTurnsPort {
     private final Duration longestTurnLife;
     private final Duration maxQueueWait;
     private final Logger log;
+    private final IncomingTurnReport incomingTurnReport;
 
     public SweepIncomingTurnsUseCase(
             IncomingTurnRepository incomingTurnRepository,
@@ -46,14 +50,48 @@ public class SweepIncomingTurnsUseCase implements SweepIncomingTurnsPort {
         this.longestTurnLife = longestTurnLife;
         this.maxQueueWait = maxQueueWait;
         this.log = loggerFactory.getLogger(SweepIncomingTurnsUseCase.class);
+        this.incomingTurnReport = new IncomingTurnReport(
+                incomingTurnRepository,
+                expenseRepository,
+                spendingQueryRepository,
+                messageDeliveryPort,
+                proposalReportRepository,
+                turnMeters,
+                log);
     }
 
     @Override
     public int sweep() {
-        // stub-intent: records the age of the oldest queued turn, zero when none; then settles as failed every
-        // turn handed over before the longest life and every turn queued past the wait whose latest attempt is
-        // older than the longest life, logging one warning naming the message and the person and counting it swept
-        // for each turn this call settled; answers how many it settled
-        return 0;
+        Instant now = clock.instant();
+        Duration oldest = incomingTurnRepository
+                .oldestQueuedKeptAt()
+                .map(keptAt -> Duration.between(keptAt, now))
+                .orElse(Duration.ZERO);
+        turnMeters.recordOldestQueued(TurnChannel.INCOMING, oldest);
+        int swept = 0;
+        for (IncomingTurn turn : incomingTurnRepository.findHandedOverBefore(now.minus(longestTurnLife))) {
+            if (settle(turn)) {
+                swept++;
+            }
+        }
+        for (IncomingTurn turn :
+                incomingTurnRepository.findQueuedForSweep(now.minus(maxQueueWait), now.minus(longestTurnLife))) {
+            if (settle(turn)) {
+                swept++;
+            }
+        }
+        return swept;
+    }
+
+    private boolean settle(IncomingTurn turn) {
+        if (!incomingTurnReport.settleSwept(turn)) {
+            return false;
+        }
+        turnMeters.countSwept(TurnChannel.INCOMING);
+        log.warn(
+                "swept stale incoming turn for message {} of user {}",
+                turn.reference().value(),
+                turn.userId());
+        return true;
     }
 }

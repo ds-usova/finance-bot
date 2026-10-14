@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.TurnEnding;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
@@ -34,11 +35,31 @@ class WrittenTurnOutcome {
     }
 
     boolean settle(WrittenMessageView message, TurnEnding ending) {
-        // stub-intent: for an end or a refused hand-over. Reads the days and periods under the text's message and
-        // settles it with the outcome the ending and those earn, unless it is already DONE; only when this call
-        // settled it: logs at error an ending other than acted on, naming the message and the outcome, discards its
-        // periods, logging a failed discard at warn, and counts the turn under its outcome. Answers whether this
-        // call settled it
-        return false;
+        boolean stored = !expenseRepository
+                .findDaysByMessageReference(message.userId(), message.incomingMessageId())
+                .isEmpty();
+        boolean queried = !spendingQueryRepository
+                .findPeriodsByMessageReference(message.userId(), message.incomingMessageId())
+                .isEmpty();
+        ReportOutcome outcome = outcomeOf(ending, stored, queried);
+        if (!writtenMessageRepository.settle(message.id(), outcome, clock.instant())) {
+            return false;
+        }
+        if (ending != TurnEnding.ACTED_ON) {
+            log.error("written message {} ended {} and was settled as {}", message.id(), ending, outcome);
+        }
+        new ExtractionTurn(spendingQueryRepository, log).discardPeriods(message.userId(), message.incomingMessageId());
+        turnMeters.countTurn(outcome);
+        return true;
+    }
+
+    private ReportOutcome outcomeOf(TurnEnding ending, boolean stored, boolean queried) {
+        if (ending != TurnEnding.ACTED_ON) {
+            return stored ? ReportOutcome.PARTIAL : ReportOutcome.FAILED;
+        }
+        if (stored) {
+            return ReportOutcome.RECORDED;
+        }
+        return queried ? ReportOutcome.ANSWERED : ReportOutcome.NOTHING_IDENTIFIED;
     }
 }

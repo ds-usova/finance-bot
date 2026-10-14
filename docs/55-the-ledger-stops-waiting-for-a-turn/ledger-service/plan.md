@@ -1363,32 +1363,32 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `IncomingTurn` · test: `IncomingTurnTest`
-- [ ] GU02 · `IncomingMessageId` · test: `IncomingMessageIdTest`
-- [ ] GU03 · `EndTurnCommand` · test: `EndTurnCommandTest`
-- [ ] GU04 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest`
-- [ ] GU05 · `IncomingTurnReport` · test: `IncomingTurnReportTest` · after: GU01
-- [ ] GU06 · `WrittenTurnOutcome` · test: `WrittenTurnOutcomeTest`
-- [ ] GU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01
-- [ ] GU08 · `HandOverIncomingTurnUseCase` · test: `HandOverIncomingTurnUseCaseTest` · after: GU01, GU05
-- [ ] GU09 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · after: GU06
-- [ ] GU10 · `EndTurnUseCase` · test: `EndTurnUseCaseTest` · after: GU01, GU02, GU03, GU05, GU06
-- [ ] GU11 · `SweepIncomingTurnsUseCase` · test: `SweepIncomingTurnsUseCaseTest` · after: GU01, GU05
-- [ ] GU12 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest`
-- [ ] GU13 · `TurnHandOverReader` · test: `TurnHandOverReaderTest` · after: GU14
-- [ ] GU14 · `WrittenMessageReaderProperties` · test: `WrittenMessageReaderPropertiesTest`
+- [x] GU01 · `IncomingTurn` · test: `IncomingTurnTest`
+- [x] GU02 · `IncomingMessageId` · test: `IncomingMessageIdTest`
+- [x] GU03 · `EndTurnCommand` · test: `EndTurnCommandTest`
+- [x] GU04 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest`
+- [x] GU05 · `IncomingTurnReport` · test: `IncomingTurnReportTest` · after: GU01
+- [x] GU06 · `WrittenTurnOutcome` · test: `WrittenTurnOutcomeTest`
+- [x] GU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01
+- [x] GU08 · `HandOverIncomingTurnUseCase` · test: `HandOverIncomingTurnUseCaseTest` · after: GU01, GU05
+- [x] GU09 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · after: GU06
+- [x] GU10 · `EndTurnUseCase` · test: `EndTurnUseCaseTest` · after: GU01, GU02, GU03, GU05, GU06
+- [x] GU11 · `SweepIncomingTurnsUseCase` · test: `SweepIncomingTurnsUseCaseTest` · after: GU01, GU05
+- [x] GU12 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest`
+- [x] GU13 · `TurnHandOverReader` · test: `TurnHandOverReaderTest` · after: GU14
+- [x] GU14 · `WrittenMessageReaderProperties` · test: `WrittenMessageReaderPropertiesTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterTest` · after: GU01
-- [ ] GI02 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterConcurrencyTest` · after: GI01
-- [ ] GI03 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest`
-- [ ] GI04 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · after: GI03
-- [ ] GI05 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest`
-- [ ] GI06 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest`
-- [ ] GI07 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
+- [x] GI01 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterTest` · after: GU01
+- [x] GI02 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterConcurrencyTest` · after: GI01
+- [x] GI03 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest`
+- [x] GI04 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · after: GI03
+- [x] GI05 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest`
+- [x] GI06 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest`
+- [x] GI07 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
   `LedgerTurnEndService.EndTurn` · mocks: `EndTurnPort`
-- [ ] GI08 · `LedgerTurnEndGrpcService` · test: `LedgerTurnEndGrpcServiceTest` · covers: `LedgerTurnEndService.EndTurn`
+- [x] GI08 · `LedgerTurnEndGrpcService` · test: `LedgerTurnEndGrpcServiceTest` · covers: `LedgerTurnEndService.EndTurn`
   · mocks: `EndTurnPort` · after: GI07, GU03, GU04
 
 #### TDD System Test Green Phase
