@@ -1,6 +1,7 @@
 # Spec: The Connector Files a Message's Spending with a Classifier
 
 **Format:** 2
+**Approved:** ds-usova, 2026-10-14, 1bd18c4dc1f0
 **Affected Modules:** `ai-connector-service`
 
 ## Objective
