@@ -1,6 +1,7 @@
 package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.ledger.GrpcLedgerTurnAdapter;
+import bot.finance.ai.adapter.ledger.GrpcTurnEndAdapter;
 import bot.finance.ai.adapter.ledger.LedgerTurnConfiguration;
 import bot.finance.ai.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.ai.common.containers.LedgerTurnServer;
@@ -8,6 +9,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.grpc.client.autoconfigure.CompositeChannelFactoryAutoConfiguration;
@@ -20,15 +22,21 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistrar;
 
 /**
- * Boots {@link GrpcLedgerTurnAdapter} and {@link LedgerTurnConfiguration} with Spring gRPC's client
- * autoconfiguration, {@code extraction.mode=classifier}, {@code ledger.turn.target} at {@link LedgerTurnServer}'s
- * port and a one-second timeout — no gRPC server, no other adapter.
+ * Boots {@link GrpcLedgerTurnAdapter}, {@link GrpcTurnEndAdapter} and {@link LedgerTurnConfiguration} with Spring
+ * gRPC's client autoconfiguration, {@code extraction.mode=classifier}, {@code ledger.turn.target} at
+ * {@link LedgerTurnServer}'s port and a one-second timeout, and a system {@link Clock} — no gRPC server, no other
+ * adapter.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ActiveProfiles("test")
 @SpringBootTest(
-        classes = {GrpcLedgerTurnAdapter.class, LedgerTurnConfiguration.class, Slf4jLoggerFactory.class},
+        classes = {
+            GrpcLedgerTurnAdapter.class,
+            GrpcTurnEndAdapter.class,
+            LedgerTurnConfiguration.class,
+            Slf4jLoggerFactory.class
+        },
         properties = {"extraction.mode=classifier", "ledger.turn.timeout=1s"})
 @ImportAutoConfiguration({
     SslAutoConfiguration.class,
@@ -48,6 +56,11 @@ public @interface LedgerTurnAdapterTest {
         @Bean
         DynamicPropertyRegistrar ledgerTurnTarget() {
             return registry -> registry.add("ledger.turn.target", LedgerTurnServer::target);
+        }
+
+        @Bean
+        Clock clock() {
+            return Clock.systemUTC();
         }
     }
 }

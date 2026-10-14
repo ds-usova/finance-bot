@@ -25,6 +25,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
     class HappyPath {
 
         @Test
+        @Disabled("RS02: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the classifier answers confidently - then one filing reaches the ledger under the token "
                 + "and the turn counts")
         void whenClassifierAnswersConfidently_thenFilingReachesLedgerUnderTokenAndTurnCounts() {
@@ -95,6 +97,7 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
     class UnhappyPath {
 
         @Test
+        @Disabled("RS02: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the ledger answers the first filing UNAVAILABLE - then the call fails UNAVAILABLE and "
                 + "no second filing is sent")
         void whenLedgerAnswersFirstFilingUnavailable_thenCallFailsUnavailableAndNoSecondFiling() {

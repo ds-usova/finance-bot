@@ -42,6 +42,17 @@ public final class CallerTokens {
         return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
 
+    public static String bearerExpiringIn(long userId, String incomingMessageId, Duration lifetime) {
+        Instant now = Instant.now();
+        return bearerToken(
+                SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, now, now.plus(lifetime), incomingMessageId);
+    }
+
+    public static String bearerNoExpiry(long userId, String incomingMessageId) {
+        return bearerToken(
+                SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), null, incomingMessageId);
+    }
+
     public static String bearerSignedByUnpublishedKey(long userId, String incomingMessageId) {
         return bearerToken(UNPUBLISHED_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
@@ -79,13 +90,26 @@ public final class CallerTokens {
 
     private static String bearerToken(
             RSAKey key, String subject, String issuer, String audience, Instant issuedAt, String incomingMessageId) {
+        return bearerToken(key, subject, issuer, audience, issuedAt, issuedAt.plus(TTL), incomingMessageId);
+    }
+
+    private static String bearerToken(
+            RSAKey key,
+            String subject,
+            String issuer,
+            String audience,
+            Instant issuedAt,
+            Instant expiresAt,
+            String incomingMessageId) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .issuer(issuer)
                     .audience(audience)
                     .issueTime(Date.from(issuedAt))
-                    .expirationTime(Date.from(issuedAt.plus(TTL)))
                     .jwtID(UUID.randomUUID().toString());
+            if (expiresAt != null) {
+                claims.expirationTime(Date.from(expiresAt));
+            }
             if (subject != null) {
                 claims.subject(subject);
             }

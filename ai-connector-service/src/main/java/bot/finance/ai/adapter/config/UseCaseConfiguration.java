@@ -2,6 +2,7 @@ package bot.finance.ai.adapter.config;
 
 import bot.finance.ai.adapter.scheduling.MemoryProperties;
 import bot.finance.ai.adapter.typesafe.TypesafeClassifierProperties;
+import bot.finance.ai.application.port.AcceptTurnPort;
 import bot.finance.ai.application.port.BackfillEmbeddingsPort;
 import bot.finance.ai.application.port.CategoryClassifierPort;
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
@@ -18,7 +19,10 @@ import bot.finance.ai.application.port.PurgeMessagesPort;
 import bot.finance.ai.application.port.RecallExamplesPort;
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
 import bot.finance.ai.application.port.SpendingReadOutPort;
+import bot.finance.ai.application.port.TurnEndPort;
 import bot.finance.ai.application.port.TurnMeters;
+import bot.finance.ai.application.port.TurnRunnerPort;
+import bot.finance.ai.application.usecase.AcceptTurnUseCase;
 import bot.finance.ai.application.usecase.BackfillEmbeddingsUseCase;
 import bot.finance.ai.application.usecase.ClassifierTurn;
 import bot.finance.ai.application.usecase.ExtractIntentsUseCase;
@@ -55,6 +59,12 @@ public class UseCaseConfiguration {
             LoggerFactory loggerFactory) {
         return new ExtractIntentsUseCase(
                 extractionTurn, turnMeters, messageStorePort, recallExamplesPort, loggerFactory);
+    }
+
+    @Bean
+    AcceptTurnPort acceptTurnPort(
+            ExtractIntentsPort extractIntentsPort, TurnRunnerPort turnRunnerPort, TurnEndPort turnEndPort) {
+        return new AcceptTurnUseCase(extractIntentsPort, turnRunnerPort, turnEndPort);
     }
 
     @Bean

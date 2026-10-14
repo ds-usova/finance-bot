@@ -20,11 +20,11 @@ src/main
 │   └── adapter         # interface adapters
 │       ├── config      # use-case bean wiring, and the setting that chooses the turn
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
-│       ├── grpc        # gRPC service implementation, proto mapping, status mapping
+│       ├── grpc        # gRPC service implementation, proto mapping, status mapping, the runner of accepted turns
 │       ├── metrics     # the module's own meters, the sole point Micrometer is touched
 │       ├── ai          # everything fronting the AI provider
 │       ├── typesafe    # everything fronting the category classifier
-│       ├── ledger      # everything fronting the ledger's MCP tools and its turn operations
+│       ├── ledger      # everything fronting the ledger's MCP tools and its turn operations, and tells it how a turn ended
 │       ├── persistence # everything fronting the connector's own database
 │       ├── redis       # the consumer of the ledger's change stream
 │       ├── security    # the caller token, read against the ledger's published key set
@@ -56,9 +56,9 @@ Bean declaration — Java configuration is for classes that cannot be annotated,
 
 Configuration placement: adapter-specific config lives in the adapter subpackage it configures. Use-case wiring
 is the exception, living in `adapter/config`, which holds nothing else but `extraction.*`: it reads that setting
-to choose the turn and declares the clock. `ledger.change-stream.*` binds in `adapter/redis`. `ledger.turn.*`
-binds in `adapter/ledger`, and `classifier.*` in `adapter/typesafe`, each registered only with
-`extraction.mode=classifier`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
+to choose the turn and declares the clock; `adapter/grpc` reads it too, for the cap on turns in flight and
+their bound. `ledger.change-stream.*` binds in `adapter/redis`. `ledger.turn.*` binds in `adapter/ledger`
+whatever the mode, and `classifier.*` in `adapter/typesafe`, registered only with `extraction.mode=classifier`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
 cases, beans of every context, can read their bounds with the memory off — and `adapter/config` reads from it to
 build the outcome, recall and backfill use cases, and `adapter/ai` reads its embedding and backfill timeouts from
 there too. `memory.enabled` gates `adapter/persistence`, `adapter/redis`, `adapter/security`, `adapter/metrics`

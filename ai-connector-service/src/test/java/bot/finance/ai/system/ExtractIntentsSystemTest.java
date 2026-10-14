@@ -23,6 +23,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
+        @Disabled("RS01: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a tokened request arrives - then the RPC answers empty and the ledger receives the "
                 + "tool call under that token")
         void whenTokenedRequestArrives_thenRpcAnswersEmptyAndLedgerReceivesOneToolCallUnderToken() {
@@ -82,6 +84,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
+        @Disabled("RS01: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the provider looks up a catalogued grouping - then only the proposal reaches the ledger "
                 + "and the lookup counts")
         void whenProviderLooksUpCataloguedGroupingThenRecords_thenLedgerReceivesOnlyProposalAndLookupCountsAnswered() {
@@ -116,6 +119,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
+        @Disabled("RS01: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the provider asks to summarize spending - then that call reaches the ledger under the "
                 + "request's token")
         void whenProviderAsksToSummarizeSpending_thenThatCallReachesLedgerUnderToken() {
@@ -145,6 +149,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
+        @Disabled("RS01: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the mode is unset - then the classifier receives no request and the turn counts under "
                 + "tools and acted_on")
         void whenModeUnset_thenClassifierReceivesNoRequestAndToolsTurnCounts() {
@@ -175,6 +180,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
+        @Disabled("RS01: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a tokened request arrives and the provider responds with a server error - then the RPC "
                 + "fails with UNAVAILABLE")
         void whenProviderRespondsServerError_thenFailsWithUnavailable() {

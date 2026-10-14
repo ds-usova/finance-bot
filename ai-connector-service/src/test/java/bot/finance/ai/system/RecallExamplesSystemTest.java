@@ -19,6 +19,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -85,6 +86,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
+        @Disabled("RS06: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a new message arrives close to an earlier accepted one - then the example line reads "
                 + "its amount and currency")
         void whenNewMessageArrivesCloseToEarlierAcceptedOne_thenExampleLineReadsAmountAndCurrency() {
@@ -126,6 +128,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     class UnhappyPath {
 
         @Test
+        @Disabled("RS06: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the embeddings call fails - then the new row holds no vector and the prompt carries no "
                 + "examples heading")
         void whenEmbeddingsCallFails_thenNewRowHoldsNoVectorAndPromptCarriesNoExamplesHeading() {

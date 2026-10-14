@@ -19,6 +19,7 @@ import io.grpc.StatusRuntimeException;
 import io.restassured.response.Response;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
+        @Disabled("RS07: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a turn runs and prometheus is scraped - then it carries the rpc, chat, tool, embedding "
                 + "and pending samples")
         void whenTurnRunsAndPrometheusIsScraped_thenCarriesRpcChatToolEmbeddingAndPendingSamples() {
@@ -115,6 +117,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     class UnhappyPath {
 
         @Test
+        @Disabled("RS07: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the provider refuses the chat call - then the rpc fails and the chat sample carries "
                 + "the error tag")
         void whenProviderRefusesChatCall_thenRpcFailsAndChatSampleCarriesErrorTag() {

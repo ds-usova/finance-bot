@@ -39,7 +39,8 @@ class ExtractionModeStartupSystemTest {
         @Test
         @DisplayName("when EXTRACTION_MODE is rules - then the application fails to start naming EXTRACTION_MODE")
         void whenExtractionModeIsRules_thenApplicationFailsToStartNamingExtractionMode() {
-            assertThatThrownBy(() -> application().run(arguments("--extraction.mode=rules")))
+            assertThatThrownBy(() -> application()
+                            .run(arguments("--extraction.mode=rules", "--ledger.turn.target=static://localhost:1")))
                     .hasStackTraceContaining("EXTRACTION_MODE");
         }
 

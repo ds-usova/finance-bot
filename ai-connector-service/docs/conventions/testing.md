@@ -16,11 +16,11 @@ bot.finance.ai
     ├── boot                   # what a test starts, and how
     │   ├── AbstractSystemTest     # full-application base class
     │   ├── AbstractMemorySystemTest # the same with the memory on, against the containerized database and Redis
-    │   ├── AbstractClassifierSystemTest # the same with the classifier turn on, against the fake ledger turn server
+    │   ├── AbstractClassifierSystemTest # the same with the classifier turn on
     │   ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
     │   ├── AiAdapterTest          # composed annotation — outbound-adapter tests
     │   ├── ClassifierAdapterTest  # composed annotation — the classifier adapter on the stubbed classifier endpoint
-    │   ├── LedgerTurnAdapterTest  # composed annotation — the ledger turn adapter on the fake ledger turn server
+    │   ├── LedgerTurnAdapterTest  # composed annotation — the ledger turn adapters on the fake ledger turn server
     │   ├── PersistenceAdapterTest # composed annotation — the persistence slice on the containerized database
     │   ├── SecurityAdapterTest    # composed annotation — the token reader on the stubbed key-set endpoint
     │   ├── RedisAdapterTest       # composed annotation — the change-stream slice on the containerized Redis
@@ -30,7 +30,7 @@ bot.finance.ai
     │   └── InProcessGrpcTransportConfiguration # the in-process gRPC transport, one server name per context
     ├── containers             # stub-server and database lifecycle
     │   ├── WireMockSupport        # JVM-wide stub-server singleton
-    │   ├── LedgerTurnServer       # JVM-wide gRPC server on a random port, serving a fake LedgerTurnService that records and scripts
+    │   ├── LedgerTurnServer       # JVM-wide gRPC server on a random port, serving a fake LedgerTurnService and LedgerTurnEndService that record and script
     │   ├── PostgresContainers     # JVM-wide Postgres container singleton, on the pgvector image
     │   ├── RedisContainers        # JVM-wide Redis container singleton, and the connection factories a test builds against it
     │   ├── Network                # the Testcontainers network Redis and Toxiproxy share
@@ -53,7 +53,7 @@ bot.finance.ai
     │   ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
     │   ├── LedgerJwksStubs        # stubs the ledger's key-set endpoint, served, unreachable or slow
     │   ├── ClassifierStubs        # stubs the classifier's /v1/systemone, one static method per outcome
-    │   ├── LedgerTurnStubs        # scripts the fake ledger turn service one outcome per call, and reads the recorded calls back
+    │   ├── LedgerTurnStubs        # scripts the fake ledger turn and turn end services one outcome per call, and reads the recorded calls and ends back
     │   ├── AuthorizedStubs        # attaches an authorization header to a generated stub
     │   ├── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
     │   └── LedgerChangeStreamStubs # stands in for the ledger's writes to the change stream, and a second consumer
@@ -75,10 +75,11 @@ A composed annotation's boot test is `<Annotation>BootTest` — `PersistenceAdap
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A request
   `*Reader` is a unit target. The same goes for an adapter-layer class doing something non-trivial — branching logic with no
   infrastructure of its own, like `LedgerToolFailureProcessor`, `CallerTokenMcpRequestCustomizer`,
-  `CallerTokenLedgerTurnInterceptor`, `ChangeStreamEntryHandler` or `ChangeStreamEntryReader`; a class whose behaviour is trivial is left to its
+  `CallerTokenLedgerTurnInterceptor`, `ChangeStreamEntryHandler`, `ChangeStreamEntryReader`,
+  `GrpcTurnRunnerAdapter` or `UnverifiedCallerClaims`; a class whose behaviour is trivial is left to its
   adapter's integration test instead.
 - **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/typesafe/` via
-  `@ClassifierAdapterTest` against the stubbed classifier endpoint, `adapter/ledger/`'s turn adapter via
+  `@ClassifierAdapterTest` against the stubbed classifier endpoint, `adapter/ledger/`'s turn adapters via
   `@LedgerTurnAdapterTest` against the fake ledger turn server, `adapter/persistence/` via
   `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`, `adapter/redis/`'s consumer,
   `ChangeStreamConsumer`, via `@RedisAdapterTest` against the containerized Redis with the inbound port
@@ -110,8 +111,15 @@ A composed annotation's boot test is `<Annotation>BootTest` — `PersistenceAdap
 - JUnit 5, AssertJ, Mockito, WireMock, Awaitility. Every gRPC test enters through a generated blocking stub;
   RestAssured covers Actuator's HTTP endpoints.
 - `AbstractSystemTest` boots the application on a **random real gRPC port**, exposes a blocking stub built
-  against that port and the Actuator port for HTTP assertions, and resets stubs before and after each test;
-  subclasses declare nothing. System tests extend it, adapter tests do not.
+  against that port and the Actuator port for HTTP assertions, and resets stubs before and after each test —
+  WireMock's and `LedgerTurnStubs`'; subclasses declare nothing. It points `ledger.turn.target` at
+  `LedgerTurnServer`, since the property is required in both extraction modes. System tests extend it, adapter
+  tests do not.
+- `LedgerTurnServer` serves two fakes, each with a script and a recorded list of its own. The turn operations
+  answer stored once their script is spent, and `recordedCalls()` holds only their calls. `EndTurn` answers
+  taken once its script is spent: `scriptEndTaken()`, `scriptEndRefused(Status)` or `scriptEndNeverAnswering()`
+  script it, and `recordedEnds()` reads each request with its `authorization` back. `awaitEnds(int)` waits with
+  Awaitility until that many ends are recorded and returns them, for an end that arrives after the call returns.
 - `AbstractMemorySystemTest` runs the purge timer at `memory.purge-interval=1s`; a test fires it by waiting with
   Awaitility. A change-stream entry reaches the consumer through `LedgerChangeStreamStubs`, which writes it to
   Redis the way the ledger would.
@@ -125,7 +133,9 @@ A composed annotation's boot test is `<Annotation>BootTest` — `PersistenceAdap
   comes from `@MockitoBean` on the inbound port, not from a framework slice. The transport is imported rather
   than autoconfigured because Boot's test transport holds one in-process server name for the whole JVM, so a
   second context configuration cannot start while the first context is cached.
-  `InProcessGrpcTransportConfiguration` gives each context a server name of its own.
+  `InProcessGrpcTransportConfiguration` gives each context a server name of its own. It sets
+  `ledger.turn.target=static://localhost:1`, an address nothing listens on, since the context needs the property
+  and the test never reaches the ledger.
 - `@AiAdapterTest` — boots the adapter under test, its `ChatClient` configuration, the `adapter/ledger` MCP
   classes and Spring AI's OpenAI, MCP-client, transport and tool-callback autoconfigurations. A real client over
   a stubbed transport is what these tests exist for, never a mocked `ChatClient`.

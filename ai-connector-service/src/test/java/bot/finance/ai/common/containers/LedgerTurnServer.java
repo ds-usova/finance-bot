@@ -1,7 +1,10 @@
 package bot.finance.ai.common.containers;
 
+import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnResponse;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalResponse;
+import bot.finance.ledger.adapter.grpc.v1.LedgerTurnEndServiceGrpc;
 import bot.finance.ledger.adapter.grpc.v1.LedgerTurnServiceGrpc;
 import bot.finance.ledger.adapter.grpc.v1.RecordSpendingPeriodRequest;
 import bot.finance.ledger.adapter.grpc.v1.RecordSpendingPeriodResponse;
@@ -25,9 +28,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * A JVM-wide gRPC server on a random real port, serving a fake {@code LedgerTurnService}. It records each request
- * with its {@code authorization} metadata and answers the outcome scripted for it: one outcome per call, in
- * order, and stored once the script is spent.
+ * A JVM-wide gRPC server on a random real port, serving a fake {@code LedgerTurnService} and a fake
+ * {@code LedgerTurnEndService}. It records each request with its {@code authorization} metadata and answers the
+ * outcome scripted for it: one outcome per call, in order, and stored (or taken, for an end) once the script is
+ * spent. The turn operations and the end each have a script and a list of their own.
  */
 public final class LedgerTurnServer {
 
@@ -37,11 +41,14 @@ public final class LedgerTurnServer {
 
     private static final Queue<Outcome> SCRIPT = new ConcurrentLinkedQueue<>();
     private static final List<RecordedCall> CALLS = new CopyOnWriteArrayList<>();
+    private static final Queue<Outcome> END_SCRIPT = new ConcurrentLinkedQueue<>();
+    private static final List<RecordedCall> ENDS = new CopyOnWriteArrayList<>();
     private static final Server SERVER;
 
     static {
         SERVER = ServerBuilder.forPort(0)
                 .addService(ServerInterceptors.intercept(new FakeLedgerTurnService(), new AuthorizationCapture()))
+                .addService(ServerInterceptors.intercept(new FakeLedgerTurnEndService(), new AuthorizationCapture()))
                 .build();
         try {
             SERVER.start();
@@ -81,13 +88,28 @@ public final class LedgerTurnServer {
         return List.copyOf(CALLS);
     }
 
+    public static void scriptEnd(Outcome outcome) {
+        END_SCRIPT.add(outcome);
+    }
+
+    public static List<RecordedCall> recordedEnds() {
+        return List.copyOf(ENDS);
+    }
+
     public static void reset() {
         SCRIPT.clear();
         CALLS.clear();
+        END_SCRIPT.clear();
+        ENDS.clear();
     }
 
     private static Outcome nextOutcome() {
         Outcome outcome = SCRIPT.poll();
+        return outcome == null ? new Outcome.Stored() : outcome;
+    }
+
+    private static Outcome nextEndOutcome() {
+        Outcome outcome = END_SCRIPT.poll();
         return outcome == null ? new Outcome.Stored() : outcome;
     }
 
@@ -98,6 +120,24 @@ public final class LedgerTurnServer {
                 ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
             Context context = Context.current().withValue(RECEIVED_AUTHORIZATION, headers.get(AUTHORIZATION));
             return Contexts.interceptCall(context, call, headers, next);
+        }
+    }
+
+    private static final class FakeLedgerTurnEndService extends LedgerTurnEndServiceGrpc.LedgerTurnEndServiceImplBase {
+
+        @Override
+        public void endTurn(EndTurnRequest request, StreamObserver<EndTurnResponse> responseObserver) {
+            ENDS.add(new RecordedCall("EndTurn", request, RECEIVED_AUTHORIZATION.get()));
+
+            switch (nextEndOutcome()) {
+                case Outcome.Stored stored -> {
+                    responseObserver.onNext(EndTurnResponse.getDefaultInstance());
+                    responseObserver.onCompleted();
+                }
+                case Outcome.Refused refused ->
+                    responseObserver.onError(refused.status().asRuntimeException());
+                case Outcome.NeverAnswering neverAnswering -> {}
+            }
         }
     }
 
