@@ -37,9 +37,10 @@ C3 is below. Package structure is in the
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
 - [Agent acting for a user — the ledger's tools](docs/contracts/in/mcp.md) (inbound)
+- [The AI connector filing a turn's results — the turn operations](docs/contracts/in/turn-operations.md) (inbound)
 - [A person signing in from a browser — the session API](docs/contracts/in/web-session-api.md) (inbound)
 - [A person browsing their ledger from a browser — the browse API](docs/contracts/in/web-browse-api.md) (inbound)
-- [An operator running the service — health, meters and slot recovery](docs/contracts/in/operations.md) (inbound)
+- [An operator running the service — health, meters, slot recovery and the call line](docs/contracts/in/operations.md) (inbound)
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories and expenses](docs/contracts/out/database.md) (outbound)

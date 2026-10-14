@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-10-14
-- **Source:** [Plan: The Ledger Takes a Turn's Writes over gRPC — `ledger-service`](../51-the-ledger-takes-a-turns-writes-over-http/ledger-service/plan.md)
+- **Source:** [Plan: The Ledger Takes a Turn's Writes over gRPC — `ledger-service`](../implemented/51-the-ledger-takes-a-turns-writes-over-http/ledger-service/plan.md)
 
 ## Context
 

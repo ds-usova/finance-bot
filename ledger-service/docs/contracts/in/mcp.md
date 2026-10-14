@@ -136,6 +136,8 @@ Authentication is the exception: it never reaches the tool at all, so a model ne
 Every rejection is logged with the kind of failure, and with neither the arguments nor the token. A call's
 arguments reach the log only at debug level.
 
+Every call that reaches a tool writes [the turn call line](operations.md#the-turn-call-line).
+
 ## Compatibility
 
 A tool's name and description, and each argument's description, are part of the contract: the language model

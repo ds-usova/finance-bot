@@ -12,10 +12,10 @@ It decides nothing about the text itself.
 
 ## Operations
 
-| Operation       | Purpose                                                          | Used by                                                                                                                                                                                                                                                                                       |
-|-----------------|------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Operation       | Purpose                                                          | Used by                                                                                                                                                                                                                                                                                        |
+|-----------------|------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Extract intents | acts on what a user's message asks for, in the user's order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [the Telegram turn](../../../../ledger-service/docs/usecases/handle-incoming-message.md) and [the web turn](../../../../ledger-service/docs/usecases/handle-written-message.md) |
-| Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)                                                                                                                                                                                                           |
+| Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)                                                                                                                                                                                                            |
 
 ## The token
 
@@ -41,16 +41,19 @@ What this boundary promises about it:
 
 ## Failures
 
-| Condition                                                                                     | Signal                                                               |
-|-----------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| No token is sent                                                                              | the call is refused as unauthenticated; the provider is never called |
-| The token's signature, expiry, issuer or audience does not hold                               | the same                                                             |
-| The token names no person, or no message                                                      | the same                                                             |
-| The ledger's key set cannot be read in time                                                   | the call fails as unavailable — the caller may retry                 |
-| A field breaks the rule the [schema](../../../../proto/intent_extraction.proto) states for it | rejected as an invalid argument; no call to the provider is made     |
-| The provider cannot be reached, refuses the call, or errors                                   | the call fails as unavailable — the caller may retry                 |
-| The ledger cannot be reached to record an expense                                             | the call fails as unavailable — the caller may retry                 |
-| Anything else fails inside the service                                                        | the call fails as unknown, with no internal detail in the failure    |
+| Condition                                                                                                        | Signal                                                               |
+|------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| No token is sent                                                                                                 | the call is refused as unauthenticated; the provider is never called |
+| The token's signature, expiry, issuer or audience does not hold                                                  | the same                                                             |
+| The token names no person, or no message                                                                         | the same                                                             |
+| The ledger's key set cannot be read in time                                                                      | the call fails as unavailable — the caller may retry               |
+| The text, the day or the currency is unusable; the groupings are empty, hold a blank name, or omit the catch-all | rejected as an invalid argument; no call to the provider is made     |
+| The provider cannot be reached, refuses the call, or errors                                                      | the call fails as unavailable — the caller may retry               |
+| The ledger cannot be reached to record an expense                                                                | the call fails as unavailable — the caller may retry               |
+| Anything else fails inside the service                                                                           | the call fails as unknown, with no internal detail in the failure    |
+
+The [schema](../../../../proto/intent_extraction.proto)'s rules for the catalogue, and for how the groupings
+match it, are not checked here: a call breaking one is not refused.
 
 ## Compatibility
 

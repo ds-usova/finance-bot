@@ -36,28 +36,28 @@ opens with.
 
 ## Collaborators
 
-| Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                                       |
-|-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                                   |
-| out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                                   |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | reading the currency that person's amounts are assumed to be in, the groupings their categories sit under, what this message left pending and what it spent, and recording where the report landed |
-| out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                                   |
-| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)                    | picking up the periods that message asked about, so each can be totalled                                  |
-| out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                                   |
-| out       | [Resolve a reported proposal](resolve-a-reported-proposal.md)                                                | [Outgoing replies](../contracts/out/telegram-replies.md)                          | handing over what the report lists, through the buttons it carries                                        |
+| Direction | Collaborator                                                                                                 | Through                                                                        | For                                                                                                                                                                                         |
+|-----------|--------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                       | delivering what a user typed to the bot                                                                                                                                                     |
+| out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                              | resolving the person who sent the message, creating them on first sight                                                                                                                     |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                 | reading the currency that person's amounts are assumed to be in, each grouping with its categories, what this message left pending and what it spent, and recording where the report landed |
+| out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md) | acting on whatever the message asks for, as that person                                                                                                                                     |
+| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)                 | picking up the periods that message asked about, so each can be totalled                                                                                                                    |
+| out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                       | putting the report in front of whoever sent the message                                                                                                                                     |
+| out       | [Resolve a reported proposal](resolve-a-reported-proposal.md)                                                | [Outgoing replies](../contracts/out/telegram-replies.md)                       | handing over what the report lists, through the buttons it carries                                                                                                                          |
 
 ## Outcomes
 
-| Outcome           | When                                                                                      | Result                                                                                   |
-|-------------------|-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| Message answered  | the person resolves and what the message produced can be read back                        | one report goes into the conversation, and an info line names the message and the person |
-| Message skipped   | the message names no sender or no conversation, or carries no text                        | nothing happens and the message is not seen again                                        |
-| Message rejected  | the message is absent                                                                     | invalid incoming message — nothing is looked up                                        |
-| Catch-all missing | the person's groupings do not carry the designated catch-all, or they have none           | the connector is never reached, no report is sent, and the failure reaches the caller    |
-| Currency unread   | the person's assumed currency cannot be read                                               | the turn runs, assuming no currency, and the failure is logged                           |
-| Storage failed    | the person cannot be resolved, their categories not read, or a read-back or a total fails | the failure reaches the caller and no report is sent                                     |
-| Delivery failed   | the report cannot be put in front of the user                                              | the failure reaches the caller; what was recorded stays recorded, and no location is kept |
-| Location unkept   | the report was delivered but where it landed cannot be stored                              | the turn stands, and nothing records where the report is                                 |
+| Outcome           | When                                                                                      | Result                                                                                    |
+|-------------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Message answered  | the person resolves and what the message produced can be read back                        | one report goes into the conversation, and an info line names the message and the person  |
+| Message skipped   | the message names no sender or no conversation, or carries no text                        | nothing happens and the message is not seen again                                         |
+| Message rejected  | the message is absent                                                                     | invalid incoming message — nothing is looked up                                         |
+| Catch-all missing | the person's groupings do not carry the designated catch-all, or they have none           | the connector is never reached, no report is sent, and the failure reaches the caller     |
+| Currency unread   | the person's assumed currency cannot be read                                              | the turn runs, assuming no currency, and the failure is logged                            |
+| Storage failed    | the person cannot be resolved, their categories not read, or a read-back or a total fails | the failure reaches the caller and no report is sent                                      |
+| Delivery failed   | the report cannot be put in front of the user                                             | the failure reaches the caller; what was recorded stays recorded, and no location is kept |
+| Location unkept   | the report was delivered but where it landed cannot be stored                             | the turn stands, and nothing records where the report is                                  |
 
 A failure of any kind is [logged, and its batch acknowledged with the rest](../contracts/in/telegram-updates.md).
 A connector that refuses the turn or cannot be reached is none of these outcomes: it is what the partial and
@@ -96,7 +96,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(intentExtractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(deliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report as a reply", $tags="telegramExternal")
   Component(preferenceRepositoryAdapter, "User Preference Repository Adapter", "Spring Data Relational", "Reads a person's chosen currency", $tags="dbExternal")
-  Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
+  Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads each grouping with its categories", $tags="dbExternal")
   Component(spendingQueryRepositoryAdapter, "Spending Query Repository Adapter", "Spring Data Relational", "Reads the periods a message asked about", $tags="dbExternal")
   Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads what a message left pending, and totals recorded spending by currency", $tags="dbExternal")
   Component(reportRepositoryAdapter, "Proposal Report Repository Adapter", "Spring Data Relational", "Records where a delivered report landed", $tags="dbExternal")
@@ -140,7 +140,7 @@ Rel_D(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(spendingQueryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(expenseRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(reportRepositoryAdapter, db, "SQL", "JDBC")
-Rel_D(intentExtractionAdapter, connector, "Text, groupings, today's date and a credential", "gRPC")
+Rel_D(intentExtractionAdapter, connector, "Text, catalogue, today's date and a credential", "gRPC")
 Rel_L(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
 Lay_R(messageDeliveryPort, preferenceRepositoryPort)
@@ -191,15 +191,15 @@ loop each message in the batch
     else the read answers
       DB --> UC : their chosen currency, or nothing
     end
-    UC -> DB : read the groupings holding at least one category
+    UC -> DB : read each grouping with its categories
     alt the store fails
       DB --> UC : storage failed, no report
     else the groupings do not carry the designated catch-all
       DB --> UC : the catch-all is missing, no report
-    else the groupings are read
+    else the catalogue is read
       UC -> UC : derive this message's own id
       UC -> UC : designate the catch-all grouping
-      UC -> AI : the text, the grouping names, the catch-all, the currency to assume, today's date, a credential naming the person and the message
+      UC -> AI : the text, the catalogue, the catch-all, the currency to assume, today's date, a credential naming the person and the message
       AI -> SS : whichever periods the message asked about
       SS -> DB : record each period under the message's id
       alt the turn completes

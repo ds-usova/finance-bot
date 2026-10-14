@@ -7,14 +7,14 @@ Where things are and what the module is built from.
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
 `src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
 
-| What                   | This module                                                                    |
-|------------------------|--------------------------------------------------------------------------------|
-| Language / framework   | Java 25, Spring Boot                                                           |
-| Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                        |
-| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else        |
-| Services consumed      | Telegram Bot API over HTTP, the AI Connector Service over gRPC                 |
-| APIs exposed           | [MCP](../contracts/in/mcp.md), and HTTP under `/api/v1` for the browser client |
-| Contract-first codegen | `proto/` for the AI connector, `openapi/` for the browser client               |
+| What                   | This module                                                                                                                                         |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Language / framework   | Java 25, Spring Boot                                                                                                                                |
+| Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                                                                                             |
+| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else                                                                             |
+| Services consumed      | Telegram Bot API over HTTP, the AI Connector Service over gRPC                                                                                      |
+| APIs exposed           | [MCP](../contracts/in/mcp.md), [the turn operations](../contracts/in/turn-operations.md) over gRPC, and HTTP under `/api/v1` for the browser client |
+| Contract-first codegen | `proto/` for the AI connector and the turn operations, `openapi/` for the browser client                                                            |
 
 Three things the table cannot carry:
 
