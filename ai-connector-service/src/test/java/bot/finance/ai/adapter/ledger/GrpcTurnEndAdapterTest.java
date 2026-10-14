@@ -9,7 +9,6 @@ import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.domain.value.MessageIdentity;
 import bot.finance.ai.domain.value.TurnEnd;
-import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -100,7 +99,7 @@ class GrpcTurnEndAdapterTest {
             assertThat(LedgerTurnStubs.recordedEnds()).singleElement().satisfies(call -> {
                 assertThat(call.method()).isEqualTo("EndTurn");
                 assertThat(call.authorization()).isEqualTo(token);
-                assertThat(((EndTurnRequest) call.request()).getEnd()).isEqualTo(wireValue);
+                assertThat(LedgerTurnStubs.endOf(call)).isEqualTo(wireValue);
             });
             assertThat(errors()).isEmpty();
         }

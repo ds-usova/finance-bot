@@ -6,7 +6,6 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.TurnEndPort;
 import bot.finance.ai.domain.exception.CallerNotIdentifiedException;
-import bot.finance.ai.domain.value.MessageIdentity;
 import bot.finance.ai.domain.value.TurnEnd;
 import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
 import bot.finance.ledger.adapter.grpc.v1.LedgerTurnEndServiceGrpc;
@@ -43,24 +42,24 @@ public class GrpcTurnEndAdapter implements TurnEndPort {
     public void report(TurnEnd end) {
         Optional<String> token = CallerTokenContext.callerToken();
         if (token.isEmpty()) {
-            logger.error("Turn end {} not reported, no caller token held, turn {}", end, turnKey());
+            logger.error("Turn end {} not reported, no caller token held, turn {}", end, CallerTokenContext.turnKey());
             return;
         }
+
         Optional<Instant> expiry = expiryOf(token.get());
         EndTurnRequest request = EndTurnRequest.newBuilder().setEnd(toWire(end)).build();
 
         while (true) {
-            StatusRuntimeException failure;
             try {
                 stub.withDeadlineAfter(properties.timeout().toMillis(), TimeUnit.MILLISECONDS)
                         .endTurn(request);
                 return;
             } catch (StatusRuntimeException e) {
-                failure = e;
-            }
-            if (!isTransient(failure) || !beforeExpiry(expiry) || !pause()) {
-                logger.error("Turn end {} not reported, turn {}: {}", end, turnKey(), failure.getStatus());
-                return;
+                if (!isTransient(e) || !beforeExpiry(expiry) || !pause()) {
+                    logger.error(
+                            "Turn end {} not reported, turn {}: {}", end, CallerTokenContext.turnKey(), e.getStatus());
+                    return;
+                }
             }
         }
     }
@@ -90,10 +89,6 @@ public class GrpcTurnEndAdapter implements TurnEndPort {
         } catch (CallerNotIdentifiedException e) {
             return Optional.empty();
         }
-    }
-
-    private static Optional<MessageIdentity> turnKey() {
-        return CallerTokenContext.turnKey();
     }
 
     private static bot.finance.ledger.adapter.grpc.v1.TurnEnd toWire(TurnEnd end) {

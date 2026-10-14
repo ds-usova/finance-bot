@@ -29,19 +29,12 @@ import org.junit.jupiter.api.Test;
 class RegisterMessageSystemTest extends AbstractMemorySystemTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
 
     private static void stubOneTurn() {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
         WireMockStubs.stubChatCompletionSequence(
-                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                ChatCompletionFixtures.toolCallResponse(
+                        ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                 ChatCompletionFixtures.textResponse("recorded"));
     }
 

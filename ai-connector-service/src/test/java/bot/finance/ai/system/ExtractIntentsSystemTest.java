@@ -21,7 +21,6 @@ import bot.finance.ai.common.stubs.ClassifierStubs;
 import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
-import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
 import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -44,24 +43,6 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     /** The grouping the scenarios file under — one of the fixture's own, so no literal is repeated. */
     private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
 
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
-
-    /** Waits for the one end the turn sends and returns it. */
-    private static RecordedCall awaitTheEnd() {
-        List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
-        assertThat(ends).hasSize(1);
-        return ends.getFirst();
-    }
-
-    private static TurnEnd endOf(RecordedCall call) {
-        return ((EndTurnRequest) call.request()).getEnd();
-    }
-
     private static String summarizeSpendingArguments(String from, String to) {
         return """
                 {"from":"%s","to":"%s"}""".formatted(from, to);
@@ -78,7 +59,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
@@ -86,7 +67,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            awaitTheEnd();
+            LedgerTurnStubs.awaitTheEnd();
 
             List<LoggedRequest> toolCalls = CapturedRequestUtils.toolCallRequests();
             assertThat(toolCalls).hasSize(1);
@@ -112,7 +93,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                             ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
                             "{\"grouping\":\"" + GROUPING + "\"}")),
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-2", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-2", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
@@ -123,7 +104,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            awaitTheEnd();
+            LedgerTurnStubs.awaitTheEnd();
 
             assertThat(CapturedRequestUtils.toolCallRequests("list_categories")).isEmpty();
             List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
@@ -153,7 +134,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            awaitTheEnd();
+            LedgerTurnStubs.awaitTheEnd();
 
             List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
             assertThat(summarizeSpendingCalls).hasSize(1);
@@ -173,12 +154,12 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
                     .extractIntents(RequestFixtures.request());
-            awaitTheEnd();
+            LedgerTurnStubs.awaitTheEnd();
 
             assertThat(WireMockSupport.SERVER.findAll(
                             postRequestedFor(urlPathEqualTo(ClassifierStubs.SYSTEM_ONE_PATH))))
@@ -202,8 +183,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
             assertThat(took).isLessThan(Duration.ofSeconds(1));
 
-            RecordedCall end = awaitTheEnd();
-            assertThat(endOf(end)).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
             assertThat(end.authorization()).isEqualTo(CALLER_TOKEN);
         }
 
@@ -228,8 +209,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            RecordedCall end = awaitTheEnd();
-            assertThat(endOf(end)).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
             assertThat(end.authorization()).isEqualTo(CALLER_TOKEN);
         }
 

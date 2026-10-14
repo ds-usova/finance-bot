@@ -19,7 +19,6 @@ import bot.finance.ai.common.stubs.CapturedRequestUtils;
 import bot.finance.ai.common.stubs.ClassifierStubs;
 import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
-import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
 import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -71,10 +70,9 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
 
-            List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
-            assertThat(ends).hasSize(1);
-            assertThat(((EndTurnRequest) ends.getFirst().request()).getEnd()).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
-            assertThat(ends.getFirst().authorization()).isEqualTo(CALLER_TOKEN);
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
+            assertThat(end.authorization()).isEqualTo(CALLER_TOKEN);
 
             List<RecordedCall> calls = LedgerTurnStubs.recordedCalls();
             assertThat(calls).hasSize(1);
@@ -122,9 +120,7 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
-            assertThat(ends).hasSize(1);
-            assertThat(((EndTurnRequest) ends.getFirst().request()).getEnd()).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
+            assertThat(LedgerTurnStubs.endOf(LedgerTurnStubs.awaitTheEnd())).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
             assertThat(LedgerTurnStubs.recordedCalls()).hasSize(1);
         }
     }

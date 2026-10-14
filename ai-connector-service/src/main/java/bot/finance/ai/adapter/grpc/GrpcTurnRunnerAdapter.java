@@ -82,20 +82,9 @@ public class GrpcTurnRunnerAdapter implements TurnRunnerPort {
     }
 
     private TurnEnd runWithinTimeout(Supplier<TurnEnd> turn) {
-        Thread turnThread = Thread.currentThread();
-        Object guard = new Object();
-        boolean[] state = new boolean[2]; // [0] finished, [1] timed out
-        ScheduledFuture<?> timeout = timeouts.schedule(
-                () -> {
-                    synchronized (guard) {
-                        if (!state[0]) {
-                            state[1] = true;
-                            turnThread.interrupt();
-                        }
-                    }
-                },
-                properties.turnTimeout().toMillis(),
-                TimeUnit.MILLISECONDS);
+        TurnWatch watch = new TurnWatch(Thread.currentThread());
+        ScheduledFuture<?> timeout =
+                timeouts.schedule(watch::expire, properties.turnTimeout().toMillis(), TimeUnit.MILLISECONDS);
 
         TurnEnd answer;
         try {
@@ -104,12 +93,7 @@ public class GrpcTurnRunnerAdapter implements TurnRunnerPort {
             answer = TurnEnd.FAILED;
         }
 
-        synchronized (guard) {
-            state[0] = true;
-            timeout.cancel(false);
-            Thread.interrupted();
-            return state[1] ? TurnEnd.UNAVAILABLE : answer;
-        }
+        return watch.finish(timeout) ? TurnEnd.UNAVAILABLE : answer;
     }
 
     private synchronized void release(MessageIdentity turnKey) {
@@ -125,5 +109,35 @@ public class GrpcTurnRunnerAdapter implements TurnRunnerPort {
             thread.setDaemon(true);
             return thread;
         };
+    }
+
+    /** Interrupts the turn's thread at the timeout, unless the turn finished first. */
+    private static final class TurnWatch {
+
+        private final Thread turnThread;
+        private boolean finished;
+        private boolean timedOut;
+
+        TurnWatch(Thread turnThread) {
+            this.turnThread = turnThread;
+        }
+
+        synchronized void expire() {
+            if (!finished) {
+                timedOut = true;
+                turnThread.interrupt();
+            }
+        }
+
+        /**
+         * Called on the turn's thread once the turn returns: cancels the timeout and clears any interrupt it
+         * delivered, so the end runs uninterrupted. Answers whether the timeout fired first.
+         */
+        synchronized boolean finish(ScheduledFuture<?> timeout) {
+            finished = true;
+            timeout.cancel(false);
+            Thread.interrupted();
+            return timedOut;
+        }
     }
 }

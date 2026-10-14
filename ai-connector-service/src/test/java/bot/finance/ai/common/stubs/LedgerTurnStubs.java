@@ -1,10 +1,13 @@
 package bot.finance.ai.common.stubs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.ai.common.containers.LedgerTurnServer;
 import bot.finance.ai.common.containers.LedgerTurnServer.Outcome;
 import bot.finance.ai.common.containers.LedgerTurnServer.RecordedCall;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
@@ -51,11 +54,21 @@ public final class LedgerTurnStubs {
         return LedgerTurnServer.recordedEnds();
     }
 
-    /** Waits until {@code count} ends are recorded and returns them. */
     public static List<RecordedCall> awaitEnds(int count) {
         await().atMost(Duration.ofSeconds(10))
                 .until(() -> LedgerTurnServer.recordedEnds().size() >= count);
         return LedgerTurnServer.recordedEnds();
+    }
+
+    /** Waits for the one end a turn sends, asserts it is the only one, and returns it. */
+    public static RecordedCall awaitTheEnd() {
+        List<RecordedCall> ends = awaitEnds(1);
+        assertThat(ends).hasSize(1);
+        return ends.getFirst();
+    }
+
+    public static TurnEnd endOf(RecordedCall end) {
+        return ((EndTurnRequest) end.request()).getEnd();
     }
 
     public static void reset() {

@@ -14,10 +14,8 @@ import bot.finance.ai.common.stubs.CapturedRequestUtils;
 import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
-import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
 import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,19 +29,6 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource(properties = {"extraction.max-turns=1", "extraction.turn-timeout=3s"})
 class TurnRunSystemTest extends AbstractSystemTest {
-
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
-
-    private static TurnEnd endOf(RecordedCall call) {
-        return ((EndTurnRequest) call.request()).getEnd();
-    }
 
     @Nested
     @DisplayName("happy path")
@@ -91,9 +76,7 @@ class TurnRunSystemTest extends AbstractSystemTest {
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
             assertThat(LedgerTurnStubs.recordedEnds()).isEmpty();
 
-            List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
-            assertThat(ends).hasSize(1);
-            assertThat(endOf(ends.getFirst())).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
+            assertThat(LedgerTurnStubs.endOf(LedgerTurnStubs.awaitTheEnd())).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
         }
     }
 
@@ -109,7 +92,7 @@ class TurnRunSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionDelayed(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     Duration.ofSeconds(6));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, token)
@@ -117,10 +100,9 @@ class TurnRunSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
-            List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
-            assertThat(ends).hasSize(1);
-            assertThat(endOf(ends.getFirst())).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
-            assertThat(ends.getFirst().authorization()).isEqualTo(token);
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
+            assertThat(end.authorization()).isEqualTo(token);
 
             await().during(Duration.ofSeconds(4))
                     .atMost(Duration.ofSeconds(8))

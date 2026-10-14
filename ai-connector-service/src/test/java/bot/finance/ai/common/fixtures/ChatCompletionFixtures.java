@@ -56,6 +56,14 @@ public final class ChatCompletionFixtures {
                 .formatted(id, functionName, quote(argumentsJson));
     }
 
+    /** {@code create_expense_proposal} arguments for a 15.00 EUR lunch at Deli Co, under the first default grouping. */
+    public static String lunchProposalArguments() {
+        return """
+                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
+                "currencyCode":"EUR","merchant":"Deli Co"}"""
+                .formatted(RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst());
+    }
+
     /**
      * A chat-completion response whose {@code message} carries one or more tool calls and no content — how the
      * model asks for a tool to run.
