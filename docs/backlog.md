@@ -132,8 +132,7 @@ never changes once given.
 - **Raised by** task 51, 2026-10-13 · [origin](51-the-ledger-takes-a-turns-writes-over-http/design-log.md)
 - **What** once the extraction request carries the whole catalogue, the connector answers the model's
   `list_categories` call itself instead of calling the ledger. The model still asks one grouping at a time, and the
-  catalogue never enters its prompt. The evaluation case expecting a ledger-side `list_categories` call changes
-  with it
+  catalogue never enters its prompt
 - **Why** one network round trip per grouping asked about, for an answer the request already holds (task 51, DN01)
 
 ### BT09 · `eval-runner` — measure a classifier turn

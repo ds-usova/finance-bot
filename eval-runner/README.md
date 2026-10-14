@@ -36,7 +36,9 @@ when it exits.
 MCP calls, proposals and timings.
 
 The output is rewritten after every attempt, so an interrupted run keeps what it finished. `compare` writes the two
-summaries as a Markdown table to `compare.md` beside the second file, then the cases whose pass count moved.
+summaries as a Markdown table to `compare.md` beside the second file, then the cases whose pass count moved. The
+table opens with each run's extraction mode. A run's summary records the mode its attempts measured, or `mixed`
+where they measured more than one.
 
 ## What It Needs Running
 
@@ -45,8 +47,8 @@ What `eval.sh` sets up, for a run against another stack with `eval-runner/gradle
 | Service              | Reached at                                        | For                                                                                                                 |
 |----------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | Ledger REST          | `EVAL_LEDGER_URL`                                 | signing in, filing messages, reading proposals                                                                      |
-| Ledger metrics       | `EVAL_LEDGER_METRICS_URL`                         | tool-call deltas                                                                                                    |
-| AI Connector metrics | `EVAL_CONNECTOR_METRICS_URL`                      | provider chat calls, duration and tokens per target                                                                 |
+| Ledger metrics       | `EVAL_LEDGER_METRICS_URL`                         | ledger tool calls per target, over MCP or gRPC                                                                      |
+| AI Connector metrics | `EVAL_CONNECTOR_METRICS_URL`                      | provider chat calls, duration and tokens, extraction mode, classifier calls per target                              |
 | AI Connector DB      | `EVAL_AI_DB_URL`, `_USER`, `_PASSWORD`            | memory readiness, read only                                                                                         |
 | Ledger console       | `EVAL_LEDGER_LOG`, a file the console is saved to | the `turn_call` lines a case's `mcpCalls` is checked against; the ledger must run with `TURN_CALL_LOG_ENABLED=true` |
 
@@ -62,9 +64,12 @@ memory readiness.
 
 ## Measurements
 
-| Field                                 | Source                                                                                   |
-|---------------------------------------|------------------------------------------------------------------------------------------|
-| `targetTurnMs`                        | from the accepted `POST /api/v1/messages` to the first `DONE` poll                       |
-| `usage.providerChatCalls`, `…Seconds` | `gen_ai_client_operation_seconds` for `chat`, scraped before filing and after inspection |
-| `usage.inputTokens`, `outputTokens`   | `gen_ai_client_token_usage_total`, the same window                                       |
-| `learning.<id>.availabilityMs`        | from the decision to memory readiness                                                    |
+| Field                                        | Source                                                                                                  |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| `targetTurnMs`                               | from the accepted `POST /api/v1/messages` to the first `DONE` poll                                      |
+| `usage.providerChatCalls`, `…Seconds`        | `gen_ai_client_operation_seconds` for `chat`, scraped before filing and after inspection                |
+| `usage.inputTokens`, `outputTokens`          | `gen_ai_client_token_usage_total`, the same window                                                      |
+| `usage.extractionMode`                       | the one `mode` of `ai_turns_total` that grew, the same window, or null                                  |
+| `usage.classifierCalls`, `classifierSeconds` | `ai_classifier_seconds`, every outcome, the same window                                                 |
+| `usage.ledgerToolCalls`                      | `ledger_mcp_tool_calls_total`, or where it stays 0, `grpc_server_seconds_count` for `LedgerTurnService` |
+| `learning.<id>.availabilityMs`               | from the decision to memory readiness                                                                   |
