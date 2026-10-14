@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB06 · BR00 · BT10 · BP00
+**Last ids:** BB06 · BR01 · BT10 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -84,6 +84,14 @@ never changes once given.
   that an active turn's queries are preserved.
 - **Why** found while reviewing the evaluation spending-question cases; confirmed by reading the implementation,
   not yet reproduced by a test
+
+### BR01 · `ledger-service` — remove `CategoryEntityRepository.findNonEmptyGroupingNames`
+
+- **Kind** refactoring candidate · **Priority** normal · **Size** S
+- **Raised by** task 51, 2026-10-14 · [origin](implemented/51-the-ledger-takes-a-turns-writes-over-http/review/findings.md)
+- **What** remove `CategoryEntityRepository.findNonEmptyGroupingNames`
+- **Why** the catalogue read replaced it; 1 declaration and 0 callers in ledger-service/src, left by the refactor
+  pass as outside its diff
 
 ### BT04 · `web-app` — discard a pending entry from the expenses page
 
