@@ -87,6 +87,8 @@
   endpoint in both, as the unhappy test does.
 - **RL08 (RS01):** hypothesis: `ExtractIntentsSystemTest.whenProviderAnswersAfterOneSecond_…` has the same gap and
   passes only because an earlier test in the class initialised the shared MCP client — settled by running it alone.
+  - Resolved: confirmed at Phase 3 — run alone it ended `TURN_END_UNAVAILABLE`. The test now stubs the ledger's MCP
+    endpoint, as RL07 did; alone and with its class (7 of 7) it passes. The task's evidence run measures the suite.
 - **RL09 (RS01):** the post-green full suite (629 total, 1 failed) failed `DisplayNameConventionsTest`: six new
   display names reach 120 characters or more, in `CallerTokenInterceptorTest`, `IntentExtractionGrpcServiceTest`,
   `GrpcTurnEndAdapterTest`, `ClassifierTurnTest`, `ExtractIntentsSystemTest` and `TurnRunSystemTest`. Re-delegated
