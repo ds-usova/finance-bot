@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-10-14
-- **Source:** [The Connector Files with a Classifier](../52-the-connector-files-with-a-classifier/spec.md)
+- **Source:** [The Connector Files a Message's Spending with a Classifier](../implemented/52-the-connector-files-with-a-classifier/plan.md)
 
 ## Context
 

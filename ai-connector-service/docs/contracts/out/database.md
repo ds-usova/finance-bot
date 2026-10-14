@@ -103,6 +103,8 @@ One row per expense the ledger made of a message, as a
 | `updated_at`                  | when this service last wrote the row, from its own clock                                      |
 
 - The row's own `id` is its arrival order.
+- A row reads back as an [example expense](../../domain/example-expense.md): its description, merchant, amount,
+  currency, category and grouping names, and its status as the example's outcome.
 
 ### `stream_entry_failure`
 

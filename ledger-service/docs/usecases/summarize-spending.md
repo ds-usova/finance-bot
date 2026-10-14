@@ -17,7 +17,7 @@
 | Direction | Collaborator                                                                                                 | Through                                                                            | For                                                                  |
 |-----------|--------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|----------------------------------------------------------------------|
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the summarize spending tool](../contracts/in/mcp.md)                      | asking about the period it read out of its caller's message          |
-| in        | [The AI connector filing a turn's results](../contracts/in/turn-operations.md)                               | [Turn operations — record a spending period](../contracts/in/turn-operations.md) | recording a period a turn read from a message                        |
+| in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [Turn operations — record a spending period](../contracts/in/turn-operations.md) | recording a period a turn read from a message                        |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                     | resolving the identity, and recording the period against the message |
 
 ## Outcomes

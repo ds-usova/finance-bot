@@ -11,11 +11,11 @@ read from this service's own store afterwards.
 
 ## Operations
 
-| Operation                      | Purpose                                        | Used by                                                                                                                                                                                                    |
-|--------------------------------|------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Extract intents                | act on what a message asks for                 | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md)          |
+| Operation                      | Purpose                                        | Used by                                                                                                                                                                                                   |
+|--------------------------------|------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Extract intents                | act on what a message asks for                 | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md)         |
 | Extract intents                | act on what a text filed from the web asks for | [Act on a text filed from the web](../../usecases/handle-written-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
-| Check the connector is serving | whether the connector is answering at all      | this service's health endpoint                                                                                                                                                                             |
+| Check the connector is serving | whether the connector is answering at all      | this service's health endpoint                                                                                                                                                                            |
 
 ## What crosses
 
@@ -24,12 +24,13 @@ credential naming the user rides the call rather than the payload.
 
 ## What this service decides
 
-- Nothing depends on the position of a grouping or a category.
+- Nothing depends on a grouping's position.
 - One grouping is designated the catch-all, so a fit always exists.
 - That catch-all is [the one every catalogue starts with](../../domain/grouping.md), and nothing else.
 - An invalid request is refused where it is built, so it never crosses.
 - The day the turn runs on comes from this service's own clock. No user's own time zone is recorded anywhere.
-- The period itself never crosses here; it arrives over [the tool the connector calls back on](../in/mcp.md).
+- What the turn records never crosses here. The connector calls back with it, over [the tools](../in/mcp.md) or
+  over [the turn operations](../in/turn-operations.md).
 - The credential is minted per call.
 - Nothing riding it is part of what the schema agreed. Its whole path is
   [drawn where it is spent](../in/mcp.md#how-a-caller-authenticates).
@@ -38,12 +39,11 @@ credential naming the user rides the call rather than the payload.
 ## Timing
 
 - A call must answer within `spring.grpc.client.channel.ai-connector.default.deadline`.
-- That deadline covers the whole model-driven loop: listing the tools, then a provider call and a callback per
-  expense, per period asked about, and per retry.
+- That deadline covers the whole turn, whichever way the connector files it.
 - Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
   mints, then the call's deadline, then the connector's own per-callback timeout.
 - One slow callback cannot spend the turn.
-- A call that runs out of time is abandoned here while the connector runs on.
+- A call that runs out of time is abandoned here.
 - What was recorded before a failure here still reaches the user.
 
 ## Health
@@ -72,4 +72,4 @@ credential naming the user rides the call rather than the payload.
 - The key set this service publishes is part of this boundary. Moving it, or withdrawing it, stops every turn
   before the connector begins one.
 - Pointing at a different connector is an address change and nothing else. That connector must still reach this
-  service's key set and its tools, with the credential it was given.
+  service's key set, and its tools or its turn operations, with the credential it was given.

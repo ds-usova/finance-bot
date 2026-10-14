@@ -32,6 +32,11 @@ What this boundary promises about it:
   what a kept message is [filed under](../../domain/message-identity.md).
 - Everything else on it is opaque here, and the whole token is forwarded to the ledger untouched.
 
+## Either mode
+
+- The caller cannot tell which [extraction mode](../../domain/extraction-mode.md) ran.
+- The request, the answer and every status are the same in both.
+
 ## What is kept of a call
 
 - Never answered back over this boundary. What is kept is
@@ -48,12 +53,15 @@ What this boundary promises about it:
 | The token names no person, or no message                                                                         | the same                                                             |
 | The ledger's key set cannot be read in time                                                                      | the call fails as unavailable — the caller may retry               |
 | The text, the day or the currency is unusable; the groupings are empty, hold a blank name, or omit the catch-all | rejected as an invalid argument; no call to the provider is made     |
+| The catalogue breaks the schema's rules for it and the groupings                                                 | the same                                                             |
+| The catalogue names a grouping twice, or one entry a category twice, or holds a blank name                       | the same                                                             |
 | The provider cannot be reached, refuses the call, or errors                                                      | the call fails as unavailable — the caller may retry               |
-| The ledger cannot be reached to record an expense                                                                | the call fails as unavailable — the caller may retry               |
+| The model's read-out does not fit its shape                                                                      | the same                                                             |
+| The ledger cannot be reached to record an expense                                                                | the same                                                             |
+| A ledger turn operation answers anything but an invalid argument, or not in time                                 | the same                                                             |
 | Anything else fails inside the service                                                                           | the call fails as unknown, with no internal detail in the failure    |
 
-The [schema](../../../../proto/intent_extraction.proto)'s rules for the catalogue, and for how the groupings
-match it, are not checked here: a call breaking one is not refused.
+The schema's alphabetical order for the catalogue is not checked here.
 
 ## Compatibility
 

@@ -2,7 +2,9 @@
 
 The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC
 and puts it to a language model with the Ledger Service's tools attached, so the model records each expense the
-message names, as the caller whose token arrived with the request.
+message names, as the caller whose token arrived with the request. With `EXTRACTION_MODE` at `classifier`, the
+model only reads the message out, a classifier picks each expense's category, and the service files the result
+through the ledger's turn operations itself.
 
 What the service keeps of a call is the message itself, stored under the person and the message the caller's
 token names, for as long as `MEMORY_MAX_AGE` allows. Beside each message it records what the ledger made of it —
@@ -28,6 +30,8 @@ Package structure is in the
 - [An operator running the service — health and meters](docs/contracts/in/operations.md) (inbound)
 - [AI provider — reading and embedding a message](docs/contracts/out/ai-provider.md) (outbound)
 - [Ledger Service — the ledger's tools and its key set](docs/contracts/out/ledger-mcp.md) (outbound)
+- [Ledger Service — the turn operations](docs/contracts/out/ledger-turn.md) (outbound)
+- [Category classifier — picking each expense's category](docs/contracts/out/classifier.md) (outbound)
 - [Ledger Service — the change stream](docs/contracts/out/change-stream.md) (outbound)
 - [The connector's database](docs/contracts/out/database.md) (outbound)
 
@@ -50,6 +54,7 @@ AddRelTag("implements", $lineStyle="dashed")
 
 Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service, publishes its signing key", $tags="callerExternal")
 System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", $tags="aiExternal")
+System_Ext(classifier, "Category Classifier", "TypeSafe System One", $tags="aiExternal")
 ContainerDb(store, "finance_ai", "PostgreSQL", "The messages received, and what the ledger made of them")
 ContainerQueue(changeStream, "Change stream", "Redis, ledger.cdc", "Every fact the ledger publishes about a piece of spending", $tags="callerExternal")
 
@@ -58,8 +63,17 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Verifies the call's token and holds it for its duration", $tags="callerExternal")
   Component(tokenVerifier, "Caller Token Verifier", "JWT decoder", "Checks the token against the ledger's key set, reads the person and the message", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Registers the message, then hands the turn on", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Registers the message, then runs the configured turn", $tags="core")
   Component(currency, "Currency Code", "Domain value object", "An ISO 4217 code", $tags="core")
+  Component(toolTurn, "Tool-Calling Turn", "Plain Java", "The default turn: the model files through the tools", $tags="core")
+  Component(classifierTurn, "Classifier Turn", "Plain Java", "Reads out, classifies, files each expense itself", $tags="core")
+
+  Component(readOutPort, "Spending Read-Out Port", "Interface", "Outbound port", $tags="portOut")
+  Component(readOutAdapter, "Spending Read-Out Adapter", "Spring AI ChatClient", "Reads the expenses and periods out, no tools", $tags="aiExternal")
+  Component(classifierPort, "Category Classifier Port", "Interface", "Outbound port", $tags="portOut")
+  Component(classifierAdapter, "Category Classifier Adapter", "RestClient", "Asks one question per expense", $tags="aiExternal")
+  Component(ledgerTurnPort, "Ledger Turn Port", "Interface", "Outbound port", $tags="portOut")
+  Component(ledgerTurnAdapter, "Ledger Turn Adapter", "gRPC client", "Files an expense, records a period, as the turn's caller", $tags="callerExternal")
 
   Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
   Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the ledger's tools attached", $tags="aiExternal")
@@ -84,7 +98,19 @@ Rel_R(grpcService, extractIntentsPort, "Invokes")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
 Rel_D(grpcService, currency, "Validates the assumed currency with")
 
-Rel_R(useCase, recordingPort, "Uses")
+Rel_R(useCase, toolTurn, "Runs, tools mode")
+Rel_R(useCase, classifierTurn, "Runs, classifier mode")
+Rel_R(toolTurn, recordingPort, "Uses")
+Rel_D(classifierTurn, readOutPort, "Reads out through")
+Rel_D(classifierTurn, classifierPort, "Classifies through")
+Rel_D(classifierTurn, ledgerTurnPort, "Files through")
+Rel_U(readOutAdapter, readOutPort, "Implements", $tags="implements")
+Rel_U(classifierAdapter, classifierPort, "Implements", $tags="implements")
+Rel_U(ledgerTurnAdapter, ledgerTurnPort, "Implements", $tags="implements")
+Rel(readOutAdapter, aiProvider, "Message, today, read-out schema", "HTTPS")
+Rel(classifierAdapter, classifier, "POST /v1/systemone", "HTTPS")
+Rel(ledgerTurnAdapter, tokenInterceptor, "Reads the token from")
+Rel(ledgerTurnAdapter, ledger, "FileExpenseProposal, RecordSpendingPeriod", "gRPC")
 Rel_L(recordingAdapter, recordingPort, "Implements", $tags="implements")
 Rel_R(recordingAdapter, aiProvider, "Message, groupings, tool schemas", "HTTPS")
 Rel_U(recordingAdapter, toolClient, "Attaches the ledger's tools from")
@@ -117,6 +143,6 @@ Because gRPC server reflection is enabled, the running service can be explored w
 grpcurl -plaintext localhost:1001 list
 grpcurl -plaintext \
   -H 'authorization: Bearer <jwt>' \
-  -d '{"text":"spent 15 on lunch","category_groupings":["Dining","Miscellaneous"],"catch_all_grouping":"Miscellaneous","current_date":"2026-08-05","default_currency":"EUR"}' \
+  -d '{"text":"spent 15 on lunch","category_groupings":["Dining","Miscellaneous"],"catch_all_grouping":"Miscellaneous","current_date":"2026-08-05","default_currency":"EUR","catalogue":[{"grouping":"Dining","categories":["Restaurants"]},{"grouping":"Miscellaneous","categories":["Uncategorized Expenses"]}]}' \
   localhost:1001 bot.finance.ai.v1.IntentExtractionService/ExtractIntents
 ```

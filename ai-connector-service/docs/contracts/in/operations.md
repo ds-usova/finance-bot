@@ -41,18 +41,23 @@ The framework's, from the calls it makes on the service's behalf:
 
 The service's own:
 
-| Meter                             | Kind                 | Says                                                                                                                                          |
-|-----------------------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `ai_recall_examples_*`            | distribution summary | how many worked examples a recall that searched came back with                                                                                |
-| `ai_recall_best_similarity_*`     | distribution summary | how close the closest of them was, on a recall that came back with any                                                                        |
-| `ai_cdc_entries_pending`          | gauge                | [the group's pending summary](../out/change-stream.md#operations), identical from every instance — a panel takes the maximum, never the sum |
-| `ai_cdc_deliveries_dropped_total` | counter              | deliveries [given up on](../../usecases/learn-message-outcome.md#outcomes)                                                                    |
+| Meter                                | Kind                 | Says                                                                                                                                                |
+|--------------------------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ai_turns_total`                     | counter              | each turn [once](../../usecases/extract-intents.md#outcomes), tagged by `mode`, `tools` or `classifier`, and `outcome`, `acted_on` or `unavailable` |
+| `ai_classifier_seconds_*`            | timer                | how long a classifier call took, tagged by `outcome`, `answered` or `failed`                                                                        |
+| `ai_classifier_confidence_*`         | distribution summary | each expense's confidence, on a classifier call that answered                                                                                       |
+| `ai_classifier_low_confidence_total` | counter              | expenses filed under the catch-all for [low confidence](../../usecases/extract-intents.md#outcomes)                                                 |
+| `ai_recall_examples_*`               | distribution summary | how many worked examples a recall that searched came back with                                                                                      |
+| `ai_recall_best_similarity_*`        | distribution summary | how close the closest of them was, on a recall that came back with any                                                                              |
+| `ai_cdc_entries_pending`             | gauge                | [the group's pending summary](../out/change-stream.md#operations), identical from every instance — a panel takes the maximum, never the sum       |
+| `ai_cdc_deliveries_dropped_total`    | counter              | deliveries [given up on](../../usecases/learn-message-outcome.md#outcomes)                                                                          |
 
 - The pending gauge is what the group holds undone, not a backlog: entries nobody has read yet, and a consumer
   that is down, both read zero.
 - Before the first successful pending read the gauge answers `NaN`, which no panel plots as a value. Whether
   the value is stale is what [the health endpoint](#health) says.
-- With the memory switched off every `ai_` meter is absent — [configuration](../../configuration.md).
+- With the memory switched off every `ai_` meter but the four turn meters is absent —
+  [configuration](../../configuration.md).
 
 ## Compatibility
 

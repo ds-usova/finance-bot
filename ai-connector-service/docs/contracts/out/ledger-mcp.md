@@ -1,7 +1,7 @@
 # Ledger Service — the ledger's tools (MCP over HTTP)
 
-The model calls the ledger's tools itself. This service carries the calls and forwards the caller's token. It also
-reads the keys the ledger signs that token with.
+In the tools mode, the model calls the ledger's tools itself. This service carries the calls and forwards the
+caller's token. In either mode it reads the keys the ledger signs that token with.
 
 - **Counterpart:** [the ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) — what each
   tool takes, answers, and refuses, and
@@ -19,7 +19,8 @@ reads the keys the ledger signs that token with.
 | `create_expense_proposal` | to record one expense                 | [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md)     |
 | `summarize_spending`      | to answer what the caller spent       | [Summarize spending over a period](../../../../ledger-service/docs/usecases/summarize-spending.md)       |
 
-Every one is driven by [Record the spending a user's message names](../../usecases/extract-intents.md).
+Every one is driven by [Record the spending a user's message names](../../usecases/extract-intents.md), in the
+tools mode only. The classifier mode files through [the turn operations](ledger-turn.md) instead.
 
 ## What this service does
 
@@ -55,6 +56,7 @@ A summary answers the period the ledger accepted, never an amount, so no total e
 - A grouping is looked up before an expense is filed under it. Reusing a listing from the same turn is allowed.
 - A lookup stores nothing, so repeating one changes nothing.
 - Recording is not deduplicated. The same message handled twice records two proposals.
+- A turn whose extraction call has run out of time runs on, and goes on calling the tools.
 
 A refusal is a tool result flagged as an error. It reaches the model as that call's answer and never ends the
 turn:

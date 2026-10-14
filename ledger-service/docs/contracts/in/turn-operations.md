@@ -2,19 +2,19 @@
 
 A turn's writes, filed as the person the turn is for and under the message it is about.
 
-- **Counterpart:** the AI Connector Service, filing a turn's results itself. Nothing in this repository calls these
-  operations yet.
+- **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-turn.md),
+  filing a turn's results itself
 - **Transport:** gRPC, plaintext, on `LEDGER_GRPC_PORT`, a port of its own beside the service's HTTP port
 - **Schema:** [`proto/ledger_turn.proto`](../../../../proto/ledger_turn.proto), shared at the repository root
 
 ## Operations
 
-| Operation              | Purpose                                                   | Used by                                                                    |
-|------------------------|-----------------------------------------------------------|----------------------------------------------------------------------------|
-| `FileExpenseProposal`  | files one expense the turn read from the message, pending | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
-| `RecordSpendingPeriod` | records a period the message asked about                  | [Summarize spending over a period](../../usecases/summarize-spending.md)   |
-| Health check           | whether the server is serving                             | anyone reaching the port                                                   |
-| Reflection             | which services the port serves                            | anyone reaching the port                                                   |
+| Operation              | Purpose                                                   | Used by                                                                                                                                                                                               |
+|------------------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `FileExpenseProposal`  | files one expense the turn read from the message, pending | [Create an expense proposal](../../usecases/create-an-expense-proposal.md); called by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
+| `RecordSpendingPeriod` | records a period the message asked about                  | [Summarize spending over a period](../../usecases/summarize-spending.md); called by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md)   |
+| Health check           | whether the server is serving                             | anyone reaching the port                                                                                                                                                                              |
+| Reflection             | which services the port serves                            | anyone reaching the port                                                                                                                                                                              |
 
 ## Who may call
 
