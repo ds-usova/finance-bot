@@ -53,6 +53,9 @@ public class MicrometerTurnMeters implements TurnMeters {
 
     @Override
     public void countCategoryLookup(boolean answered) {
-        // stub-intent: increments ai_category_lookups_total tagged outcome=answered or outcome=refused
+        Counter.builder(MeterName.CATEGORY_LOOKUPS.meterName())
+                .tag("outcome", answered ? "answered" : "refused")
+                .register(meterRegistry)
+                .increment();
     }
 }

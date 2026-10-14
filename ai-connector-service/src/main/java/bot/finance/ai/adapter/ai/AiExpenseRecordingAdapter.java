@@ -10,13 +10,16 @@ import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageExample;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -79,13 +82,24 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             String answer = chatClient
                     .prompt()
                     .user(userMessage)
-                    .tools(ledgerToolCallbackProvider)
+                    .toolCallbacks(turnTools(catalogue))
                     .call()
                     .content();
             logger.debug("model's final answer: {}", answer);
         } catch (RuntimeException e) {
             throw new ExpenseRecordingFailedException("Failed to record expenses via provider", e);
         }
+    }
+
+    private List<ToolCallback> turnTools(List<CatalogueEntry> catalogue) {
+        ToolCallback lookup = new CategoryLookupToolCallback(catalogue, turnMeters);
+        String lookupName = lookup.getToolDefinition().name();
+        return Stream.concat(
+                        Arrays.stream(ledgerToolCallbackProvider.getToolCallbacks())
+                                .filter(callback -> !lookupName.equals(
+                                        callback.getToolDefinition().name())),
+                        Stream.of(lookup))
+                .toList();
     }
 
     private String renderExamplesSection(Optional<List<MessageExample>> examples) {

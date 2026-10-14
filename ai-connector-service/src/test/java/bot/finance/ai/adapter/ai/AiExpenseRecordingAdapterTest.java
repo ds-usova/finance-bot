@@ -324,9 +324,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider looks a grouping up and records - then the lookup's result carries the "
-                + "catalogue's category, the ledger receives no list_categories request and the create call "
-                + "reaches it under the turn's token")
+        @DisplayName("when the provider looks a grouping up - then the lookup carries the category "
+                + "and the ledger sees only create")
         void whenProviderLooksGroupingUpThenRecords_thenResultCarriesCategoryAndLedgerReceivesOnlyCreateCall() {
             stubLookupThenProposalTurn(LOOKUP_GROUPING);
 
@@ -341,9 +340,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider looks up a name the catalogue holds only as a category and records - then "
-                + "the refusal text reaches it as that call's result and the ledger receives no list_categories "
-                + "request")
+        @DisplayName("when the provider looks up a category name - then it gets the refusal "
+                + "and the ledger sees no list_categories")
         void whenProviderLooksUpCategoryNameThenRecords_thenRefusalReachesProviderAndCreateCallReachesLedger() {
             stubLookupThenProposalTurn("Lunch");
 
@@ -356,8 +354,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the ledger's stub publishes its own list_categories - then the provider's request "
-                + "offers it with the ledger's real description")
+        @DisplayName("when the ledger publishes list_categories - then the provider is offered "
+                + "the ledger's real description")
         void whenLedgerPublishesListCategories_thenProviderIsOfferedTheLedgersRealDescription() {
             JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
 
@@ -367,8 +365,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when two turns' catalogues give the grouping different categories - then each lookup's "
-                + "result carries only its own turn's categories")
+        @DisplayName("when two turns' catalogues differ for a grouping - then each lookup "
+                + "carries only its own turn's categories")
         void whenTwoTurnsLookTheSameGroupingUp_thenEachResultCarriesOnlyItsOwnTurnsCategories() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(

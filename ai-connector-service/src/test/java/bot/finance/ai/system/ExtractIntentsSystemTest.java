@@ -82,8 +82,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when the provider looks up a grouping in the request's catalogue and then records - then the "
-                + "ledger receives only the proposal under the token and the lookup counts as answered")
+        @DisplayName("when the provider looks up a catalogued grouping - then only the proposal reaches the ledger "
+                + "and the lookup counts")
         void whenProviderLooksUpCataloguedGroupingThenRecords_thenLedgerReceivesOnlyProposalAndLookupCountsAnswered() {
             String lookups = MeterName.CATEGORY_LOOKUPS.meterName();
             double before = sampleOrZero(scrape(actuatorPort), lookups, "outcome=\"answered\"");

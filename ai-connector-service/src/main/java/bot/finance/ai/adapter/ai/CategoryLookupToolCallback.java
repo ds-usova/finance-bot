@@ -2,9 +2,13 @@ package bot.finance.ai.adapter.ai;
 
 import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.domain.value.CatalogueEntry;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.tool.execution.ToolExecutionException;
 
 public class CategoryLookupToolCallback implements ToolCallback {
 
@@ -23,6 +27,8 @@ public class CategoryLookupToolCallback implements ToolCallback {
               },
               "required": ["grouping"]
             }""";
+
+    private static final ObjectMapper READER = new ObjectMapper();
 
     private final List<CatalogueEntry> catalogue;
     private final TurnMeters turnMeters;
@@ -43,8 +49,54 @@ public class CategoryLookupToolCallback implements ToolCallback {
 
     @Override
     public String call(String toolInput) {
-        // stub-intent: reads the grouping out of the call's arguments, answers that grouping's categories from the
-        // turn's catalogue in the ledger's answer form, or refuses with the ledger's refusal text; counts the lookup
-        return "";
+        try {
+            String answer = answer(groupingOf(toolInput));
+            turnMeters.countCategoryLookup(true);
+            return answer;
+        } catch (RuntimeException e) {
+            turnMeters.countCategoryLookup(false);
+            throw new ToolExecutionException(getToolDefinition(), e);
+        }
     }
+
+    private String answer(String grouping) {
+        for (CatalogueEntry entry : catalogue) {
+            if (entry.grouping().equals(grouping)) {
+                return write(new Answer(grouping, entry.categories()));
+            }
+        }
+        boolean isCategory =
+                catalogue.stream().anyMatch(entry -> entry.categories().contains(grouping));
+        if (isCategory) {
+            throw new RuntimeException(grouping + " is a category, not a grouping");
+        }
+        throw new RuntimeException("no grouping named " + grouping + " is stored for this user");
+    }
+
+    private static String groupingOf(String toolInput) {
+        JsonNode grouping;
+        try {
+            grouping = READER.readTree(toolInput).get("grouping");
+        } catch (JsonProcessingException | RuntimeException e) {
+            throw noGrouping();
+        }
+        if (grouping == null || !grouping.isTextual() || grouping.asText().isBlank()) {
+            throw noGrouping();
+        }
+        return grouping.asText();
+    }
+
+    private static RuntimeException noGrouping() {
+        return new RuntimeException("list categories command has no grouping name");
+    }
+
+    private static String write(Answer answer) {
+        try {
+            return READER.writeValueAsString(answer);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private record Answer(String grouping, List<String> categories) {}
 }
