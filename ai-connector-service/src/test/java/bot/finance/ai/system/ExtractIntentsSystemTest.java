@@ -171,6 +171,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         @DisplayName("when the provider answers after a second - then the call answers empty first and the turn "
                 + "ends acted on under the token")
         void whenProviderAnswersAfterOneSecond_thenCallAnswersEmptyBeforeProviderAndEndsActedOnUnderToken() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionDelayed(
                     ChatCompletionFixtures.textResponse("nothing to record"), Duration.ofSeconds(1));
 
