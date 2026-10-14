@@ -11,8 +11,10 @@ import static org.mockito.Mockito.when;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.adapter.security.CallerTokenVerifier;
-import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.application.dto.TurnAcceptance;
+import bot.finance.ai.application.port.AcceptTurnPort;
 import bot.finance.ai.common.boot.GrpcAdapterTest;
+import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.domain.exception.CallerNotIdentifiedException;
@@ -25,7 +27,7 @@ import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,50 +46,61 @@ class CallerTokenInterceptorTest {
     private HealthGrpc.HealthBlockingStub healthStub;
 
     @MockitoBean
-    private ExtractIntentsPort extractIntentsPort;
+    private AcceptTurnPort acceptTurnPort;
+
+    @BeforeEach
+    void setUp() {
+        when(acceptTurnPort.accept(any())).thenReturn(TurnAcceptance.ACCEPTED);
+    }
+
+    /** What the port saw in the call's context when it was called. */
+    private record SeenContext(
+            AtomicReference<Optional<String>> token,
+            AtomicReference<Optional<MessageIdentity>> identity,
+            AtomicReference<Optional<MessageIdentity>> turnKey) {}
+
+    private SeenContext captureContextAtPort() {
+        SeenContext seen = new SeenContext(new AtomicReference<>(), new AtomicReference<>(), new AtomicReference<>());
+        doAnswer(invocation -> {
+                    seen.token().set(CallerTokenContext.callerToken());
+                    seen.identity().set(CallerTokenContext.messageIdentity());
+                    seen.turnKey().set(CallerTokenContext.turnKey());
+                    return TurnAcceptance.ACCEPTED;
+                })
+                .when(acceptTurnPort)
+                .accept(any());
+        return seen;
+    }
 
     @Nested
     @DisplayName("Happy path")
     class HappyPath {
 
         @Test
-        @Disabled("RI02: the service hands the turn to the accept port, reworked there")
         @DisplayName(
                 "when the stub carries an authorization header - then the port is called with the caller token available in its context")
         void whenStubCarriesAuthorizationHeader_thenPortSeesCallerTokenInContext() {
-            AtomicReference<Optional<String>> capturedToken = new AtomicReference<>();
-            doAnswer(invocation -> {
-                        capturedToken.set(CallerTokenContext.callerToken());
-                        return null;
-                    })
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+            String token = CallerTokens.bearer(42L, "m-1");
+            SeenContext seen = captureContextAtPort();
 
-            AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer abc")
-                    .extractIntents(RequestFixtures.request());
+            AuthorizedStubs.withCallerToken(intentExtractionStub, token).extractIntents(RequestFixtures.request());
 
-            verify(extractIntentsPort).extractIntents(any());
-            assertThat(capturedToken.get()).contains("Bearer abc");
+            verify(acceptTurnPort).accept(any());
+            assertThat(seen.token().get()).contains(token);
         }
 
         @Test
-        @Disabled("RI02: the service hands the turn to the accept port, reworked there")
-        @DisplayName("when memory is disabled and the token would not verify - then the port is called with no "
-                + "identity in context")
+        @DisplayName("when memory is disabled and the token is signed by an unpublished key - then the port sees "
+                + "the turn key and no message identity")
         void whenMemoryDisabledAndTokenWouldNotVerify_thenPortCalledAndMessageIdentityAbsent() {
-            AtomicReference<Optional<MessageIdentity>> capturedIdentity = new AtomicReference<>();
-            doAnswer(invocation -> {
-                        capturedIdentity.set(CallerTokenContext.messageIdentity());
-                        return null;
-                    })
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+            SeenContext seen = captureContextAtPort();
 
-            AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer not-a-valid-jwt")
+            AuthorizedStubs.withCallerToken(intentExtractionStub, CallerTokens.bearerSignedByUnpublishedKey(42L, "m-1"))
                     .extractIntents(RequestFixtures.request());
 
-            verify(extractIntentsPort).extractIntents(any());
-            assertThat(capturedIdentity.get()).isEmpty();
+            verify(acceptTurnPort).accept(any());
+            assertThat(seen.identity().get()).isEmpty();
+            assertThat(seen.turnKey().get()).contains(new MessageIdentity(42L, "m-1"));
         }
 
         @Nested
@@ -98,30 +111,34 @@ class CallerTokenInterceptorTest {
             private CallerTokenVerifier callerTokenVerifier;
 
             @Test
-            @Disabled("RI02: the service hands the turn to the accept port, reworked there")
             @DisplayName("when the verifier identifies the caller - then it is asked with the header's value and "
                     + "the identity joins the context")
             void whenVerifierIdentifiesCaller_thenVerifierAskedAndContextHoldsIdentityBesideToken() {
+                String token = CallerTokens.bearer(42L, "incoming-message-1");
                 MessageIdentity identity = new MessageIdentity(42L, "incoming-message-1");
-                when(callerTokenVerifier.verify("Bearer abc")).thenReturn(identity);
+                when(callerTokenVerifier.verify(token)).thenReturn(identity);
+                SeenContext seen = captureContextAtPort();
 
-                AtomicReference<Optional<String>> capturedToken = new AtomicReference<>();
-                AtomicReference<Optional<MessageIdentity>> capturedIdentity = new AtomicReference<>();
-                doAnswer(invocation -> {
-                            capturedToken.set(CallerTokenContext.callerToken());
-                            capturedIdentity.set(CallerTokenContext.messageIdentity());
-                            return null;
-                        })
-                        .when(extractIntentsPort)
-                        .extractIntents(any());
+                AuthorizedStubs.withCallerToken(intentExtractionStub, token).extractIntents(RequestFixtures.request());
 
-                AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer abc")
-                        .extractIntents(RequestFixtures.request());
+                verify(callerTokenVerifier).verify(token);
+                verify(acceptTurnPort).accept(any());
+                assertThat(seen.token().get()).contains(token);
+                assertThat(seen.identity().get()).contains(identity);
+            }
 
-                verify(callerTokenVerifier).verify("Bearer abc");
-                verify(extractIntentsPort).extractIntents(any());
-                assertThat(capturedToken.get()).contains("Bearer abc");
-                assertThat(capturedIdentity.get()).contains(identity);
+            @Test
+            @DisplayName("when the verifier identifies the caller as person 7 and message m-7 - then the port sees "
+                    + "that turn key")
+            void whenVerifierIdentifiesCallerAsPersonAndMessage_thenPortSeesThatTurnKey() {
+                String token = CallerTokens.bearer(7L, "m-7");
+                when(callerTokenVerifier.verify(token)).thenReturn(new MessageIdentity(7L, "m-7"));
+                SeenContext seen = captureContextAtPort();
+
+                AuthorizedStubs.withCallerToken(intentExtractionStub, token).extractIntents(RequestFixtures.request());
+
+                verify(acceptTurnPort).accept(any());
+                assertThat(seen.turnKey().get()).contains(new MessageIdentity(7L, "m-7"));
             }
         }
     }
@@ -138,7 +155,19 @@ class CallerTokenInterceptorTest {
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.UNAUTHENTICATED);
-            verify(extractIntentsPort, never()).extractIntents(any());
+            verify(acceptTurnPort, never()).accept(any());
+        }
+
+        @Test
+        @DisplayName("when memory is disabled and the token is no JWT - then the RPC fails with UNAUTHENTICATED and "
+                + "the port is never called")
+        void whenMemoryDisabledAndTokenIsNoJwt_thenFailsWithUnauthenticatedAndPortNeverCalled() {
+            assertThatThrownBy(() -> AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer not-a-valid-jwt")
+                            .extractIntents(RequestFixtures.request()))
+                    .isInstanceOf(StatusRuntimeException.class)
+                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
+                    .isEqualTo(Status.Code.UNAUTHENTICATED);
+            verify(acceptTurnPort, never()).accept(any());
         }
 
         @Nested
@@ -162,7 +191,7 @@ class CallerTokenInterceptorTest {
                         .extracting(
                                 ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                         .isEqualTo(Status.Code.UNAUTHENTICATED);
-                verify(extractIntentsPort, never()).extractIntents(any());
+                verify(acceptTurnPort, never()).accept(any());
             }
 
             @Test
@@ -179,7 +208,7 @@ class CallerTokenInterceptorTest {
                         .extracting(
                                 ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                         .isEqualTo(Status.Code.UNAVAILABLE);
-                verify(extractIntentsPort, never()).extractIntents(any());
+                verify(acceptTurnPort, never()).accept(any());
             }
 
             /** The refusal is scoped to {@code IntentExtractionService}, so the health service answers unauthenticated. */

@@ -2,24 +2,25 @@ package bot.finance.ai.system;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.metrics.MeterName;
 import bot.finance.ai.common.boot.AbstractMemorySystemTest;
+import bot.finance.ai.common.containers.LedgerTurnServer.RecordedCall;
 import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.EmbeddingFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.restassured.response.Response;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,6 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS07: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a turn runs and prometheus is scraped - then it carries the rpc, chat, tool, embedding "
                 + "and pending samples")
         void whenTurnRunsAndPrometheusIsScraped_thenCarriesRpcChatToolEmbeddingAndPendingSamples() {
@@ -71,6 +71,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
                     .extractIntents(RequestFixtures.request());
             log.info("response: {}", response);
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
 
             Response scrape = given().port(actuatorPort).when().get("/actuator/prometheus");
             scrape.then().statusCode(200);
@@ -117,20 +118,22 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     class UnhappyPath {
 
         @Test
-        @Disabled("RS07: the RPC now only accepts the turn, reworked there")
-        @DisplayName("when the provider refuses the chat call - then the rpc fails and the chat sample carries "
-                + "the error tag")
-        void whenProviderRefusesChatCall_thenRpcFailsAndChatSampleCarriesErrorTag() {
+        @DisplayName("when the provider refuses the chat call - then the turn ends unavailable and the chat sample "
+                + "carries the error tag")
+        void whenProviderRefusesChatCall_thenTurnEndsUnavailableAndChatSampleCarriesErrorTag() {
             long userId = 9002L;
             String incomingMessageId = "message-9002-meters";
             WireMockStubs.stubChatCompletionServerError();
 
             String token = CallerTokens.bearer(userId, incomingMessageId);
-            assertThatThrownBy(() -> AuthorizedStubs.withCallerToken(intentExtractionStub, token)
-                            .extractIntents(RequestFixtures.request()))
-                    .isInstanceOf(StatusRuntimeException.class)
-                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, token)
+                    .extractIntents(RequestFixtures.request());
+            log.info("response: {}", response);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            List<RecordedCall> ends = LedgerTurnStubs.awaitEnds(1);
+            assertThat(ends).hasSize(1);
+            assertThat(((EndTurnRequest) ends.getFirst().request()).getEnd()).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
 
             Response scrape = given().port(actuatorPort).when().get("/actuator/prometheus");
             scrape.then().statusCode(200);

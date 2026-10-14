@@ -10,10 +10,10 @@ import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import io.restassured.response.Response;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,6 @@ class ChangeStreamUnavailableSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS08: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a turn runs with the ledger's Redis unreachable - then it answers empty and one row "
                 + "holds the request's text")
         void whenTurnRunsWithRedisUnreachable_thenAnswersEmptyAndOneRowHoldsText() {
@@ -64,6 +63,7 @@ class ChangeStreamUnavailableSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(IncomingMessageRowUtils.count(jdbcTemplate, userId, incomingMessageId))
                     .isEqualTo(1);
             assertThat(IncomingMessageRowUtils.text(jdbcTemplate, userId, incomingMessageId))

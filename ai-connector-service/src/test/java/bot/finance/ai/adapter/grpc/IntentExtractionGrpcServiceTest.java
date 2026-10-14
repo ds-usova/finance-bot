@@ -14,12 +14,14 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.adapter.security.CallerTokenVerifier;
+import bot.finance.ai.application.dto.AcceptTurnCommand;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.application.dto.TurnAcceptance;
+import bot.finance.ai.application.port.AcceptTurnPort;
 import bot.finance.ai.common.boot.GrpcAdapterTest;
+import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
-import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.MessageIdentity;
 import io.grpc.Status;
@@ -28,7 +30,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,18 +51,42 @@ class IntentExtractionGrpcServiceTest {
     private IntentExtractionServiceBlockingStub intentExtractionStub;
 
     @MockitoBean
-    private ExtractIntentsPort extractIntentsPort;
+    private AcceptTurnPort acceptTurnPort;
+
+    @BeforeEach
+    void setUp() {
+        when(acceptTurnPort.accept(any())).thenReturn(TurnAcceptance.ACCEPTED);
+    }
 
     private IntentExtractionServiceBlockingStub authenticatedStub() {
-        return AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer opaque-caller-token");
+        return AuthorizedStubs.withCallerToken(intentExtractionStub, CallerTokens.bearer(42L, "incoming-message-42"));
+    }
+
+    private ExtractIntentsCommand acceptedTurn() {
+        ArgumentCaptor<AcceptTurnCommand> commandCaptor = ArgumentCaptor.forClass(AcceptTurnCommand.class);
+        verify(acceptTurnPort).accept(commandCaptor.capture());
+        return commandCaptor.getValue().turn();
     }
 
     @Nested
     @DisplayName("Happy path")
     class HappyPath {
 
+        @Test
+        @DisplayName("when a request is made under a token naming person 42 and message m-1 - then the call "
+                + "answers empty and the port receives that turn key")
+        void whenRequestMadeUnderTokenNamingPersonAndMessage_thenCallAnswersEmptyAndPortReceivesTurnKey() {
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
+                            intentExtractionStub, CallerTokens.bearer(42L, "m-1"))
+                    .extractIntents(RequestFixtures.request());
+
+            ArgumentCaptor<AcceptTurnCommand> commandCaptor = ArgumentCaptor.forClass(AcceptTurnCommand.class);
+            verify(acceptTurnPort).accept(commandCaptor.capture());
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            assertThat(commandCaptor.getValue().turnKey()).isEqualTo(new MessageIdentity(42L, "m-1"));
+        }
+
         @ParameterizedTest
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
         @ValueSource(strings = {"EUR", "eur"})
         @DisplayName("when the request carries a default currency in any casing - then the command holds it "
                 + "upper-cased")
@@ -73,14 +99,12 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.DEFAULT_CATCH_ALL,
                             defaultCurrency));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().defaultCurrency()).isPresent();
-            assertThat(commandCaptor.getValue().defaultCurrency().get().code()).isEqualTo("EUR");
+            ExtractIntentsCommand turn = acceptedTurn();
+            assertThat(turn.defaultCurrency()).isPresent();
+            assertThat(turn.defaultCurrency().get().code()).isEqualTo("EUR");
         }
 
         @Test
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
         @DisplayName("when the request carries two groupings and a catch-all - then the port receives them in "
                 + "order with that catch-all")
         void whenRequestCarriesTextAndTwoCategoryGroupings_thenPortReceivesOrderedGroupingsAndCatchAll() {
@@ -90,15 +114,13 @@ class IntentExtractionGrpcServiceTest {
             ExtractIntentsResponse response = authenticatedStub()
                     .extractIntents(RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().categoryGroupings()).containsExactly("Food", "Insurance");
-            assertThat(commandCaptor.getValue().catchAllGrouping()).isEqualTo(catchAllGrouping);
+            ExtractIntentsCommand turn = acceptedTurn();
+            assertThat(turn.categoryGroupings()).containsExactly("Food", "Insurance");
+            assertThat(turn.catchAllGrouping()).isEqualTo(catchAllGrouping);
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
 
         @Test
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
         @DisplayName("when the request carries a valid current_date - then the port receives it as a LocalDate")
         void whenRequestCarriesValidCurrentDate_thenCommandHoldsItAsLocalDate() {
             String currentDate = "2026-01-15";
@@ -106,14 +128,11 @@ class IntentExtractionGrpcServiceTest {
             ExtractIntentsResponse response =
                     authenticatedStub().extractIntents(RequestFixtures.requestWithCurrentDate(currentDate));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().currentDate()).isEqualTo(LocalDate.parse(currentDate));
+            assertThat(acceptedTurn().currentDate()).isEqualTo(LocalDate.parse(currentDate));
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
 
         @Test
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
         @DisplayName("when the request carries a catalogue of two groupings - then the command holds both "
                 + "entries in order with categories")
         void whenRequestCarriesCatalogueOfTwoGroupings_thenCommandHoldsEntriesInOrderWithCategories() {
@@ -124,24 +143,19 @@ class IntentExtractionGrpcServiceTest {
 
             authenticatedStub().extractIntents(request);
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().catalogue())
+            assertThat(acceptedTurn().catalogue())
                     .containsExactly(
                             new CatalogueEntry("Food", List.of("Cafe", "Groceries")),
                             new CatalogueEntry("Other", List.of("Gifts")));
         }
 
         @Test
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
-        @DisplayName("when memory is disabled under an opaque token - then the command carries no identity and "
+        @DisplayName("when memory is disabled under a caller token - then the command carries no identity and "
                 + "the port is called")
-        void whenValidRequestMadeUnderOpaqueTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled() {
+        void whenValidRequestMadeUnderCallerTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled() {
             authenticatedStub().extractIntents(RequestFixtures.request());
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().messageIdentity()).isEmpty();
+            assertThat(acceptedTurn().messageIdentity()).isEmpty();
         }
 
         @Nested
@@ -152,7 +166,6 @@ class IntentExtractionGrpcServiceTest {
             private CallerTokenVerifier callerTokenVerifier;
 
             @Test
-            @Disabled("RI01: the service hands the turn to the accept port, reworked there")
             @DisplayName("when a valid request is made under any authorization header - then the command carries "
                     + "the verified identity")
             void whenValidRequestMadeUnderAnyAuthorizationHeader_thenCommandCarriesVerifiedIdentity() {
@@ -161,10 +174,7 @@ class IntentExtractionGrpcServiceTest {
 
                 authenticatedStub().extractIntents(RequestFixtures.request());
 
-                ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
-                        ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-                verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-                assertThat(commandCaptor.getValue().messageIdentity()).contains(identity);
+                assertThat(acceptedTurn().messageIdentity()).contains(identity);
             }
         }
     }
@@ -174,29 +184,22 @@ class IntentExtractionGrpcServiceTest {
     class ErrorMapping {
 
         @Test
-        @Disabled("RI01: the service no longer maps ExpenseRecordingFailedException, the test is removed there")
-        @DisplayName(
-                "when the port throws ExpenseRecordingFailedException - then the RPC fails with status UNAVAILABLE")
-        void whenPortThrowsExpenseRecordingFailedException_thenFailsWithUnavailable() {
-            doThrow(new ExpenseRecordingFailedException("provider unreachable"))
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+        @DisplayName("when the port answers BUSY - then the RPC fails with status RESOURCE_EXHAUSTED")
+        void whenPortAnswersBusy_thenFailsWithResourceExhausted() {
+            when(acceptTurnPort.accept(any())).thenReturn(TurnAcceptance.BUSY);
 
             assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
+                    .isEqualTo(Status.Code.RESOURCE_EXHAUSTED);
         }
 
         @Test
-        @Disabled("RI01: the service hands the turn to the accept port, reworked there")
         @DisplayName("when the port throws an unrecognized RuntimeException - then the RPC fails with UNKNOWN and "
                 + "leaks no message")
         void whenPortThrowsUnrecognizedRuntimeException_thenFailsWithUnknownAndMessageAbsent() {
             String secretMessage = "sensitive internal detail";
-            doThrow(new RuntimeException(secretMessage))
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+            doThrow(new RuntimeException(secretMessage)).when(acceptTurnPort).accept(any());
 
             assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
@@ -223,7 +226,7 @@ class IntentExtractionGrpcServiceTest {
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.INVALID_ARGUMENT);
-            verify(extractIntentsPort, never()).extractIntents(any());
+            verify(acceptTurnPort, never()).accept(any());
         }
 
         private static Stream<Arguments> invalidRequests() {

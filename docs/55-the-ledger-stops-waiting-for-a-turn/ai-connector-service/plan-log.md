@@ -71,6 +71,9 @@
 - **RL02 (ST15):** the stabilization exit run reads 569 total, 25 skipped: ST10 added one test
   (`LedgerTurnServerTest`), and the disabled parameterized `IntentExtractionGrpcServiceTest` currency test reports
   one skip where it ran twice. All 25 skips name RI01, RI02, RS01, RS02 or RS05–RS08.
+- **RL03 (RI01):** expected pass — `IntentExtractionGrpcServiceTest$ErrorMapping.whenPortAnswersBusy_thenFailsWithResourceExhausted()`
+  passes red, because ST15 already maps BUSY to `RESOURCE_EXHAUSTED` in the service. The class's reworked tests
+  hold existing behaviour and pass too; only the turn-key scenario is red.
 
 ## Suite Runs
 

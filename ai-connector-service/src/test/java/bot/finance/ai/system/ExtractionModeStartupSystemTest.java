@@ -51,5 +51,22 @@ class ExtractionModeStartupSystemTest {
                             () -> application().run(arguments("--extraction.mode=classifier", "--ledger.turn.target=")))
                     .hasStackTraceContaining("LEDGER_TURN_TARGET");
         }
+
+        @Test
+        @DisplayName("when EXTRACTION_MAX_TURNS is zero - then the application fails to start naming it")
+        void whenExtractionMaxTurnsIsZero_thenApplicationFailsToStartNamingExtractionMaxTurns() {
+            assertThatThrownBy(() -> application()
+                            .run(arguments("--extraction.max-turns=0", "--ledger.turn.target=static://localhost:1")))
+                    .hasStackTraceContaining("EXTRACTION_MAX_TURNS");
+        }
+
+        @Test
+        @DisplayName("when EXTRACTION_TURN_TIMEOUT is zero - then the application fails to start naming it")
+        void whenExtractionTurnTimeoutIsZero_thenApplicationFailsToStartNamingExtractionTurnTimeout() {
+            assertThatThrownBy(() -> application()
+                            .run(arguments(
+                                    "--extraction.turn-timeout=0s", "--ledger.turn.target=static://localhost:1")))
+                    .hasStackTraceContaining("EXTRACTION_TURN_TIMEOUT");
+        }
     }
 }

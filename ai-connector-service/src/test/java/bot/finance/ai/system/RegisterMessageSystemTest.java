@@ -2,6 +2,7 @@ package bot.finance.ai.system;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.common.boot.AbstractMemorySystemTest;
@@ -11,11 +12,12 @@ import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import org.junit.jupiter.api.Disabled;
+import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +50,6 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS05: the RPC now only accepts the turn, reworked there")
         @DisplayName("when a tokened request registers a new message - then it is stored under the token's identity")
         void whenTokenedRequestRegistersNewMessage_thenStoredUnderTokenIdentity() {
             long userId = 4001L;
@@ -61,6 +62,7 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(1);
             assertThat(CapturedRequestUtils.toolCallRequests().getFirst().getHeader("Authorization"))
                     .isEqualTo(token);
@@ -71,7 +73,6 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
         }
 
         @Test
-        @Disabled("RS05: the RPC now only accepts the turn, reworked there")
         @DisplayName("when the same message is registered twice - then it is stored only once")
         void whenSameMessageRegisteredTwice_thenStoredOnlyOnce() {
             long userId = 4002L;
@@ -79,14 +80,19 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
             stubOneTurn();
             AuthorizedStubs.withCallerToken(intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
                     .extractIntents(RequestFixtures.request(TEXT));
+            LedgerTurnStubs.awaitEnds(1);
 
             stubOneTurn();
-            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
-                            intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
-                    .extractIntents(RequestFixtures.request(TEXT));
-            log.info("response: {}", response);
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+                ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
+                                intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
+                        .extractIntents(RequestFixtures.request(TEXT));
+                log.info("response: {}", response);
 
-            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+                assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+                assertThat(LedgerTurnStubs.recordedEnds()).hasSizeGreaterThanOrEqualTo(2);
+            });
+
             assertThat(IncomingMessageRowUtils.count(jdbcTemplate, userId, incomingMessageId))
                     .isEqualTo(1);
         }

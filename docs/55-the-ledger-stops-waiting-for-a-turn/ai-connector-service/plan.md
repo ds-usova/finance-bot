@@ -337,12 +337,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `AcceptTurnCommand` · test: `AcceptTurnCommandTest` · covers: `AcceptTurnCommand()` · scenarios: AC05
+- [x] RU01 · `AcceptTurnCommand` · test: `AcceptTurnCommandTest` · covers: `AcceptTurnCommand()` · scenarios: AC05
   - `AcceptTurnCommand()`:
     - given: a null turn, or a null turn key
       when: the command is constructed
       then: throws InvalidValueException
-- [ ] RU02 · `AcceptTurnUseCase` · test: `AcceptTurnUseCaseTest` · covers: `accept()` · scenarios: AC05, AC06, AC07,
+- [x] RU02 · `AcceptTurnUseCase` · test: `AcceptTurnUseCaseTest` · covers: `accept()` · scenarios: AC05, AC06, AC07,
   AC08, AC25, AC26
   - `accept()`:
     - given: the runner starts the turn
@@ -369,7 +369,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null command
       when: a turn is accepted
       then: throws InvalidValueException, and the runner is never called
-- [ ] RU03 · `UnverifiedCallerClaims` · test: `UnverifiedCallerClaimsTest` · covers: `read()` · scenarios: AC03, AC26
+- [x] RU03 · `UnverifiedCallerClaims` · test: `UnverifiedCallerClaimsTest` · covers: `read()` · scenarios: AC03, AC26
   - `read()`:
     - given: a token signed by a key no published set holds, naming person `42`, message `m-1` and an expiry
       when: it is read
@@ -384,7 +384,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       no imi, or a blank imi
       when: it is read
       then: throws CallerNotIdentifiedException
-- [ ] RU04 · `ExtractionProperties` · test: `ExtractionPropertiesTest` · covers: `ExtractionProperties()` · scenarios:
+- [x] RU04 · `ExtractionProperties` · test: `ExtractionPropertiesTest` · covers: `ExtractionProperties()` · scenarios:
   AC20, AC25
   - `ExtractionProperties()`:
     - given: a max of turns of zero or less
@@ -393,7 +393,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null turn timeout, or one of zero or less
       when: the properties are bound
       then: throws IllegalArgumentException naming `EXTRACTION_TURN_TIMEOUT`
-- [ ] RU05 · `GrpcTurnRunnerAdapter` · test: `GrpcTurnRunnerAdapterTest` · covers: `start()`, `close()` · scenarios:
+- [x] RU05 · `GrpcTurnRunnerAdapter` · test: `GrpcTurnRunnerAdapterTest` · covers: `start()`, `close()` · scenarios:
   AC05, AC20, AC25, AC26
   - The step agent observes what `Context.current().fork()` keeps and drops — its values, `isCancelled()` and
     `getDeadline()` once the parent is cancelled or past its deadline — before writing the context scenarios, and
@@ -440,7 +440,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a turn running past the turn timeout
       when: the runner is closed
       then: it returns once the interrupted turn returned and its end received UNAVAILABLE
-- [ ] RU06 · `ClassifierTurn` · test: `ClassifierTurnTest` · covers: `run()` · scenarios: AC20
+- [x] RU06 · `ClassifierTurn` · test: `ClassifierTurnTest` · covers: `run()` · scenarios: AC20
   - `run()`:
     - given: two expenses read, and the turn's thread interrupted once the first is filed
       when: the turn runs
@@ -448,7 +448,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `AcceptTurnPort` · scenarios: AC05, AC25
   - Happy Path:
     - given: the mocked port answers ACCEPTED, and the memory off
@@ -468,7 +468,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `whenValidRequestMadeUnderOpaqueTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled()` is renamed,
     with its display name, for a request under a caller token with the memory off
   - update: `whenPortThrowsExpenseRecordingFailedException_thenFailsWithUnavailable()` — delete
-- [ ] RI02 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers:
+- [x] RI02 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `AcceptTurnPort` · scenarios: AC03, AC26
   - Happy Path:
     - given: the memory off, and a token signed by a key no published set holds, naming person `42` and message
@@ -489,7 +489,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `CallerTokens.bearer(...)` in place of `Bearer abc`, and asserts that token in the context
   - update: `whenMemoryDisabledAndTokenWouldNotVerify_thenPortCalledAndMessageIdentityAbsent()` — sends
     `CallerTokens.bearerSignedByUnpublishedKey(...)` in place of `Bearer not-a-valid-jwt`; the identity stays absent
-- [ ] RI03 · `GrpcTurnEndAdapter` · test: `GrpcTurnEndAdapterTest` · covers: `report()` · scenarios: AC06, AC07, AC08,
+- [x] RI03 · `GrpcTurnEndAdapter` · test: `GrpcTurnEndAdapterTest` · covers: `report()` · scenarios: AC06, AC07, AC08,
   AC21
   - `report()`:
     - given: the ledger takes the end, and the turn holds a token and the turn key `42`, `m-1`
@@ -528,7 +528,7 @@ connector side, an unreadable key set answered as unavailable, is held by `Calle
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC05, AC06, AC07
+- [x] RS01 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC05, AC06, AC07
   - Happy Path:
     - given: the provider answers "nothing to record" after one second
       when: the call is made with a caller token
@@ -542,7 +542,7 @@ connector side, an unreadable key set answered as unavailable, is held by `Calle
     it does
   - update: `whenProviderRespondsServerError_thenFailsWithUnavailable()` — the call answers empty, and the one
     awaited end is `TURN_END_UNAVAILABLE` carrying the token; renamed for that outcome
-- [ ] RS02 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC06, AC07
+- [x] RS02 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC06, AC07
   - update: premise — with the memory off, a guarded call whose token names no readable person and message is
     refused · `CALLER_TOKEN` is `CallerTokens.bearer(...)` in place of `Bearer opaque-caller-token`; the
     `authorization` assertion on the filing stands
@@ -552,7 +552,7 @@ connector side, an unreadable key set answered as unavailable, is held by `Calle
   - update: `whenLedgerAnswersFirstFilingUnavailable_thenCallFailsUnavailableAndNoSecondFiling()` — the call
     answers empty, the one awaited end is `TURN_END_UNAVAILABLE`, and the ledger received one filing; renamed for
     that outcome
-- [ ] RS03 · `TurnRunSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC05, AC20, AC26
+- [x] RS03 · `TurnRunSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC05, AC20, AC26
   - The class runs with `extraction.max-turns=1` and `extraction.turn-timeout=3s`, and awaits each turn's end before
     it ends
   - Happy Path:
@@ -567,7 +567,7 @@ connector side, an unreadable key set answered as unavailable, is held by `Calle
       when: the call is made
       then: the end `TURN_END_UNAVAILABLE` reaches the ledger carrying the call's token, and no tool call reaches the
       ledger's MCP endpoint
-- [ ] RS04 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()` · scenarios: AC06,
+- [x] RS04 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()` · scenarios: AC06,
   AC20, AC25
   - Unhappy Path:
     - given: `EXTRACTION_MAX_TURNS` at `0`, with a target set
@@ -576,21 +576,21 @@ connector side, an unreadable key set answered as unavailable, is held by `Calle
     - given: `EXTRACTION_TURN_TIMEOUT` at `0s`, with a target set
       when: the application starts
       then: it fails to start, naming `EXTRACTION_TURN_TIMEOUT`
-- [ ] RS05 · `RegisterMessageSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS05 · `RegisterMessageSystemTest` · covers: `IntentExtractionService.ExtractIntents`
   - update: `whenTokenedRequestRegistersNewMessage_thenStoredUnderTokenIdentity()` — awaits the one end before
     asserting the tool call and the stored row
   - update: `whenSameMessageRegisteredTwice_thenStoredOnlyOnce()` — awaits the first turn's end, then repeats the
     second hand-over with Awaitility until its own end is recorded, since one sent while the first key is still
     held is accepted and starts nothing, before asserting the row count
-- [ ] RS06 · `RecallExamplesSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS06 · `RecallExamplesSystemTest` · covers: `IntentExtractionService.ExtractIntents`
   - update: premise — the call answers before the turn runs · each test awaits the one end before asserting the
     stored vector, the embedding attempts and the provider's prompt
-- [ ] RS07 · `MetersSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS07 · `MetersSystemTest` · covers: `IntentExtractionService.ExtractIntents`
   - update: `whenTurnRunsAndPrometheusIsScraped_thenCarriesRpcChatToolEmbeddingAndPendingSamples()` — awaits the
     one end before the scrape
   - update: `whenProviderRefusesChatCall_thenRpcFailsAndChatSampleCarriesErrorTag()` — the call answers empty, the
     one awaited end is `TURN_END_UNAVAILABLE`, then the scrape asserts as it does; renamed for that outcome
-- [ ] RS08 · `ChangeStreamUnavailableSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS08 · `ChangeStreamUnavailableSystemTest` · covers: `IntentExtractionService.ExtractIntents`
   - update: `whenTurnRunsWithRedisUnreachable_thenAnswersEmptyAndOneRowHoldsText()` — awaits the one end before
     asserting the row
 

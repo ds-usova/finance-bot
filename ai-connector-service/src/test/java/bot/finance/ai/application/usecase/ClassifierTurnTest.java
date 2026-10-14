@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -628,6 +629,37 @@ class ClassifierTurnTest {
 
                 verify(ledgerTurnPort, times(1)).fileExpense(any(), any());
                 verify(ledgerTurnPort, never()).recordPeriod(any(), any());
+            }
+        }
+
+        @Nested
+        @DisplayName("when the turn's thread is interrupted")
+        class Interruption {
+
+            @Test
+            @DisplayName("when the thread is interrupted once the first of two expenses is filed - then the second "
+                    + "is not filed and the turn fails")
+            void whenThreadInterruptedAfterFirstFiling_thenSecondNotFiledAndTurnFails() {
+                twoExpensesRead();
+                classifierAnswers(classification(0, TAXIS, 0.9), classification(1, RESTAURANTS, 0.9));
+                doAnswer(invocation -> {
+                            Thread.currentThread().interrupt();
+                            return null;
+                        })
+                        .doNothing()
+                        .when(ledgerTurnPort)
+                        .fileExpense(any(), any());
+
+                try {
+                    assertThatThrownBy(() -> turn.run(command(), Optional.empty()))
+                            .isInstanceOf(ExpenseRecordingFailedException.class);
+                } finally {
+                    Thread.interrupted();
+                }
+
+                assertThat(filedExpenses(1))
+                        .extracting(ExpenseToFile::description)
+                        .containsExactly("taxi");
             }
         }
     }
