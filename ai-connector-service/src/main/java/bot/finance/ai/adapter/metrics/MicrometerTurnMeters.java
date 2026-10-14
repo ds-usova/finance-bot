@@ -2,7 +2,10 @@ package bot.finance.ai.adapter.metrics;
 
 import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.domain.value.ExtractionMode;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 
@@ -10,29 +13,41 @@ import org.springframework.stereotype.Component;
 public class MicrometerTurnMeters implements TurnMeters {
 
     private final MeterRegistry meterRegistry;
+    private final DistributionSummary confidence;
+    private final Counter lowConfidence;
 
     public MicrometerTurnMeters(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
+        this.confidence = DistributionSummary.builder(MeterName.CLASSIFIER_CONFIDENCE.meterName())
+                .register(meterRegistry);
+        this.lowConfidence =
+                Counter.builder(MeterName.CLASSIFIER_LOW_CONFIDENCE.meterName()).register(meterRegistry);
     }
 
     @Override
     public void recordTurn(ExtractionMode mode, boolean actedOn) {
-        // stub-intent: counts the turn on ai_turns_total tagged with the mode's tag value and the outcome acted_on
-        // or unavailable
+        Counter.builder(MeterName.TURNS.meterName())
+                .tag("mode", mode.tagValue())
+                .tag("outcome", actedOn ? "acted_on" : "unavailable")
+                .register(meterRegistry)
+                .increment();
     }
 
     @Override
     public void recordClassifierCall(Duration duration, boolean answered) {
-        // stub-intent: records the duration on ai_classifier_seconds tagged with the outcome answered or failed
+        Timer.builder(MeterName.CLASSIFIER_SECONDS.meterName())
+                .tag("outcome", answered ? "answered" : "failed")
+                .register(meterRegistry)
+                .record(duration);
     }
 
     @Override
     public void recordConfidence(double confidence) {
-        // stub-intent: records the confidence as one sample of ai_classifier_confidence
+        this.confidence.record(confidence);
     }
 
     @Override
     public void countLowConfidence() {
-        // stub-intent: increments ai_classifier_low_confidence_total
+        lowConfidence.increment();
     }
 }

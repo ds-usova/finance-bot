@@ -69,8 +69,8 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the classifier answers confidently - then the call is acted on, the ledger receives one "
-                + "filing under the token, the provider got no tools and the turn counts")
+        @DisplayName("when the classifier answers confidently - then one filing reaches the ledger under the token "
+                + "and the turn counts")
         void whenClassifierAnswersConfidently_thenFilingReachesLedgerUnderTokenAndTurnCounts() {
             String turns = MeterName.TURNS.meterName();
             double before = sampleOrZero(scrape(actuatorPort), turns, "mode=\"classifier\"", "outcome=\"acted_on\"");

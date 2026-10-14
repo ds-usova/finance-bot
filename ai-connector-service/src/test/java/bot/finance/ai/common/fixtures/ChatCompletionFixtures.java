@@ -1,5 +1,7 @@
 package bot.finance.ai.common.fixtures;
 
+import com.fasterxml.jackson.databind.node.TextNode;
+
 /**
  * Builders for whole OpenAI chat-completion response bodies. {@link WireMockStubs} serves what they build
  * verbatim, with no further wrapping.
@@ -142,7 +144,7 @@ public final class ChatCompletionFixtures {
                     "total_tokens": 120
                   }
                 }"""
-                .formatted(quote(json));
+                .formatted(TextNode.valueOf(json).toString());
     }
 
     private static String quote(String json) {

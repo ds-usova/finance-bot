@@ -16,7 +16,9 @@ public record ExampleExpense(
         if (description == null || description.isBlank()) {
             throw new InvalidValueException("Description must not be null or blank");
         }
-        // TODO: refuse a null merchant Optional
+        if (merchant == null) {
+            throw new InvalidValueException("Merchant must not be null");
+        }
         if (amount == null || amount.isBlank()) {
             throw new InvalidValueException("Amount must not be null or blank");
         }

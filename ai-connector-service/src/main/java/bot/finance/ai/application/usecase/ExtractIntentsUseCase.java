@@ -8,6 +8,7 @@ import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.application.port.RecallExamplesPort;
 import bot.finance.ai.application.port.TurnMeters;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.MessageExample;
@@ -49,9 +50,13 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             examples = recallExamplesPort.recall(new RecallExamplesCommand(identity.get(), command.text()));
         }
 
-        // TODO: count the turn under the turn's mode as acted on, or as unavailable when it throws
-        // ExpenseRecordingFailedException, which still propagates
-        extractionTurn.run(command, examples);
+        try {
+            extractionTurn.run(command, examples);
+        } catch (ExpenseRecordingFailedException e) {
+            turnMeters.recordTurn(extractionTurn.mode(), false);
+            throw e;
+        }
+        turnMeters.recordTurn(extractionTurn.mode(), true);
 
         log.info(
                 "Acted on turn with {} groupings offered",

@@ -33,8 +33,7 @@ class ExtractionModeStartupSystemTest {
         }
 
         @Test
-        @DisplayName("when EXTRACTION_MODE is classifier and there is no LEDGER_TURN_TARGET - then the application "
-                + "fails to start naming LEDGER_TURN_TARGET")
+        @DisplayName("when classifier mode has no LEDGER_TURN_TARGET - then startup fails naming LEDGER_TURN_TARGET")
         void whenClassifierModeHasNoLedgerTurnTarget_thenApplicationFailsToStartNamingLedgerTurnTarget() {
             assertThatThrownBy(() -> application("extraction.mode=classifier", "ledger.turn.target=")
                             .run())

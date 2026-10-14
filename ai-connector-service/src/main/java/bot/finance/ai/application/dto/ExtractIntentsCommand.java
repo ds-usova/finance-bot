@@ -6,6 +6,7 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public record ExtractIntentsCommand(
@@ -47,8 +48,14 @@ public record ExtractIntentsCommand(
         if (catalogue == null) {
             throw new InvalidValueException("Catalogue must not be null");
         }
-        // TODO: refuse a catalogue with no entry for the catch-all grouping, a null entry, a grouping named twice,
-        // or groupings other than the command's groupings or in another order
+        if (catalogue.stream().anyMatch(Objects::isNull)) {
+            throw new InvalidValueException("Catalogue must not contain a null entry");
+        }
+        List<String> catalogueGroupings =
+                catalogue.stream().map(CatalogueEntry::grouping).toList();
+        if (!catalogueGroupings.equals(categoryGroupings)) {
+            throw new InvalidValueException("Catalogue must hold one entry per category grouping, in order");
+        }
 
         categoryGroupings = List.copyOf(categoryGroupings);
         catalogue = List.copyOf(catalogue);

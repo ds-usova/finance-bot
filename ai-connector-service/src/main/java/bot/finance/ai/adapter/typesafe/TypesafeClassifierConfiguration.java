@@ -15,8 +15,10 @@ public class TypesafeClassifierConfiguration {
 
     @Bean
     RestClient classifierRestClient(TypesafeClassifierProperties properties) {
-        HttpClient httpClient =
-                HttpClient.newBuilder().connectTimeout(properties.timeout()).build();
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(properties.timeout())
+                .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.timeout());
 

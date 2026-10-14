@@ -67,12 +67,12 @@ class CallerTokenLedgerTurnInterceptorTest {
     class InterceptCall {
 
         @Test
-        @DisplayName("when the turn holds a caller token - then the call's headers carry it as a bearer authorization")
-        void whenTurnHoldsCallerToken_thenHeadersCarryItAsBearerAuthorization() {
+        @DisplayName("when the turn holds a caller token - then the call's headers carry it unchanged as authorization")
+        void whenTurnHoldsCallerToken_thenHeadersCarryItUnchangedAsAuthorization() {
             doReturn(delegateCall).when(next).newCall(any(), any());
             Metadata headers = new Metadata();
 
-            CallerTokenTestSupport.withCallerToken("caller-token-1", () -> {
+            CallerTokenTestSupport.withCallerToken("Bearer caller-token-1", () -> {
                 ClientCall<String, String> call = interceptor.interceptCall(METHOD, CallOptions.DEFAULT, next);
                 call.start(new RecordingListener(), headers);
             });

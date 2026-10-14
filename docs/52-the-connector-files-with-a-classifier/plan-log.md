@@ -132,6 +132,26 @@
   `newCall`) was re-delegated once and fixed; the no-token test now also verifies `next.newCall` is never invoked.
 - **RL15 (RS03, RS01):** hypothesis: a retried `UNAVAILABLE` filing would break RS01's one-call count, and RS02's
   messages may name the property keys rather than the variables — settled by the system green steps.
+- **RL16 (ST21):** `ChatCompletionFixtures.readOut()` escapes only backslashes and quotes, so a multi-line read-out
+  JSON yields an unparseable provider body (`Illegal unquoted character (CTRL-CHAR, code 10)`), failing
+  `AiSpendingReadOutAdapterTest`'s two-expenses test under GI02. Stabilization reopened for ST21; GI02 left open
+  until the fixture escapes control characters.
+- **RL17 (GI01, GI06):** both test classes passed on preflight with no agent spawned: the catalogue checks of
+  `CatalogueEntry` and `ExtractIntentsCommand` (GU01, GU02) surface through the reader as `INVALID_ARGUMENT`, and
+  `RecordedExpenseEntity` passing the merchant (GU05) is all `findExamples()` needed. The reader's `TODO` on its
+  own catalogue checks is stale; left for the refactor pass.
+- **RL18 (RU14):** test premise defect found by the unit + integration suite run: `CallerTokenContext` holds the
+  inbound `authorization` value whole (`Bearer <token>`, as `CallerTokenMcpRequestCustomizerTest` shows), but
+  `CallerTokenLedgerTurnInterceptorTest` and `GrpcLedgerTurnAdapterTest` put a bare token in scope and expect the
+  interceptor to prefix it — so `ClassifierTurnSystemTest` saw `Bearer Bearer opaque-caller-token`. Both test
+  classes re-delegated to hold `Bearer <token>` and expect it forwarded unchanged; the interceptor (GU14)
+  re-delegated to forward the held value as the MCP customizer does.
+- **RL19 (RU06, RI01, RS01, RS02):** `DisplayNameConventionsTest` (architecture) failed: four new test display
+  names exceed 120 characters. Re-delegated to their red owners to shorten them.
+- **RL20 (GI03):** the classifier's `RestClient` now runs on HTTP/1.1 (the JDK client's h2c upgrade broke against
+  the stub), and the adapter parses the body with a Jackson 2 `ObjectMapper` because `SystemOneRequestMapper`
+  takes Jackson 2's `JsonNode` while the `RestClient` converters are Jackson 3. hypothesis: the mapper should take
+  Jackson 3's `JsonNode` — settled by the module's Jackson usage elsewhere; left for the refactor pass.
 - **RL12 (RI03, RU09):** hypothesis: question keys are `"0"`, `"1"`, … and the returned positions match them —
   settled by the green steps.
 
@@ -140,6 +160,7 @@
 - baseline · tree 028a66520c771d7e2411fbfaa1d5c3907576d4af · total 403 · skipped 0 · green · paths: ai-connector-service
 - stabilization · tree c80bf22a310701db18d9eaed1c361b697f6bd16f · total 407 · skipped 0 · green · paths: ai-connector-service
 
+- green · tree dee553e65f84521f301df6dbba0dfd16ede7e6cb · total 549 · skipped 0 · red · paths: ai-connector-service
 ## Stubs
 
 Marker: `stub-intent:`

@@ -108,8 +108,8 @@ class IntentExtractionGrpcServiceTest {
         }
 
         @Test
-        @DisplayName("when the request carries a catalogue of two groupings - then the command holds both entries "
-                + "in order with their categories")
+        @DisplayName("when the request carries a catalogue of two groupings - then the command holds both "
+                + "entries in order with categories")
         void whenRequestCarriesCatalogueOfTwoGroupings_thenCommandHoldsEntriesInOrderWithCategories() {
             ExtractIntentsRequest request = RequestFixtures.requestWithCatalogue(
                     TEXT,

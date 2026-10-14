@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @LedgerTurnAdapterTest
 class GrpcLedgerTurnAdapterTest {
 
-    private static final String CALLER_TOKEN = "caller-token-1";
+    private static final String CALLER_TOKEN = "Bearer caller-token-1";
     private static final CategoryChoice CHOICE = new CategoryChoice("Dining", "Restaurants");
     private static final LocalDate FROM = LocalDate.of(2026, 10, 5);
     private static final LocalDate TO = LocalDate.of(2026, 10, 11);
@@ -76,7 +76,7 @@ class GrpcLedgerTurnAdapterTest {
 
             assertThat(LedgerTurnStubs.recordedCalls()).singleElement().satisfies(call -> {
                 assertThat(call.method()).isEqualTo("FileExpenseProposal");
-                assertThat(call.authorization()).isEqualTo("Bearer " + CALLER_TOKEN);
+                assertThat(call.authorization()).isEqualTo(CALLER_TOKEN);
                 FileExpenseProposalRequest request = (FileExpenseProposalRequest) call.request();
                 assertThat(request.getGrouping()).isEqualTo("Dining");
                 assertThat(request.getCategory()).isEqualTo("Restaurants");
@@ -167,7 +167,7 @@ class GrpcLedgerTurnAdapterTest {
 
             assertThat(LedgerTurnStubs.recordedCalls()).singleElement().satisfies(call -> {
                 assertThat(call.method()).isEqualTo("RecordSpendingPeriod");
-                assertThat(call.authorization()).isEqualTo("Bearer " + CALLER_TOKEN);
+                assertThat(call.authorization()).isEqualTo(CALLER_TOKEN);
                 RecordSpendingPeriodRequest request = (RecordSpendingPeriodRequest) call.request();
                 assertThat(request.getFrom()).isEqualTo("2026-10-05");
                 assertThat(request.getTo()).isEqualTo("2026-10-11");

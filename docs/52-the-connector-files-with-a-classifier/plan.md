@@ -780,29 +780,29 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `CatalogueEntry` · test: `CatalogueEntryTest`
-- [ ] GU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU01
-- [ ] GU03 · `ExpenseToFile` · test: `ExpenseToFileTest`
-- [ ] GU04 · `ExampleExpense` · test: `ExampleExpenseTest`
-- [ ] GU05 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · after: GU04
-- [ ] GU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU02, GU04
-- [ ] GU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · after: GU01, GU02, GU03, GU04, GU13
-- [ ] GU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · after: GU01, GU03, GU04, GU13
-- [ ] GU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest`
-- [ ] GU11 · `TypesafeClassifierProperties` · test: `TypesafeClassifierPropertiesTest`
-- [ ] GU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest`
-- [ ] GU13 · `CategoryChoice` · test: `CategoryChoiceTest`
-- [ ] GU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest`
+- [x] GU01 · `CatalogueEntry` · test: `CatalogueEntryTest`
+- [x] GU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU01
+- [x] GU03 · `ExpenseToFile` · test: `ExpenseToFileTest`
+- [x] GU04 · `ExampleExpense` · test: `ExampleExpenseTest`
+- [x] GU05 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · after: GU04
+- [x] GU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU02, GU04
+- [x] GU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · after: GU01, GU02, GU03, GU04, GU13
+- [x] GU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · after: GU01, GU03, GU04, GU13
+- [x] GU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest`
+- [x] GU11 · `TypesafeClassifierProperties` · test: `TypesafeClassifierPropertiesTest`
+- [x] GU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest`
+- [x] GU13 · `CategoryChoice` · test: `CategoryChoiceTest`
+- [x] GU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU01, GU02
-- [ ] GI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest`
-- [ ] GI03 · `TypesafeCategoryClassifierAdapter` · test: `TypesafeCategoryClassifierAdapterTest` · after: GU09,
+- [x] GI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU01, GU02
+- [x] GI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest`
+- [x] GI03 · `TypesafeCategoryClassifierAdapter` · test: `TypesafeCategoryClassifierAdapterTest` · after: GU09,
   GU11
-- [ ] GI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · after: GU03, GU12, GU13, GU14
-- [ ] GI05 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest`
-- [ ] GI06 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU05
+- [x] GI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · after: GU03, GU12, GU13, GU14
+- [x] GI05 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest`
+- [x] GI06 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU05
 
 #### TDD System Test Green Phase
 

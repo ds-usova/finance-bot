@@ -325,7 +325,7 @@ class ExtractIntentsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the turn throws ExpenseRecordingFailedException - then the turn is counted as "
+        @DisplayName("when the turn throws ExpenseRecordingFailedException - then it is counted as "
                 + "unavailable and the exception propagates")
         void whenTurnThrowsExpenseRecordingFailedException_thenCountedUnavailableAndExceptionPropagates() {
             ExtractionTurn turn = mock(ExtractionTurn.class);
