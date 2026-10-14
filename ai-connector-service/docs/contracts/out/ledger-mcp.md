@@ -15,7 +15,6 @@ caller's token. In either mode it reads the keys the ledger signs that token wit
 | Tool                      | Why the model calls it                | On the ledger's side                                                                                     |
 |---------------------------|---------------------------------------|----------------------------------------------------------------------------------------------------------|
 | List the tools            | to learn what it may call             | —                                                                                                        |
-| `list_categories`         | to find where an expense is filed     | [List a grouping's categories](../../../../ledger-service/docs/usecases/list-categories.md)              |
 | `create_expense_proposal` | to record one expense                 | [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md)     |
 | `summarize_spending`      | to answer what the caller spent       | [Summarize spending over a period](../../../../ledger-service/docs/usecases/summarize-spending.md)       |
 
@@ -28,7 +27,9 @@ tools mode only. The classifier mode files through [the turn operations](ledger-
 - Reads that token fresh per turn, on the thread running it. Two turns share the client, never the identity.
 - Keeps one client for the whole process.
 - Reads the tool list once, on the first turn that needs it, and keeps it for the life of the process.
-- Offers every published tool to the model as published.
+- Offers every published tool to the model as published, `list_categories` excepted.
+- Never calls the ledger's `list_categories`. The model's lookup is
+  [answered here](ai-provider.md#the-category-lookup).
 
 The token is never logged and never stored. Its whole path is
 [drawn on the ledger's side](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
@@ -45,27 +46,23 @@ What the keys are then used for is [the inbound side's](../in/intent-extraction.
 
 ## What this service does not do
 
-- Name a tool, register one, or assemble an argument. The model fills every call.
+- Assemble an argument for a ledger tool. The model fills every call.
 - Read anything out of an answer. Results go back to the model as that call's result.
-- Send anything at all when the turn holds no token.
 
 A summary answers the period the ledger accepted, never an amount, so no total enters the model's context.
 
 ## How a turn behaves
 
-- A grouping is looked up before an expense is filed under it. Reusing a listing from the same turn is allowed.
-- A lookup stores nothing, so repeating one changes nothing.
 - Recording is not deduplicated. The same message handled twice records two proposals.
 - A turn whose extraction call has run out of time runs on, and goes on calling the tools.
 
 A refusal is a tool result flagged as an error. It reaches the model as that call's answer and never ends the
 turn:
 
-| Refused call        | What follows                                                                   |
-|---------------------|---------------------------------------------------------------------------------|
-| A recording call    | the model corrects it and tries that expense once more, then leaves it and goes on |
-| A lookup            | the model corrects the grouping's name and asks again; the expense keeps its retry |
-| An argument's type  | refused before the tool runs, so nothing is recorded; the model corrects the call  |
+| Refused call       | What follows                                                                       |
+|--------------------|------------------------------------------------------------------------------------|
+| A recording call   | the model corrects it and tries that expense once more, then leaves it and goes on |
+| An argument's type | refused before the tool runs, so nothing is recorded; the model corrects the call  |
 
 ## Failures
 
@@ -81,15 +78,18 @@ A transport failure ends the turn. What was already recorded stands.
 
 ## Compatibility
 
-Nothing here is wired per tool.
+Only `list_categories` is wired by name.
 
-| Change on the ledger's side | Effect here                                                                  |
-|-----------------------------|-------------------------------------------------------------------------------|
-| A tool is added             | offered to the model once this process restarts and reads the new list       |
-| An optional argument added  | none                                                                          |
-| An argument made required   | changes what the model is told to send                                        |
-| An argument renamed         | calls carrying the old name are refused until this process restarts          |
-| The endpoint is switched off | every turn fails as unavailable                                              |
+| Change on the ledger's side                                | Effect here                                                            |
+|------------------------------------------------------------|------------------------------------------------------------------------|
+| A tool is added                                            | offered to the model once this process restarts and reads the new list |
+| An optional argument added                                 | none                                                                   |
+| An argument made required                                  | changes what the model is told to send                                 |
+| An argument renamed                                        | calls carrying the old name are refused until this process restarts    |
+| `list_categories`'s name, description or argument reworded | the model keeps the old copy until this service changes with it        |
+| `list_categories`'s answer or refusal texts reworded       | the same                                                               |
+| `list_categories` withdrawn                                | none                                                                   |
+| The endpoint is switched off                               | every turn fails as unavailable                                        |
 
 A published change reaches this service only on restart, which makes a new tool a matter of **restart order**:
 the ledger must serve it before this service starts. Until then the model is never offered it, and the message is

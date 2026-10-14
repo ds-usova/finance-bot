@@ -20,7 +20,8 @@ message into the vector by which messages are compared for meaning.
 
 ## Acting on a message
 
-**Sent:** two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool schemas.
+**Sent:** two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool schemas,
+its `list_categories` replaced by [this service's own](#the-category-lookup).
 
 **Returned:** a sequence of tool calls, each answered with that tool's result, until the model answers with text.
 
@@ -60,6 +61,27 @@ What they do not say:
 - A stated amount travels exactly as the message writes it, in the currency's main unit, never converted. That
   rule is the tool's own argument schema, not an instruction.
 - The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
+
+### The category lookup
+
+`list_categories` is answered by this service, from the request's catalogue.
+
+- Offered under the name, description and argument of
+  [the ledger's tool](../../../../ledger-service/docs/contracts/in/mcp.md#what-list_categories-takes), copied to
+  the letter.
+- Built per turn from that turn's catalogue. Two turns never share one.
+- Answered in [the ledger's form](../../../../ledger-service/docs/contracts/in/mcp.md#what-list_categories-answers-with),
+  the categories in the order [the request](../in/intent-extraction.md) lists them.
+- A name is matched exactly, case included.
+
+| The name the model sends                                      | Answer                                                      |
+|---------------------------------------------------------------|-------------------------------------------------------------|
+| a grouping the catalogue holds                                | that grouping's categories                                  |
+| a category the catalogue holds, and no grouping of it         | refused: `<name> is a category, not a grouping`             |
+| neither                                                       | refused: `no grouping named <name> is stored for this user` |
+| blank, absent or not a string, or arguments that are not JSON | refused: `list categories command has no grouping name`     |
+
+A name that is both a grouping and a category answers as the grouping.
 
 ### Cost and latency
 
@@ -166,7 +188,6 @@ What a failure costs is [the recall's](../../usecases/recall-examples.md#outcome
   different address. Nothing else moves with it.
 - The tools mode needs tool calling of it, and the classifier mode a JSON-schema response format.
 - A model that cannot call tools answers the tools mode with text, so the turn succeeds having recorded nothing.
-- The tool schema is the ledger's. An argument added there reaches the model with no change here.
 - Changing the model or the instructions changes what gets recorded without changing any schema. No build
   announces it, and only the tests that pin the recording behaviour will notice.
 - The chat model and the embedding model are chosen separately, and either may change without the other.

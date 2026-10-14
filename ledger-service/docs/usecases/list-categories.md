@@ -12,10 +12,10 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                             |
-|-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the list categories tool](../contracts/in/mcp.md)                          | narrowing a grouping to the categories an expense may be filed under                            |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, resolving the grouping, reading its categories, telling a category from a grouping |
+| Direction | Collaborator                                         | Through                                                        | For                                                                                                        |
+|-----------|------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| in        | [An agent acting for a user](../contracts/in/mcp.md) | [MCP — the list categories tool](../contracts/in/mcp.md)       | a grouping's categories                                                                                    |
+| out       | [Database](../contracts/out/database.md)             | [Users, categories and expenses](../contracts/out/database.md) | resolving the identity, resolving the grouping, reading its categories, telling a category from a grouping |
 
 ## Outcomes
 
@@ -133,4 +133,3 @@ stop
   why the request names no person
 - [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
   why one name can be both a grouping and a category
-- [Create an expense proposal](create-an-expense-proposal.md) — what the caller does with the names it read here

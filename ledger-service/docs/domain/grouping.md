@@ -1,7 +1,6 @@
 # Grouping
 
-A heading a user's [categories](category.md) are filed under. Spending is filed under a category, never under
-the grouping holding it.
+A heading a user's [categories](category.md) are filed under.
 
 ## Invariants
 

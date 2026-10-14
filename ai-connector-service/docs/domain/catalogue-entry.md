@@ -17,6 +17,8 @@ Names only. Sent with each request, never stored.
 
 - [Category choice](category-choice.md) — one per category the entry lists.
 - [Intent extraction](../contracts/in/intent-extraction.md) — where the caller sends one per grouping.
-- [Record the spending a user's message names](../usecases/extract-intents.md) — chooses each expense's category
-  from the entries, and falls back on the catch-all's.
+- [Record the spending a user's message names](../usecases/extract-intents.md) — in the classifier mode, chooses
+  each expense's category from the entries and falls back on the catch-all's.
 - [Category classifier](../contracts/out/classifier.md) — offered every category of every entry as an option.
+- [AI provider](../contracts/out/ai-provider.md#the-category-lookup) — a lookup is answered with one entry's
+  categories.

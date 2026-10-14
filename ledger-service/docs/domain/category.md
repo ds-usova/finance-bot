@@ -10,8 +10,7 @@ itself.
 | `name`   | mandatory, non-blank                           |
 | `parent` | mandatory — always a [grouping](grouping.md) |
 
-Spending is filed under a category, never under a grouping. A grouping holds categories, and a category holds
-spending; nothing is filed under a heading that is itself a heading.
+Spending is filed under a category, never under a grouping.
 
 ## Made of / held by
 

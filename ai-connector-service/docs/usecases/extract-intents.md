@@ -37,7 +37,6 @@ Every turn runs in the [extraction mode](../domain/extraction-mode.md) `EXTRACTI
 | out       | [Message store](../contracts/out/database.md)                                                        | [Database](../contracts/out/database.md)                  | keeping the message the caller handed over                 |
 | out       | [Recall the person's own worked examples](recall-examples.md)                                        | Recall Examples Port                                      | showing the model or the classifier how this person files  |
 | out       | [AI Provider](../contracts/out/ai-provider.md)                                                       | [Chat completions](../contracts/out/ai-provider.md)       | acting on the message, or only reading it out              |
-| out       | [Category Lookup Tool](../../../ledger-service/docs/usecases/list-categories.md)                     | [Ledger tools](../contracts/out/ledger-mcp.md)            | tools mode: learning which categories a grouping holds     |
 | out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md)         | [Ledger tools](../contracts/out/ledger-mcp.md)            | tools mode: recording one expense                          |
 | out       | [Spending Summary Tool](../../../ledger-service/docs/usecases/summarize-spending.md)                 | [Ledger tools](../contracts/out/ledger-mcp.md)            | tools mode: asking for the totals over a period            |
 | out       | [Category Classifier](../contracts/out/classifier.md)                                                | [System One](../contracts/out/classifier.md)              | classifier mode: picking each expense's category           |
@@ -70,9 +69,14 @@ What makes a request or a catalogue unusable is [the contract's](../contracts/in
 | Turn acted on           | the model finished the turn                                                     | an empty answer                                               |
 | Nothing recorded        | the message names no spending                                                   | an empty answer                                               |
 | Summary asked for       | the message asks what was spent over a period                                   | an empty answer                                               |
+| Grouping looked up      | the model asks for a grouping the request's catalogue holds                     | its categories, from the catalogue                            |
+| Lookup refused          | the model asks for any other name                                               | the refusal is that call's answer; the turn goes on           |
+| Lookup counted          | a lookup is answered or refused                                                 | [counted](../contracts/in/operations.md#meters) by outcome    |
 | Expense left unrecorded | the ledger refused it and its one corrected retry, or the message under-said it | an empty answer; the rest of the message still recorded       |
 | Provider unavailable    | the provider is unreachable or errors                                           | the turn stops; the caller is told the service is unavailable |
 | Ledger unreachable      | a tool cannot be reached, or the token is refused there                         | the turn stops; the caller is told the service is unavailable |
+
+What a lookup answers, and each refusal, is [the provider edge's](../contracts/out/ai-provider.md#the-category-lookup).
 
 ### Classifier mode
 
@@ -167,16 +171,21 @@ System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(toolTurn, "Tool-Calling Turn", "Plain Java", "Hands the message to the model", $tags="core")
   Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
-  Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the ledger's tools attached", $tags="aiExternal")
+  Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the lookup and the ledger's tools attached", $tags="aiExternal")
+  Component(lookup, "Category Lookup", "Plain Java", "Answers list_categories from the turn's catalogue", $tags="aiExternal")
+  Component(turnMeters, "Turn Meters", "Interface", "Counts each lookup by outcome", $tags="portOut")
   Component(toolClient, "Ledger Tool Client", "MCP client", "Lists the tools, calls them as the turn's caller", $tags="callerExternal")
   Component(failurePolicy, "Tool Failure Policy", "Plain Java", "Splits a refusal the model reads from a failure that ends the turn", $tags="callerExternal")
   Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Holds the turn's token", $tags="callerExternal")
 }
 
-Rel_D(toolTurn, recordingPort, "Records through")
+Rel_D(toolTurn, recordingPort, "Records through, with the catalogue")
 Rel_U(recordingAdapter, recordingPort, "Implements", $tags="implements")
 Rel_R(recordingAdapter, aiProvider, "Message, groupings, today, tool schemas", "HTTPS")
-Rel_D(recordingAdapter, toolClient, "Attaches the ledger's tools from")
+Rel_D(recordingAdapter, lookup, "Builds per turn, offers as list_categories")
+Rel_D(lookup, turnMeters, "Counts each lookup through")
+Rel_L(lookup, failurePolicy, "Hands a refusal to")
+Rel_D(recordingAdapter, toolClient, "Attaches every other ledger tool from")
 Rel_L(recordingAdapter, failurePolicy, "Ends a turn through")
 Rel_L(toolClient, tokenInterceptor, "Reads the turn's token from")
 Rel_D(toolClient, ledger, "The ledger's published tools", "MCP over HTTP")
@@ -311,15 +320,16 @@ end
 @startuml ExtractIntents-RecordingSpending
 participant "AI Connector Service" as Service
 participant "AI Provider" as Provider
-participant "Category Lookup Tool" as Lookup
 participant "Expense Proposal Tool" as Tool
 
 loop each expense, in the user's order
     loop until a grouping answers its categories
         Provider -> Service : list this grouping's categories
-        Service -> Lookup : the grouping, as the token's subject
-        Lookup --> Service : the grouping's categories, or a refusal
-        Service -> Provider : the result
+        alt the catalogue holds that grouping
+            Service -> Provider : its categories
+        else any other name
+            Service -> Provider : the refusal
+        end
     end
 
     Provider -> Service : record this expense
