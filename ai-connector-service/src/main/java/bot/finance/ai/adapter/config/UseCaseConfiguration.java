@@ -38,6 +38,9 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(ExtractionProperties.class)
 public class UseCaseConfiguration {
 
+    // Injected so that a mode the properties refuse fails startup here, before the turn beans below go missing.
+    UseCaseConfiguration(ExtractionProperties extractionProperties) {}
+
     @Bean
     Clock clock() {
         return Clock.systemUTC();

@@ -16,7 +16,8 @@ public class LedgerTurnConfiguration {
     private static final String LEDGER_TURN_CHANNEL = "ledger-turn";
 
     @Bean
-    LedgerTurnServiceGrpc.LedgerTurnServiceBlockingStub ledgerTurnStub(GrpcChannelFactory channelFactory) {
+    LedgerTurnServiceGrpc.LedgerTurnServiceBlockingStub ledgerTurnStub(
+            GrpcChannelFactory channelFactory, LedgerTurnProperties properties) {
         Channel channel = channelFactory.createChannel(LEDGER_TURN_CHANNEL);
         return LedgerTurnServiceGrpc.newBlockingStub(channel).withInterceptors(new CallerTokenLedgerTurnInterceptor());
     }

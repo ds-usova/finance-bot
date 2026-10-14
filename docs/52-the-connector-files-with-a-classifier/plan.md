@@ -806,9 +806,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS02 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()`
-- [ ] GS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS01 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS02 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()`
+- [x] GS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
 
 AC12 is also held by the existing tool-calling tests — `AiExpenseRecordingAdapterTest` and the system tests
 driving `ExtractIntents` — which keep their assertions through this change.

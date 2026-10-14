@@ -152,6 +152,13 @@
   the stub), and the adapter parses the body with a Jackson 2 `ObjectMapper` because `SystemOneRequestMapper`
   takes Jackson 2's `JsonNode` while the `RestClient` converters are Jackson 3. hypothesis: the mapper should take
   Jackson 3's `JsonNode` — settled by the module's Jackson usage elsewhere; left for the refactor pass.
+- **RL21 (RS02, GS02):** test defect: `ExtractionModeStartupSystemTest` passes its properties through
+  `SpringApplicationBuilder.properties()` — default properties, which `application.yaml`'s `extraction.mode`,
+  `classifier.*` and `ledger.turn.*` placeholders override — so both cases ran in the tools mode with the yaml's
+  values. The first GS02 pass worked around it in production (dropped those keys and the named `ledger-turn`
+  channel from the yaml, added `@DependsOn`), contradicting ST19 and RF08. Re-delegated: the test passes its
+  properties as command-line arguments; production keeps the yaml and the named channel, and keeps only the eager
+  checks (`UseCaseConfiguration` taking `ExtractionProperties`; the ledger stub taking `LedgerTurnProperties`).
 - **RL12 (RI03, RU09):** hypothesis: question keys are `"0"`, `"1"`, … and the returned positions match them —
   settled by the green steps.
 
