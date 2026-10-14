@@ -53,7 +53,11 @@ public final class TargetMetrics {
                     connector.of(
                             "gen_ai_client_token_usage_total",
                             Map.of("gen_ai_token_type", "output", "gen_ai_operation_name", "chat")),
-                    ledger.of("ledger_mcp_tool_calls_total", Map.of()));
+                    ledger.of("ledger_mcp_tool_calls_total", Map.of()),
+                    // TODO: extractionMode, classifierCalls and classifierSeconds are read from the connector's growth
+                    null,
+                    null,
+                    null);
         }
     }
 

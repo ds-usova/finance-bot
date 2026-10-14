@@ -21,6 +21,7 @@ final class Summary {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("attempts", attempts.size());
         summary.put("discardedRolloverAttempts", attempts.size() - counted.size());
+        summary.put("extractionMode", RunMode.of(attempts));
         summary.put("blockedCases", blocked);
         summary.put("quality", QualitySummary.of(counted, evaluated, cases));
         summary.put("performance", PerformanceSummary.of(evaluated, runMs));

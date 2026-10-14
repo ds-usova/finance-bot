@@ -9,7 +9,4 @@ expected:
     count: 1
     items:
       - {"category":{"noneOf":["Uncategorized Expenses"]}}
-  mcpCalls:
-    list_categories:
-      minimumAcceptedCount: 1
-notes: "Check that classification uses a successful catalogue lookup; category spelling is not golden."
+notes: "Check the category the message is filed under, not how it was looked up; category spelling is not golden."

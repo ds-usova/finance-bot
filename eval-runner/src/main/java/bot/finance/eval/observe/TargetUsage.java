@@ -10,4 +10,7 @@ public record TargetUsage(
         Double providerEmbeddingCalls,
         Double inputTokens,
         Double outputTokens,
-        Double ledgerToolCalls) {}
+        Double ledgerToolCalls,
+        String extractionMode,
+        Double classifierCalls,
+        Double classifierSeconds) {}
