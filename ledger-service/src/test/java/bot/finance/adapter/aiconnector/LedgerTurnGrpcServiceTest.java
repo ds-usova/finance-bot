@@ -62,6 +62,7 @@ import org.springframework.grpc.server.lifecycle.GrpcServerLifecycle;
 class LedgerTurnGrpcServiceTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-10-12T09:30:00Z");
+    private static final Optional<IncomingMessageId> STORED_REFERENCE = Optional.of(IncomingMessageId.of("m-42"));
     private static final String INTERNAL_DETAIL = "jdbc:postgresql://db-internal:5432 refused the connection";
 
     @Autowired
@@ -101,7 +102,7 @@ class LedgerTurnGrpcServiceTest {
     }
 
     private static Expense storedEuros() {
-        return stored(Optional.empty(), new Money(450L, CurrencyCode.of("EUR")), Optional.empty());
+        return stored(Optional.empty(), new Money(450L, CurrencyCode.of("EUR")), STORED_REFERENCE);
     }
 
     private CreateExpenseProposalCommand receivedCommand() {
@@ -167,7 +168,8 @@ class LedgerTurnGrpcServiceTest {
         @DisplayName("when the entry has a merchant - then the call answers it")
         void whenEntryHasMerchant_thenCallAnswersIt() {
             when(createExpenseProposalPort.create(any()))
-                    .thenReturn(stored(Optional.of("Trattoria Roma"), new Money(450L, CurrencyCode.of("EUR")), Optional.empty()));
+                    .thenReturn(stored(
+                            Optional.of("Trattoria Roma"), new Money(450L, CurrencyCode.of("EUR")), STORED_REFERENCE));
 
             FileExpenseProposalResponse response = fileExpense(
                     token(42L),
@@ -205,7 +207,7 @@ class LedgerTurnGrpcServiceTest {
         void whenAmountIsAtEdgeOfWhatIsAccepted_thenPortReceivesIt(
                 String amount, String currencyCode, long minorUnits) {
             Money money = new Money(minorUnits, CurrencyCode.of(currencyCode));
-            when(createExpenseProposalPort.create(any())).thenReturn(stored(Optional.empty(), money, Optional.empty()));
+            when(createExpenseProposalPort.create(any())).thenReturn(stored(Optional.empty(), money, STORED_REFERENCE));
 
             fileExpense(
                     token(42L),

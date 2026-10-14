@@ -27,6 +27,14 @@ public record IntentExtractionRequest(
         if (groupings.stream().anyMatch(grouping -> grouping == null || grouping.isBlank())) {
             throw new InvalidExtractionRequestException("Category groupings must not contain null or blank elements");
         }
+        for (CatalogueEntry entry : catalogue) {
+            if (entry.categories() == null
+                    || entry.categories().isEmpty()
+                    || entry.categories().stream().anyMatch(name -> name == null || name.isBlank())) {
+                throw new InvalidExtractionRequestException(
+                        "Each catalogue entry must have at least one category with a non-blank name");
+            }
+        }
         if (catchAllGrouping == null || catchAllGrouping.isBlank()) {
             throw new InvalidExtractionRequestException("Catch-all grouping must not be null or blank");
         }
@@ -47,7 +55,7 @@ public record IntentExtractionRequest(
             throw new InvalidExtractionRequestException("Current date must not be null");
         }
 
-        // TODO copy the catalogue, and check each entry's grouping and categories
+        catalogue = List.copyOf(catalogue);
     }
 
     public List<String> categoryGroupings() {

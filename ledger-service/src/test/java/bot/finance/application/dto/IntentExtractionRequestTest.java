@@ -227,8 +227,7 @@ class IntentExtractionRequestTest {
 
         @ParameterizedTest(name = "catalogue={0}")
         @MethodSource("catalogueWithInvalidEntry")
-        @DisplayName("when the catalogue holds a null entry, or an entry whose categories are null, empty, or hold "
-                + "a null or blank name - then throws InvalidExtractionRequestException")
+        @DisplayName("when a catalogue entry is null or has invalid categories - then throws InvalidExtractionRequestException")
         void whenCatalogueHoldsInvalidEntry_thenThrowsInvalidExtractionRequestException(
                 List<CatalogueEntry> catalogue) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
@@ -253,8 +252,7 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when the mutable catalogue handed to the constructor is changed afterwards - then catalogue() "
-                + "holds the entries as at construction and refuses modification")
+        @DisplayName("when the passed catalogue is changed afterwards - then catalogue() keeps the original entries and is unmodifiable")
         void whenCatalogueIsChangedAfterConstruction_thenCatalogueHoldsEntriesAsAtConstructionAndIsUnmodifiable() {
             List<CatalogueEntry> mutableCatalogue = new ArrayList<>(List.of(
                     new CatalogueEntry("groceries", List.of("Milk", "Bread")),

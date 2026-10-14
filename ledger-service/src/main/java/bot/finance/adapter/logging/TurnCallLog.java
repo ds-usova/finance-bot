@@ -1,8 +1,10 @@
 package bot.finance.adapter.logging;
 
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
@@ -26,8 +28,33 @@ public class TurnCallLog {
     }
 
     public void write(String operation, Via via, boolean accepted, Object arguments) {
-        // stub-intent: where enabled, logs one turn_call line naming the operation, the way it arrived, the
-        // outcome, the authenticated caller and message or none, and the arguments as JSON; otherwise nothing
+        if (!properties.enabled()) {
+            return;
+        }
+        log.debug(
+                "turn_call operation={} via={} outcome={} userId={} message={} arguments={}",
+                operation,
+                via.name().toLowerCase(Locale.ROOT),
+                accepted ? "ok" : "rejected",
+                callerOrNone(),
+                messageOrNone(),
+                jsonMapper.writeValueAsString(arguments));
+    }
+
+    private static String callerOrNone() {
+        try {
+            return String.valueOf(AuthenticatedCaller.authenticatedUserId().userId());
+        } catch (RuntimeException e) {
+            return "none";
+        }
+    }
+
+    private static String messageOrNone() {
+        try {
+            return AuthenticatedCaller.incomingMessageId().value();
+        } catch (RuntimeException e) {
+            return "none";
+        }
     }
 
     public static Map<String, String> arguments(String... namesAndValues) {

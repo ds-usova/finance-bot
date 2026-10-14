@@ -130,12 +130,39 @@
   stubs `findNonEmptyGroupingNames`, which the real read may stop calling — settled by that test after GI01.
 - **RL15 (RU04):** hypothesis: the full-line test relies on the arguments' JSON keeping insertion order — settled
   by `TurnCallLogTest` going green.
+- **RL16 (RI01):** plan defect — GI01's catalogue read uses `findCategoryEntriesForUser`, so
+  `GroupingRepositoryAdapterTest.whenFindCatalogueHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt`
+  stubbed a query nothing calls; RI01 gained an `update:` restubbing it, run by a red re-delegation.
+  `CategoryEntityRepository.findNonEmptyGroupingNames` is left unused in production for the refactor pass.
+- **RL17 (RU03):** plan defect — RU03's `7200 HUF` assumed a currency with no decimals; HUF records two, so
+  `new Money(7200L, HUF)` is `72.00` and `LedgerTurnProtoMapperTest.whenEntryIs7200Huf_thenAmountIsWrittenWithNoExponent`
+  failed against GU03's mapper. The scenario now reads `7200 JPY`; the test is re-delegated.
+- **RL18 (GI05):** GI05, GI06 and GI07 needed no agent: the tools already wrote through `TurnCallLog` (ST08), and
+  their three test classes passed once GU04 landed.
+- **RL19 (RU03):** hypothesis: `CreateExpenseProposalMcpTool`'s description still offers "7200 HUF" as an example
+  amount, which HUF's two recorded decimals may make misleading — settled by reading the description against
+  `CurrencyCode.fractionDigits()` for HUF.
+- **RL20 (GI02):** GI02 needed no agent: `AiConnectorIntentExtractionAdapterTest` passed once GU02 mapped the
+  catalogue.
+- **RL21 (RI04):** test defect — `LedgerTurnGrpcServiceTest.stored(...)` builds a PENDING `Expense` with an empty
+  incoming message id, which `Expense.stored` refuses (`InvalidExpenseException`, `Expense.java:62`), so 8 happy-path
+  tests failed before reaching the service GI04 implemented. Re-delegated to a red agent to give the fixture a
+  reference.
+- **RL22 (GI04):** hypothesis: `LedgerTurnGrpcService` picks the refused field of an `InvalidMoneyException` by
+  whether its message mentions "currency code" — settled by reading it in the refactor pass.
+- **RL23 (RI05):** four new display names broke `DisplayNameConventionsTest`'s 120-character limit
+  (`IntentProtoMapperTest`, `IntentExtractionRequestTest` twice, `CreateExpenseProposalMcpToolTest`); two red
+  re-delegations shortened them, and the rule passes.
+- **RL24 (GS03):** ticked without an agent. In the focused run of `ReceiveTelegramMessageSystemTest`, the
+  scenario's test passed and only the unrelated EUR-preference test of RL05 failed; the whole class passed in the
+  full suite. GS01 and GS02 passed their focused runs without an agent.
 
 ## Suite Runs
 
 - baseline · tree c119edf4d751a2791c835f67a7119b468397cb5e · total 1367 · skipped 0 · green · paths: ledger-service
 - stabilization · tree 36938e0e491ba187099f816420ca8d5cb88fb133 · total 1368 · skipped 1 · green · paths: ledger-service
 
+- green · tree bee1fad627160f9e63b88c1d556ff85dd7fa96b5 · total 1446 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`

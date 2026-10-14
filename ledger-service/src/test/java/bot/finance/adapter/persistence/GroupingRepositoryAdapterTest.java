@@ -338,7 +338,7 @@ class GroupingRepositoryAdapterTest {
                 "when findCatalogue() hits a database failure - then throws PersistenceFailedException wrapping it")
         void whenFindCatalogueHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findNonEmptyGroupingNames(any()))
+            when(mockedCategoryEntityRepository.findCategoryEntriesForUser(any(), any()))
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findCatalogue(1L))

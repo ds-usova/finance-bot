@@ -113,9 +113,9 @@ class LedgerTurnProtoMapperTest {
         }
 
         @Test
-        @DisplayName("when the entry is 7200 HUF - then the amount is written 7200 with no exponent")
-        void whenEntryIs7200Huf_thenAmountIsWrittenWithNoExponent() {
-            Expense entry = stored(Optional.empty(), new Money(7200L, CurrencyCode.of("HUF")));
+        @DisplayName("when the entry is 7200 JPY - then the amount is written 7200 with no exponent")
+        void whenEntryIs7200Jpy_thenAmountIsWrittenWithNoExponent() {
+            Expense entry = stored(Optional.empty(), new Money(7200L, CurrencyCode.of("JPY")));
 
             FileExpenseProposalResponse response = LedgerTurnProtoMapper.toResponse(entry, "Dining", "Cafés");
 

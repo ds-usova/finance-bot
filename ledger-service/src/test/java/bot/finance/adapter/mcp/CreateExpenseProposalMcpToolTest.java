@@ -179,7 +179,7 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName("when create_expense_proposal is called - then one ok turn_call line carries the caller, the "
-                + "message and the arguments as sent")
+                + "message and the arguments")
         void whenCreateExpenseProposalIsCalled_thenOneOkTurnCallLineCarriesCallerMessageAndArguments() {
             IncomingMessageId reference = IncomingMessageId.of("m");
 

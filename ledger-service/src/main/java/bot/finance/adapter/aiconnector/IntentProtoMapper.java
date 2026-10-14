@@ -1,6 +1,7 @@
 package bot.finance.adapter.aiconnector;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.application.dto.IntentExtractionRequest;
 import java.time.format.DateTimeFormatter;
 
@@ -15,6 +16,10 @@ public final class IntentProtoMapper {
         ExtractIntentsRequest.Builder builder =
                 ExtractIntentsRequest.newBuilder().setText(request.text());
         builder.addAllCategoryGroupings(request.categoryGroupings());
+        request.catalogue()
+                .forEach(entry -> builder.addCatalogue(GroupingCategories.newBuilder()
+                        .setGrouping(entry.grouping())
+                        .addAllCategories(entry.categories())));
         builder.setCatchAllGrouping(request.catchAllGrouping());
         request.defaultCurrency().ifPresent(currency -> builder.setDefaultCurrency(currency.code()));
         builder.setCurrentDate(WIRE_DATE.format(request.currentDate()));

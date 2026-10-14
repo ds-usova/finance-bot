@@ -348,7 +348,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a stored entry with merchant `Bean Bar`
       when: toResponse() is called
       then: the answer carries the merchant
-    - given: a stored entry of 7200 HUF
+    - given: a stored entry of 7200 JPY
       when: toResponse() is called
       then: the amount is written `7200`, with no exponent
   - `toResponse(SpendingPeriod)`:
@@ -380,6 +380,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a user whose `Transport` holds `Taxi` and `Fuel`, and whose `Dining` holds `Cafés`
       when: findCatalogue() is called
       then: `Dining` carries `Cafés`, and `Transport` carries `Fuel`, `Taxi`, in that order
+    - update: `whenFindCatalogueHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt()` — stub the
+      catalogue's own read, `findCategoryEntriesForUser`, to throw where it stubbed `findNonEmptyGroupingNames`;
+      its assertion stands
 - [x] RI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()` · scenarios: AC11
   - `extract()`:
@@ -546,34 +549,34 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
-- [ ] GU02 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · after: GU01
-- [ ] GU03 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest`
-- [ ] GU04 · `TurnCallLog` · test: `TurnCallLogTest`
+- [x] GU01 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
+- [x] GU02 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · after: GU01
+- [x] GU03 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest`
+- [x] GU04 · `TurnCallLog` · test: `TurnCallLogTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest`
-- [ ] GI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU01,
+- [x] GI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest`
+- [x] GI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU01,
   GU02
-- [ ] GI03 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
+- [x] GI03 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
   `LedgerTurnService.FileExpenseProposal`, `LedgerTurnService.RecordSpendingPeriod` · mocks:
   `CreateExpenseProposalPort`, `SummarizeSpendingPort`
-- [ ] GI04 · `LedgerTurnGrpcService` · test: `LedgerTurnGrpcServiceTest` · covers:
+- [x] GI04 · `LedgerTurnGrpcService` · test: `LedgerTurnGrpcServiceTest` · covers:
   `LedgerTurnService.FileExpenseProposal`, `LedgerTurnService.RecordSpendingPeriod` · mocks:
   `CreateExpenseProposalPort`, `SummarizeSpendingPort` · after: GI03, GU03, GU04
-- [ ] GI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
+- [x] GI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
   mocks: `CreateExpenseProposalPort`, `ToolCallMeters` · after: GU04
-- [ ] GI06 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `POST /mcp` · mocks:
+- [x] GI06 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `POST /mcp` · mocks:
   `ListCategoriesPort`, `ToolCallMeters` · after: GU04
-- [ ] GI07 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers: `POST /mcp` · mocks:
+- [x] GI07 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers: `POST /mcp` · mocks:
   `SummarizeSpendingPort`, `ToolCallMeters` · after: GU04
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `FileExpenseProposalSystemTest` · covers: `LedgerTurnService.FileExpenseProposal`
-- [ ] GS02 · `RecordSpendingPeriodSystemTest` · covers: `LedgerTurnService.RecordSpendingPeriod`
-- [ ] GS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS01 · `FileExpenseProposalSystemTest` · covers: `LedgerTurnService.FileExpenseProposal`
+- [x] GS02 · `RecordSpendingPeriodSystemTest` · covers: `LedgerTurnService.RecordSpendingPeriod`
+- [x] GS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
 
 AC12 is held by the existing tests of the three MCP tools and their system tests, which keep their assertions
 through this change. AC15 is the evaluation runner's, in its own plan.
