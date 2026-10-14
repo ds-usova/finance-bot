@@ -18,10 +18,12 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.application.port.RecallExamplesPort;
+import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.common.MockedLoggerUtils;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
@@ -55,13 +57,30 @@ class ExtractIntentsUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
-        useCase = new ExtractIntentsUseCase(expenseRecordingPort, messageStorePort, recallExamplesPort, loggerFactory);
+        useCase = new ExtractIntentsUseCase(
+                new ToolCallingTurn(expenseRecordingPort),
+                mock(TurnMeters.class),
+                messageStorePort,
+                recallExamplesPort,
+                loggerFactory);
+    }
+
+    private static List<CatalogueEntry> catalogueOf(List<String> groupings) {
+        return groupings.stream()
+                .map(grouping -> new CatalogueEntry(grouping, List.of(grouping)))
+                .toList();
     }
 
     private static ExtractIntentsCommand command(
             String text, List<String> categoryGroupings, String catchAllGrouping, LocalDate currentDate) {
         return new ExtractIntentsCommand(
-                text, categoryGroupings, catchAllGrouping, Optional.empty(), currentDate, Optional.empty());
+                text,
+                categoryGroupings,
+                catchAllGrouping,
+                Optional.empty(),
+                currentDate,
+                Optional.empty(),
+                catalogueOf(categoryGroupings));
     }
 
     private static ExtractIntentsCommand command(
@@ -71,7 +90,13 @@ class ExtractIntentsUseCaseTest {
             CurrencyCode defaultCurrency,
             LocalDate currentDate) {
         return new ExtractIntentsCommand(
-                text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), currentDate, Optional.empty());
+                text,
+                categoryGroupings,
+                catchAllGrouping,
+                Optional.of(defaultCurrency),
+                currentDate,
+                Optional.empty(),
+                catalogueOf(categoryGroupings));
     }
 
     private static ExtractIntentsCommand commandWithIdentity(
@@ -82,12 +107,14 @@ class ExtractIntentsUseCaseTest {
                 catchAllGrouping,
                 Optional.empty(),
                 CURRENT_DATE,
-                Optional.of(messageIdentity));
+                Optional.of(messageIdentity),
+                catalogueOf(categoryGroupings));
     }
 
     private static MessageExample exampleFixture() {
         ExampleExpense expense = new ExampleExpense(
                 "lunch",
+                Optional.empty(),
                 "15.00",
                 CurrencyCode.of("EUR"),
                 Optional.of("Restaurants"),

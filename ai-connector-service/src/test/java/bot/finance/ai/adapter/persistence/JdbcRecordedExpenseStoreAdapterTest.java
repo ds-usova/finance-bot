@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.rows.RecordedExpenseRowUtils;
@@ -41,7 +40,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @PersistenceAdapterTest
-@Import({JdbcRecordedExpenseStoreAdapter.class, MemoryConfiguration.class})
+@Import(JdbcRecordedExpenseStoreAdapter.class)
 class JdbcRecordedExpenseStoreAdapterTest {
 
     @Autowired

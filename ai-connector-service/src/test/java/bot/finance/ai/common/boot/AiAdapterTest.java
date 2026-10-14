@@ -2,6 +2,7 @@ package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.ai.AiExpenseRecordingAdapter;
 import bot.finance.ai.adapter.ai.AiMessageEmbeddingAdapter;
+import bot.finance.ai.adapter.ai.AiSpendingReadOutAdapter;
 import bot.finance.ai.adapter.ai.ChatClientConfiguration;
 import bot.finance.ai.adapter.ai.ExampleSectionRenderer;
 import bot.finance.ai.adapter.ledger.CallerTokenMcpRequestCustomizer;
@@ -27,7 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Boots {@link AiExpenseRecordingAdapter}, {@link ExampleSectionRenderer}, {@link AiMessageEmbeddingAdapter},
+ * Boots {@link AiExpenseRecordingAdapter}, {@link AiSpendingReadOutAdapter}, {@link ExampleSectionRenderer}, {@link AiMessageEmbeddingAdapter},
  * {@link MemoryPropertiesConfiguration}, {@link ChatClientConfiguration}, {@link LedgerMcpConfiguration},
  * {@link CallerTokenMcpRequestCustomizer}, {@link LedgerToolFailureProcessor} and Spring AI's OpenAI chat and
  * embedding, MCP client, streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no
@@ -40,6 +41,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(
         classes = {
             AiExpenseRecordingAdapter.class,
+            AiSpendingReadOutAdapter.class,
             ExampleSectionRenderer.class,
             AiMessageEmbeddingAdapter.class,
             MemoryPropertiesConfiguration.class,

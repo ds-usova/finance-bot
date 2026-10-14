@@ -115,6 +115,36 @@ public final class ChatCompletionFixtures {
                 .formatted(content);
     }
 
+    /**
+     * A chat-completion response whose {@code message} content is the given read-out JSON, as a string, with no
+     * tool call — how the model answers a call that carries a response format and no tools.
+     */
+    public static String readOut(String json) {
+        return """
+                {
+                  "id": "chatcmpl-fixture",
+                  "object": "chat.completion",
+                  "created": 1700000000,
+                  "model": "gpt-4o-mini",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": %s
+                      },
+                      "finish_reason": "stop"
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 20,
+                    "total_tokens": 120
+                  }
+                }"""
+                .formatted(quote(json));
+    }
+
     private static String quote(String json) {
         return "\"" + json.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }

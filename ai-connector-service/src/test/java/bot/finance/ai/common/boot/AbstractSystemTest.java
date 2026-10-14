@@ -61,6 +61,16 @@ public abstract class AbstractSystemTest {
         registry.add("spring.ai.mcp.client.streamable-http.connections.ledger.url", WireMockSupport::baseUrl);
     }
 
+    /**
+     * Points the classifier's base URL at the WireMock singleton, for a context started with the classifier mode
+     * on. It cannot live in {@code application-test.yaml} because the stub server binds a port that is only known
+     * at runtime.
+     */
+    @DynamicPropertySource
+    static void classifierProperties(DynamicPropertyRegistry registry) {
+        registry.add("classifier.base-url", WireMockSupport::baseUrl);
+    }
+
     @BeforeAll
     void openChannel() {
         channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)

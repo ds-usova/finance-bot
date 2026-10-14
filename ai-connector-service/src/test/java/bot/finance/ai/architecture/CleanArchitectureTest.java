@@ -83,6 +83,14 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Jwks")
             .orShould()
             .haveSimpleNameContaining("Redis")
+            .orShould()
+            .haveSimpleNameContaining("Typesafe")
+            .orShould()
+            .haveSimpleNameContaining("TypeSafe")
+            .orShould()
+            .haveSimpleNameContaining("SystemOne")
+            .orShould()
+            .haveSimpleNameContaining("Jev")
             .allowEmptyShould(true);
 
     /**

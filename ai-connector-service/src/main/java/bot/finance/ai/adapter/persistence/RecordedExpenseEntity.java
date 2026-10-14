@@ -28,8 +28,10 @@ public record RecordedExpenseEntity(
         Instant updatedAt) {
 
     public ExampleExpense toExampleExpense() {
+        // TODO: pass the stored merchant, absent where the row holds none
         return new ExampleExpense(
                 description,
+                Optional.empty(),
                 amount,
                 CurrencyCode.of(currencyCode),
                 Optional.ofNullable(categoryName),

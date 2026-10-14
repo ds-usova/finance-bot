@@ -94,3 +94,33 @@
 - **RF21:** AC09 has no system scenario once RS01 is trimmed.
   - Resolution: mechanical
   - Action: applied — none needed; RU08's and RI02's failure scenarios stay.
+
+## Run Log
+
+- **RL01 (ST16):** widened: moving the `Clock` out of `MemoryConfiguration` broke the context of the three Jdbc
+  adapter tests that imported it for the clock; `PersistenceAdapterTest` now imports a test `Clock`, and the three
+  tests drop the `MemoryConfiguration` import. Added to ST16's `writes:`.
+- **RL02 (ST15):** widened: `application.yaml` gains `spring.grpc.client.channel.ledger-turn.target:
+  ${ledger.turn.target}`, which ST15 names and its `writes:` omitted. Added to ST15's `writes:`.
+- **RL03 (ST22):** the stabilize agent had no web tool and guessed the classifier answer envelope as `questions`.
+  docs.typesafe.ai (quickstart, primitives/choice) gives: `Authorization: Bearer <API_KEY>`; request `{model,
+  state, questions: {<id>: {type: "choice", instructions, criteria: {<option>: <description|null>}}}}`; answer
+  `{model, answers: {<id>: {type: "choice", choice, confidence, probabilities: {<option>: p}}}, usage}`.
+  `SystemOneFixtures` re-delegated to build the documented envelope.
+
+## Suite Runs
+
+- baseline · tree 028a66520c771d7e2411fbfaa1d5c3907576d4af · total 403 · skipped 0 · green · paths: ai-connector-service
+- stabilization · tree c80bf22a310701db18d9eaed1c361b697f6bd16f · total 407 · skipped 0 · green · paths: ai-connector-service
+
+## Stubs
+
+Marker: `stub-intent:`
+
+- `ai-connector-service/src/main/java/bot/finance/ai/application/usecase/ClassifierTurn.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/MicrometerTurnMeters.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/ai/AiSpendingReadOutAdapter.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/TypesafeCategoryClassifierAdapter.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/SystemOneRequestMapper.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/GrpcLedgerTurnAdapter.java`
+- `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/CallerTokenLedgerTurnInterceptor.java`

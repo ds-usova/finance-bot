@@ -361,6 +361,7 @@ class AiExpenseRecordingAdapterTest {
         void whenCalledWithTwoExamplesOneDiscarded_thenUserMessageCarriesHeadingBothExamplesFieldsAndText() {
             ExampleExpense lunchExpense = new ExampleExpense(
                     "lunch",
+                    Optional.empty(),
                     "15.00",
                     CurrencyCode.of("EUR"),
                     Optional.of("Restaurants"),
@@ -371,6 +372,7 @@ class AiExpenseRecordingAdapterTest {
 
             ExampleExpense coffeeExpense = new ExampleExpense(
                     "coffee",
+                    Optional.empty(),
                     "3.50",
                     CurrencyCode.of("EUR"),
                     Optional.of("Coffee"),

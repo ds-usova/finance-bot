@@ -2,12 +2,12 @@ package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.RecallExamplesCommand;
-import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.application.port.RecallExamplesPort;
+import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.MessageExample;
@@ -17,17 +17,20 @@ import java.util.Optional;
 
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
-    private final ExpenseRecordingPort expenseRecordingPort;
+    private final ExtractionTurn extractionTurn;
+    private final TurnMeters turnMeters;
     private final MessageStorePort messageStorePort;
     private final RecallExamplesPort recallExamplesPort;
     private final Logger log;
 
     public ExtractIntentsUseCase(
-            ExpenseRecordingPort expenseRecordingPort,
+            ExtractionTurn extractionTurn,
+            TurnMeters turnMeters,
             MessageStorePort messageStorePort,
             RecallExamplesPort recallExamplesPort,
             LoggerFactory loggerFactory) {
-        this.expenseRecordingPort = expenseRecordingPort;
+        this.extractionTurn = extractionTurn;
+        this.turnMeters = turnMeters;
         this.messageStorePort = messageStorePort;
         this.recallExamplesPort = recallExamplesPort;
         this.log = loggerFactory.getLogger(ExtractIntentsUseCase.class);
@@ -46,13 +49,9 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             examples = recallExamplesPort.recall(new RecallExamplesCommand(identity.get(), command.text()));
         }
 
-        expenseRecordingPort.record(
-                command.text(),
-                command.categoryGroupings(),
-                command.catchAllGrouping(),
-                command.defaultCurrency(),
-                command.currentDate(),
-                examples);
+        // TODO: count the turn under the turn's mode as acted on, or as unavailable when it throws
+        // ExpenseRecordingFailedException, which still propagates
+        extractionTurn.run(command, examples);
 
         log.info(
                 "Acted on turn with {} groupings offered",

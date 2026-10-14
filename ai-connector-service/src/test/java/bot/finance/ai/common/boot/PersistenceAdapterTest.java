@@ -7,9 +7,13 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.time.Clock;
 import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -27,4 +31,16 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @TestPropertySource(properties = "memory.enabled=true")
 @Testcontainers(disabledWithoutDocker = true)
 @ImportTestcontainers(PostgresContainers.class)
-public @interface PersistenceAdapterTest {}
+@Import(PersistenceAdapterTest.ClockConfiguration.class)
+public @interface PersistenceAdapterTest {
+
+    /** The clock the adapters under test read time from, which the full application declares in its wiring. */
+    @TestConfiguration(proxyBeanMethods = false)
+    class ClockConfiguration {
+
+        @Bean
+        Clock clock() {
+            return Clock.systemUTC();
+        }
+    }
+}

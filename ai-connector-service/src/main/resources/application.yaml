@@ -10,6 +10,10 @@ spring:
   grpc:
     server:
       port: 1001
+    client:
+      channel:
+        ledger-turn:
+          target: ${ledger.turn.target}
   datasource:
     url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/finance_ai}
     username: ${DB_USER:}
@@ -47,6 +51,18 @@ ai:
   expense:
     system-prompt: classpath:prompts/record-expenses.st
     user-message-template: classpath:prompts/user-message.st
+    read-out-system-prompt: classpath:prompts/read-out-spending.st
+    read-out-message-template: classpath:prompts/read-out-message.st
+
+extraction:
+  mode: ${EXTRACTION_MODE:tools}
+
+classifier:
+  api-key: ${TYPESAFE_API_KEY:}
+  base-url: ${TYPESAFE_BASE_URL:https://api.typesafe.ai}
+  model: ${CLASSIFIER_MODEL:}
+  timeout: ${CLASSIFIER_TIMEOUT:3s}
+  min-confidence: ${CLASSIFIER_MIN_CONFIDENCE:0.5}
 
 memory:
   enabled: ${MEMORY_ENABLED:true}
@@ -73,6 +89,9 @@ ledger:
   change-stream:
     key: ${CDC_STREAM_KEY:ledger.cdc}
     claim-idle: 30s
+  turn:
+    target: ${LEDGER_TURN_TARGET:}
+    timeout: ${LEDGER_TURN_TIMEOUT:5s}
 
 management:
   server:

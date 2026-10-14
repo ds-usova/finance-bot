@@ -77,6 +77,7 @@ services:
     environment:
       OPENAI_API_KEY: ${FINANCE_BOT_OPENAI_API_KEY}
       LEDGER_MCP_URL: http://ledger-service:1000
+      LEDGER_TURN_TARGET: static://ledger-service:1006
       DB_JDBC_URL: jdbc:postgresql://finance-postgres:5432/${FINANCE_BOT_AI_DB}
       DB_USER: ${FINANCE_BOT_AI_DB_USER}
       DB_PASSWORD: ${FINANCE_BOT_AI_DB_PASSWORD}

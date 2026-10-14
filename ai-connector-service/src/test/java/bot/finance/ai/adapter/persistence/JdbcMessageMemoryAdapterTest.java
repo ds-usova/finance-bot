@@ -12,7 +12,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.application.dto.ExampleQuery;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.dto.UnembeddedMessage;
@@ -56,7 +55,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @PersistenceAdapterTest
-@Import({JdbcMessageMemoryAdapter.class, MemoryConfiguration.class})
+@Import(JdbcMessageMemoryAdapter.class)
 class JdbcMessageMemoryAdapterTest {
 
     @Autowired

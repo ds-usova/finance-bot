@@ -16,8 +16,11 @@ bot.finance.ai
     ├── boot                   # what a test starts, and how
     │   ├── AbstractSystemTest     # full-application base class
     │   ├── AbstractMemorySystemTest # the same with the memory on, against the containerized database and Redis
+    │   ├── AbstractClassifierSystemTest # the same with the classifier turn on, against the fake ledger turn server
     │   ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
     │   ├── AiAdapterTest          # composed annotation — outbound-adapter tests
+    │   ├── ClassifierAdapterTest  # composed annotation — the classifier adapter on the stubbed classifier endpoint
+    │   ├── LedgerTurnAdapterTest  # composed annotation — the ledger turn adapter on the fake ledger turn server
     │   ├── PersistenceAdapterTest # composed annotation — the persistence slice on the containerized database
     │   ├── SecurityAdapterTest    # composed annotation — the token reader on the stubbed key-set endpoint
     │   ├── RedisAdapterTest       # composed annotation — the change-stream slice on the containerized Redis
@@ -27,6 +30,7 @@ bot.finance.ai
     │   └── InProcessGrpcTransportConfiguration # the in-process gRPC transport, one server name per context
     ├── containers             # stub-server and database lifecycle
     │   ├── WireMockSupport        # JVM-wide stub-server singleton
+    │   ├── LedgerTurnServer       # JVM-wide gRPC server on a random port, serving a fake LedgerTurnService that records and scripts
     │   ├── PostgresContainers     # JVM-wide Postgres container singleton, on the pgvector image
     │   ├── RedisContainers        # JVM-wide Redis container singleton, and the connection factories a test builds against it
     │   ├── Network                # the Testcontainers network Redis and Toxiproxy share
@@ -36,6 +40,7 @@ bot.finance.ai
     │   ├── ChatCompletionFixtures # provider response bodies
     │   ├── CallerTokens           # the test signing key, its key set, and the caller tokens it mints
     │   ├── RequestFixtures        # valid ExtractIntentsRequest builders
+    │   ├── SystemOneFixtures      # the classifier's answer bodies
     │   ├── ChangeStreamEntryFixtures # change-stream entry bodies, in the shape the ledger's stream carries
     │   ├── SpendingFactFixtures   # SpendingRow, CategoryRef, RecordedStatus and StreamPosition builders
     │   └── EmbeddingFixtures      # a unit vector, one at a chosen similarity to it, and the provider's response
@@ -47,6 +52,8 @@ bot.finance.ai
     │   ├── WireMockStubs          # stub registration, one static method per endpoint
     │   ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
     │   ├── LedgerJwksStubs        # stubs the ledger's key-set endpoint, served, unreachable or slow
+    │   ├── ClassifierStubs        # stubs the classifier's /v1/systemone, one static method per outcome
+    │   ├── LedgerTurnStubs        # scripts the fake ledger turn service one outcome per call, and reads the recorded calls back
     │   ├── AuthorizedStubs        # attaches an authorization header to a generated stub
     │   ├── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
     │   └── LedgerChangeStreamStubs # stands in for the ledger's writes to the change stream, and a second consumer
@@ -68,9 +75,11 @@ A composed annotation's boot test is `<Annotation>BootTest` — `PersistenceAdap
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A request
   `*Reader` is a unit target. The same goes for an adapter-layer class doing something non-trivial — branching logic with no
   infrastructure of its own, like `LedgerToolFailureProcessor`, `CallerTokenMcpRequestCustomizer`,
-  `ChangeStreamEntryHandler` or `ChangeStreamEntryReader`; a class whose behaviour is trivial is left to its
+  `CallerTokenLedgerTurnInterceptor`, `ChangeStreamEntryHandler` or `ChangeStreamEntryReader`; a class whose behaviour is trivial is left to its
   adapter's integration test instead.
-- **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/persistence/` via
+- **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/typesafe/` via
+  `@ClassifierAdapterTest` against the stubbed classifier endpoint, `adapter/ledger/`'s turn adapter via
+  `@LedgerTurnAdapterTest` against the fake ledger turn server, `adapter/persistence/` via
   `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`, `adapter/redis/`'s consumer,
   `ChangeStreamConsumer`, via `@RedisAdapterTest` against the containerized Redis with the inbound port
   (`LearnMessageOutcomePort`) mocked, and `adapter/metrics/` via `@MetricsAdapterTest`, which boots only the two

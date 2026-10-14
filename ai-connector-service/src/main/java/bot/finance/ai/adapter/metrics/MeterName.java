@@ -5,7 +5,11 @@ public enum MeterName {
     RECALL_EXAMPLES("ai_recall_examples"),
     RECALL_BEST_SIMILARITY("ai_recall_best_similarity"),
     CDC_ENTRIES_PENDING("ai_cdc_entries_pending"),
-    CDC_DELIVERIES_DROPPED("ai_cdc_deliveries_dropped_total");
+    CDC_DELIVERIES_DROPPED("ai_cdc_deliveries_dropped_total"),
+    TURNS("ai_turns_total"),
+    CLASSIFIER_SECONDS("ai_classifier_seconds"),
+    CLASSIFIER_CONFIDENCE("ai_classifier_confidence"),
+    CLASSIFIER_LOW_CONFIDENCE("ai_classifier_low_confidence_total");
 
     private final String meterName;
 

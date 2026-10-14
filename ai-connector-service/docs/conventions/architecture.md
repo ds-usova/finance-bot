@@ -18,12 +18,13 @@ src/main
 │   │   ├── port        # inbound/outbound port interfaces
 │   │   └── dto
 │   └── adapter         # interface adapters
-│       ├── config      # use-case bean wiring only
+│       ├── config      # use-case bean wiring, and the setting that chooses the turn
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── grpc        # gRPC service implementation, proto mapping, status mapping
 │       ├── metrics     # the module's own meters, the sole point Micrometer is touched
 │       ├── ai          # everything fronting the AI provider
-│       ├── ledger      # everything fronting the ledger's MCP tools
+│       ├── typesafe    # everything fronting the category classifier
+│       ├── ledger      # everything fronting the ledger's MCP tools and its turn operations
 │       ├── persistence # everything fronting the connector's own database
 │       ├── redis       # the consumer of the ledger's change stream
 │       ├── security    # the caller token, read against the ledger's published key set
@@ -54,20 +55,25 @@ Bean declaration — Java configuration is for classes that cannot be annotated,
   `@ConditionalOnProperty`.
 
 Configuration placement: adapter-specific config lives in the adapter subpackage it configures. Use-case wiring
-is the exception, living in `adapter/config`, which holds nothing else. `ledger.change-stream.*` binds in
-`adapter/redis`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
+is the exception, living in `adapter/config`, which holds nothing else but `extraction.*`: it reads that setting
+to choose the turn and declares the clock. `ledger.change-stream.*` binds in `adapter/redis`. `ledger.turn.*`
+binds in `adapter/ledger`, and `classifier.*` in `adapter/typesafe`, each registered only with
+`extraction.mode=classifier`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
 cases, beans of every context, can read their bounds with the memory off — and `adapter/config` reads from it to
 build the outcome, recall and backfill use cases, and `adapter/ai` reads its embedding and backfill timeouts from
 there too. `memory.enabled` gates `adapter/persistence`, `adapter/redis`, `adapter/security`, `adapter/metrics`
-and the rest of `adapter/scheduling` alike. With it off, their beans do not register, with three exceptions:
+and the rest of `adapter/scheduling` alike. With it off, their beans do not register, with four exceptions:
 
 - the bean that only binds the settings, so the rest of the module can read them;
+- `MicrometerTurnMeters`, the one bean of `adapter/metrics` that `memory.enabled` does not gate, since a turn is
+  counted whatever the memory says;
 - a `No<Capability>Adapter` null object per port the core still calls — `NoMessageStoreAdapter`,
   `NoMessageMemoryAdapter` — registered by `havingValue = "false"`;
 - `ChangeStreamEntryReader`, which is stateless and unconditional.
 
 External services get one adapter subpackage each, holding everything that fronts that system —
-`adapter/ai` for the AI provider, `adapter/redis` for the ledger's change stream. `adapter/grpc` is named for
+`adapter/ai` for the AI provider, `adapter/typesafe` for the category classifier, `adapter/redis` for the
+ledger's change stream. `adapter/grpc` is named for
 its transport instead, being the module's own front door rather than a client of anything. `adapter/scheduling`
 fronts no external system either: it holds a timer that fires an inbound port, the way `adapter/config` and
 `adapter/logging` front nothing outside.
@@ -113,7 +119,7 @@ The first is enforced below; the second by review.
     `org.springframework.data.redis..` and `io.micrometer..` banned from `domain`/`application`; each new
     external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `OpenAi`,
-    `Grpc`, `Proto`, `Mcp`, `Jdbc`, `Jwt`, `Jwks` or `Redis`; the list grows the same way;
+    `Grpc`, `Proto`, `Mcp`, `Jdbc`, `Jwt`, `Jwks`, `Redis`, `Typesafe`, `TypeSafe`, `SystemOne` or `Jev`; the list grows the same way;
   - `adaptersReachUseCasesThroughPorts` — no class in `adapter..` may depend on `application.usecase..`,
     `adapter/config..` exempt. The layer rule permits `adapter` → `application` wholesale, so without this an
     inbound adapter can inject a use-case class instead of its port and still compile;

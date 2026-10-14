@@ -1,6 +1,7 @@
 package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
@@ -13,7 +14,8 @@ public record ExtractIntentsCommand(
         String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
         LocalDate currentDate,
-        Optional<MessageIdentity> messageIdentity) {
+        Optional<MessageIdentity> messageIdentity,
+        List<CatalogueEntry> catalogue) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
@@ -42,7 +44,13 @@ public record ExtractIntentsCommand(
         if (messageIdentity == null) {
             throw new InvalidValueException("Message identity Optional must not be null");
         }
+        if (catalogue == null) {
+            throw new InvalidValueException("Catalogue must not be null");
+        }
+        // TODO: refuse a catalogue with no entry for the catch-all grouping, a null entry, a grouping named twice,
+        // or groupings other than the command's groupings or in another order
 
         categoryGroupings = List.copyOf(categoryGroupings);
+        catalogue = List.copyOf(catalogue);
     }
 }

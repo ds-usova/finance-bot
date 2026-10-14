@@ -141,24 +141,24 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · Add `org.springframework.boot:spring-boot-starter-grpc-client` to `build.gradle`'s dependencies,
+- [x] ST01 · Add `org.springframework.boot:spring-boot-starter-grpc-client` to `build.gradle`'s dependencies,
   beside the gRPC server starter
   - writes: `ai-connector-service/build.gradle`
-- [ ] ST02 · Add the domain values `CatalogueEntry(String grouping, List<String> categories)` and
+- [x] ST02 · Add the domain values `CatalogueEntry(String grouping, List<String> categories)` and
   `CategoryChoice(String grouping, String category)` to `domain/value`, and the enum
   `ExtractionMode { TOOLS, CLASSIFIER }` with `tagValue()` answering `tools` or `classifier`. `CatalogueEntry`'s
   compact constructor copies its list, and each of the two carries a `TODO` naming the checks still owed
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/domain/value/CatalogueEntry.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/domain/value/CategoryChoice.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/domain/value/ExtractionMode.java`
-- [ ] ST03 · Add the domain value `ExpenseToFile(String description, Optional<String> merchant, String amount,
+- [x] ST03 · Add the domain value `ExpenseToFile(String description, Optional<String> merchant, String amount,
   CurrencyCode currency)` to `domain/value`, with a `TODO` naming the checks still owed
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/domain/value/ExpenseToFile.java`
-- [ ] ST04 · Add the domain exceptions `ClassificationFailedException` and `LedgerCallRefusedException` to
+- [x] ST04 · Add the domain exceptions `ClassificationFailedException` and `LedgerCallRefusedException` to
   `domain/exception`, each with a message constructor and a message-and-cause constructor
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/domain/exception/ClassificationFailedException.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/domain/exception/LedgerCallRefusedException.java`
-- [ ] ST05 · Add a component `List<CatalogueEntry> catalogue` to `ExtractIntentsCommand`, after
+- [x] ST05 · Add a component `List<CatalogueEntry> catalogue` to `ExtractIntentsCommand`, after
   `messageIdentity`. The record copies it and refuses a null list, with a `TODO` naming the catch-all check still
   owed. `ExtractIntentsRequestReader.toCommand()` passes each request `catalogue` entry as a `CatalogueEntry`,
   with a `TODO` naming its own checks still owed · after: ST02
@@ -169,7 +169,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/grpc/ExtractIntentsRequestReader.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/application/dto/ExtractIntentsCommandTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/application/usecase/ExtractIntentsUseCaseTest.java`
-- [ ] ST06 · Add a component `Optional<String> merchant` to `ExampleExpense`, after `description`, with a `TODO`
+- [x] ST06 · Add a component `Optional<String> merchant` to `ExampleExpense`, after `description`, with a `TODO`
   naming the null check still owed. `RecordedExpenseEntity.toExampleExpense()` passes `Optional.empty()`, with a `TODO` naming the
   stored merchant still to be passed · after: ST05
   - every test constructing an example expense — `ExampleExpenseTest`, `MessageExampleTest`,
@@ -183,7 +183,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/test/java/bot/finance/ai/application/usecase/ExtractIntentsUseCaseTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/adapter/ai/ExampleSectionRendererTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/adapter/ai/AiExpenseRecordingAdapterTest.java`
-- [ ] ST07 · Add the outbound-port results to `application/dto`, with no checks of their own:
+- [x] ST07 · Add the outbound-port results to `application/dto`, with no checks of their own:
   `SpendingReadOut(List<ReadOutExpense> expenses, List<ReadOutPeriod> periods)`,
   `ReadOutExpense(String description, String merchant, String amount, String currency)`,
   `ReadOutPeriod(LocalDate from, LocalDate to)` and
@@ -193,7 +193,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/application/dto/ReadOutExpense.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/application/dto/ReadOutPeriod.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/application/dto/ExpenseClassification.java`
-- [ ] ST08 · Add the outbound ports to `application/port` · after: ST03, ST04, ST07
+- [x] ST08 · Add the outbound ports to `application/port` · after: ST03, ST04, ST07
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/application/port/SpendingReadOutPort.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/application/port/CategoryClassifierPort.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/application/port/LedgerTurnPort.java`,
@@ -231,7 +231,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       void countLowConfidence();
   }
   ```
-- [ ] ST09 · Add the interface `ExtractionTurn` to `application/usecase`, with `ExtractionMode mode()` and
+- [x] ST09 · Add the interface `ExtractionTurn` to `application/usecase`, with `ExtractionMode mode()` and
   `void run(ExtractIntentsCommand command, Optional<List<MessageExample>> examples)`. Add `ToolCallingTurn`
   implementing it: it takes `ExpenseRecordingPort`, answers `TOOLS`, and makes the call to
   `ExpenseRecordingPort.record()` that `ExtractIntentsUseCase` makes today, with the same arguments.
@@ -246,7 +246,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/application/usecase/ExtractIntentsUseCase.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/config/UseCaseConfiguration.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/application/usecase/ExtractIntentsUseCaseTest.java`
-- [ ] ST10 · Add `ClassifierTurn` to `application/usecase`, implementing `ExtractionTurn`, taking
+- [x] ST10 · Add `ClassifierTurn` to `application/usecase`, implementing `ExtractionTurn`, taking
   `SpendingReadOutPort`, `CategoryClassifierPort`, `LedgerTurnPort`, `TurnMeters`, `Clock`, the minimum confidence
   as a `double` and `LoggerFactory`, with stubs · after: ST09
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/application/usecase/ClassifierTurn.java`
@@ -264,7 +264,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       // failure
   }
   ```
-- [ ] ST11 · Add `MicrometerTurnMeters` to `adapter/metrics`, a `@Component` registered whatever
+- [x] ST11 · Add `MicrometerTurnMeters` to `adapter/metrics`, a `@Component` registered whatever
   `memory.enabled` says, implementing `TurnMeters` with empty methods. `MeterName` gains `TURNS`
   (`ai_turns_total`), `CLASSIFIER_SECONDS` (`ai_classifier_seconds`), `CLASSIFIER_CONFIDENCE`
   (`ai_classifier_confidence`) and `CLASSIFIER_LOW_CONFIDENCE` (`ai_classifier_low_confidence_total`). The module's
@@ -276,7 +276,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/package-info.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/MeterName.java`,
     `ai-connector-service/docs/conventions/architecture.md`
-- [ ] ST12 · Add `AiSpendingReadOutAdapter` to `adapter/ai`, a `@Component` implementing `SpendingReadOutPort`,
+- [x] ST12 · Add `AiSpendingReadOutAdapter` to `adapter/ai`, a `@Component` implementing `SpendingReadOutPort`,
   taking a second chat client `spendingReadOutChatClient` by qualifier and `LoggerFactory`, its `readOut()`
   stubbed to answer an empty read-out with a `stub-intent:` comment. `ChatClientConfiguration` declares that bean
   from the injected builder with the system prompt `prompts/read-out-spending.st`, and marks the existing
@@ -290,7 +290,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/resources/prompts/read-out-spending.st`,
     `ai-connector-service/src/main/resources/prompts/read-out-message.st`,
     `ai-connector-service/src/main/resources/application.yaml`
-- [ ] ST13 · Add the subpackage `adapter/typesafe` with its `package-info.java`, and in it
+- [x] ST13 · Add the subpackage `adapter/typesafe` with its `package-info.java`, and in it
   `TypesafeCategoryClassifierAdapter`, a `@Component` implementing `CategoryClassifierPort` and registered only
   with `extraction.mode=classifier`, its `classify()` stubbed to answer an empty list with a `stub-intent:` comment;
   `TypesafeClassifierProperties(String apiKey, URI baseUrl, String model, Duration timeout, double minConfidence)`
@@ -303,7 +303,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/TypesafeClassifierProperties.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/TypesafeClassifierConfiguration.java`,
     `ai-connector-service/docs/conventions/architecture.md`
-- [ ] ST14 · Add `SystemOneRequestMapper` to `adapter/typesafe`, a stateless mapper with stubs · after: ST13
+- [x] ST14 · Add `SystemOneRequestMapper` to `adapter/typesafe`, a stateless mapper with stubs · after: ST13
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/SystemOneRequestMapper.java`
   ```java
   static Map<String, Object> toRequest(
@@ -324,7 +324,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       return List.of();
   }
   ```
-- [ ] ST15 · Add `GrpcLedgerTurnAdapter` to `adapter/ledger`, a `@Component` implementing `LedgerTurnPort` and
+- [x] ST15 · Add `GrpcLedgerTurnAdapter` to `adapter/ledger`, a `@Component` implementing `LedgerTurnPort` and
   registered only with `extraction.mode=classifier`, taking the generated
   `LedgerTurnServiceGrpc.LedgerTurnServiceBlockingStub` and `LedgerTurnProperties`, with both methods stubbed to
   return with a `stub-intent:` comment. Add `LedgerTurnProperties(String target, Duration timeout)` bound to
@@ -336,8 +336,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/GrpcLedgerTurnAdapter.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/LedgerTurnProperties.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/LedgerTurnConfiguration.java`,
+    `ai-connector-service/src/main/resources/application.yaml`,
     `ai-connector-service/docs/conventions/architecture.md`
-- [ ] ST16 · Add `ExtractionProperties(String mode)` to `adapter/config`, bound to `extraction`, enabled there.
+- [x] ST16 · Add `ExtractionProperties(String mode)` to `adapter/config`, bound to `extraction`, enabled there.
   `UseCaseConfiguration` declares the `ExtractionTurn` bean twice: a `ToolCallingTurn` with
   `extraction.mode=tools` or the property missing, and a `ClassifierTurn` with `extraction.mode=classifier`,
   built with the `Clock` bean and `TypesafeClassifierProperties.minConfidence()`. The `Clock` bean moves from
@@ -347,12 +348,16 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/config/ExtractionProperties.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/config/UseCaseConfiguration.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/scheduling/MemoryConfiguration.java`,
+    `ai-connector-service/src/test/java/bot/finance/ai/common/boot/PersistenceAdapterTest.java`,
+    `ai-connector-service/src/test/java/bot/finance/ai/adapter/persistence/JdbcChangeAttemptStoreAdapterTest.java`,
+    `ai-connector-service/src/test/java/bot/finance/ai/adapter/persistence/JdbcMessageMemoryAdapterTest.java`,
+    `ai-connector-service/src/test/java/bot/finance/ai/adapter/persistence/JdbcRecordedExpenseStoreAdapterTest.java`,
     `ai-connector-service/docs/conventions/architecture.md`
-- [ ] ST18 · `CleanArchitectureTest.coreTypesCarryNoExternalSystemName` gains `Typesafe`, `TypeSafe`, `SystemOne`
+- [x] ST18 · `CleanArchitectureTest.coreTypesCarryNoExternalSystemName` gains `Typesafe`, `TypeSafe`, `SystemOne`
   and `Jev`
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/architecture/CleanArchitectureTest.java`,
     `ai-connector-service/docs/conventions/architecture.md`
-- [ ] ST28 · Add `CallerTokenLedgerTurnInterceptor` to `adapter/ledger`, a gRPC `ClientInterceptor`, with a stub.
+- [x] ST28 · Add `CallerTokenLedgerTurnInterceptor` to `adapter/ledger`, a gRPC `ClientInterceptor`, with a stub.
   The module's testing conventions list it beside `CallerTokenMcpRequestCustomizer` as a unit target · after: ST15
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/CallerTokenLedgerTurnInterceptor.java`,
     `ai-connector-service/docs/conventions/testing.md`
@@ -368,7 +373,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Configuration**
 
-- [ ] ST19 · In `application.yaml`: `extraction.mode: ${EXTRACTION_MODE:tools}`; `classifier.api-key:
+- [x] ST19 · In `application.yaml`: `extraction.mode: ${EXTRACTION_MODE:tools}`; `classifier.api-key:
   ${TYPESAFE_API_KEY:}`, `classifier.base-url: ${TYPESAFE_BASE_URL:https://api.typesafe.ai}`,
   `classifier.model: ${CLASSIFIER_MODEL:}`, `classifier.timeout: ${CLASSIFIER_TIMEOUT:3s}`,
   `classifier.min-confidence: ${CLASSIFIER_MIN_CONFIDENCE:0.5}`; `ledger.turn.target: ${LEDGER_TURN_TARGET:}`,
@@ -380,14 +385,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Shared Test Infrastructure**
 
-- [ ] ST20 · `RequestFixtures` gives every request a catalogue: one entry per grouping it names, each holding one
+- [x] ST20 · `RequestFixtures` gives every request a catalogue: one entry per grouping it names, each holding one
   category named after its grouping, and adds `requestWithCatalogue(String text, List<GroupingCategories>
   catalogue, String catchAllGrouping)`, which sets the groupings from the catalogue's · after: ST05
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/common/fixtures/RequestFixtures.java`
-- [ ] ST21 · `ChatCompletionFixtures` gains `readOut(String json)`: a whole chat-completion body whose message
+- [x] ST21 · `ChatCompletionFixtures` gains `readOut(String json)`: a whole chat-completion body whose message
   content is the given read-out JSON, with no `tool_calls`
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/common/fixtures/ChatCompletionFixtures.java`
-- [ ] ST22 · Add `ClassifierStubs` to `common/stubs`: one static method per outcome of `POST /v1/systemone` on
+- [x] ST22 · Add `ClassifierStubs` to `common/stubs`: one static method per outcome of `POST /v1/systemone` on
   `WireMockSupport.SERVER` — answered with a given body, answered with a status, answered slower than a given
   delay, answered with an unparseable body. Add `SystemOneFixtures` to `common/fixtures`, building an answer body
   from per-question choice, confidence and probabilities. `WireMockUrlConfiguration` and `AbstractSystemTest`
@@ -397,7 +402,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/WireMockUrlConfiguration.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/AbstractSystemTest.java`,
     `ai-connector-service/docs/conventions/testing.md`
-- [ ] ST23 · Add `LedgerTurnServer` to `common/containers`: a JVM-wide gRPC server on a random real port serving
+- [x] ST23 · Add `LedgerTurnServer` to `common/containers`: a JVM-wide gRPC server on a random real port serving
   a fake `LedgerTurnService`, which records each request with its `authorization` metadata and answers the outcome
   scripted for it — stored, refused with a given status, or never answering. Add `LedgerTurnStubs` to
   `common/stubs`: scripting one outcome per call in order, reading the recorded calls back, and resetting. A
@@ -406,7 +411,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/test/java/bot/finance/ai/common/stubs/LedgerTurnStubs.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/common/containers/LedgerTurnServerTest.java`,
     `ai-connector-service/docs/conventions/testing.md`
-- [ ] ST24 · Add the composed annotations `ClassifierAdapterTest` — booting `TypesafeCategoryClassifierAdapter`
+- [x] ST24 · Add the composed annotations `ClassifierAdapterTest` — booting `TypesafeCategoryClassifierAdapter`
   and `TypesafeClassifierConfiguration` with `extraction.mode=classifier`, a key, a model and `classifier.timeout=1s`,
   over `WireMockUrlConfiguration` — and `LedgerTurnAdapterTest` — booting `GrpcLedgerTurnAdapter` and
   `LedgerTurnConfiguration` with Spring gRPC's client autoconfiguration, `extraction.mode=classifier`,
@@ -418,21 +423,21 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/LedgerTurnAdapterTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/LedgerTurnAdapterTestBootTest.java`,
     `ai-connector-service/docs/conventions/testing.md`
-- [ ] ST25 · Add `AbstractClassifierSystemTest` to `common/boot`, extending `AbstractSystemTest` with
+- [x] ST25 · Add `AbstractClassifierSystemTest` to `common/boot`, extending `AbstractSystemTest` with
   `extraction.mode=classifier`, a key, a model, `ledger.turn.target` at `LedgerTurnServer`'s port, and
   `LedgerTurnStubs` reset before and after each test. `AbstractClassifierSystemTestBootTest` boots it. Listed in
   the module's testing conventions · after: ST22, ST23
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/common/boot/AbstractClassifierSystemTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/AbstractClassifierSystemTestBootTest.java`,
     `ai-connector-service/docs/conventions/testing.md`
-- [ ] ST26 · `AiAdapterTest` boots `AiSpendingReadOutAdapter`; `MetricsAdapterTest` imports
+- [x] ST26 · `AiAdapterTest` boots `AiSpendingReadOutAdapter`; `MetricsAdapterTest` imports
   `MicrometerTurnMeters`
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/common/boot/AiAdapterTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/common/boot/MetricsAdapterTest.java`
 
 #### Closing item
 
-- [ ] ST27 · `tools/agent-test/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.architecture.CleanArchitectureTest"`
+- [x] ST27 · `tools/agent-test/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.architecture.CleanArchitectureTest"`
   passes, and the existing suite stays green
   - writes: none
 

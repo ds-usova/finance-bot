@@ -51,6 +51,7 @@ dependencies {
     implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
 
     implementation "org.springframework.boot:spring-boot-starter-grpc-server"
+    implementation "org.springframework.boot:spring-boot-starter-grpc-client"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "org.springframework.boot:spring-boot-starter-webmvc"
