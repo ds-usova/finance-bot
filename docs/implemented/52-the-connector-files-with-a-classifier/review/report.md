@@ -1,6 +1,6 @@
 # Report: The Connector Files a Message's Spending with a Classifier
 
-**Done and archived, 2 open.**
+**Done and archived.**
 
 ## Done
 
@@ -22,7 +22,7 @@ $69.26 · 32 agents · 15 h 9 min — [cost.md](cost.md)
 
 ## Open
 
-2 bugs — [findings.md](findings.md)
+Nothing open; 2 bugs found after archiving were fixed directly — [findings.md](findings.md)
 
 ## Manual checks
 

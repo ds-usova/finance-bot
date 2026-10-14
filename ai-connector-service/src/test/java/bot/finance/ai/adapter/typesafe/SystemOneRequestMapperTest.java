@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -175,7 +174,6 @@ class SystemOneRequestMapperTest {
         }
 
         @Test
-        @Disabled("An answer with no confidence field reads as confidence 0.0 and is returned, instead of failing")
         @DisplayName("when the answer carries no confidence - then it throws ClassificationFailedException")
         void whenAnswerCarriesNoConfidence_thenThrowsClassificationFailedException() throws Exception {
             JsonNode answer = MAPPER.readTree(

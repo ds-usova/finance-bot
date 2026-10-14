@@ -42,11 +42,11 @@ final class SystemOneRequestMapper {
                     .fields()
                     .forEachRemaining(probability -> probabilities.put(
                             choiceOf(choicesByOption, probability.getKey()),
-                            probability.getValue().asDouble()));
+                            number(probability.getValue(), "probability")));
             classifications.add(new ExpenseClassification(
                     position(entry.getKey()),
                     choiceOf(choicesByOption, question.path("choice").asText()),
-                    question.path("confidence").asDouble(),
+                    number(question.path("confidence"), "confidence"),
                     probabilities));
         });
         return classifications;
@@ -108,6 +108,13 @@ final class SystemOneRequestMapper {
             throw new ClassificationFailedException("The classifier answered with an unknown option: " + option);
         }
         return choice;
+    }
+
+    private static double number(JsonNode value, String field) {
+        if (!value.isNumber()) {
+            throw new ClassificationFailedException("The classifier answered without a numeric " + field);
+        }
+        return value.asDouble();
     }
 
     private static int position(String key) {

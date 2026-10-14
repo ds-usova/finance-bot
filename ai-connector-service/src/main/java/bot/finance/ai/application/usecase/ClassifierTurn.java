@@ -73,7 +73,7 @@ public class ClassifierTurn implements ExtractionTurn {
         if (!usable.isEmpty()) {
             List<CategoryChoice> choices = chooseCategories(command, examples.orElse(List.of()), usable);
             for (int position = 0; position < usable.size(); position++) {
-                fileExpense(choices.get(position), usable.get(position));
+                fileExpense(position, choices.get(position), usable.get(position));
             }
         }
         for (ReadOutPeriod period : readOut.periods()) {
@@ -87,10 +87,17 @@ public class ClassifierTurn implements ExtractionTurn {
             try {
                 usable.add(toExpense(readOutExpenses.get(position), command));
             } catch (InvalidValueException e) {
-                log.warn("Dropped read-out expense {}: {}", position, e.getMessage());
+                log.warn("Dropped read-out expense {}: {}", position, withoutValue(e.getMessage()));
+                log.debug("Dropped read-out expense {}: {}", position, e.getMessage());
             }
         }
         return usable;
+    }
+
+    /** A domain refusal names the offending value after a colon. */
+    private static String withoutValue(String message) {
+        int colon = message.indexOf(':');
+        return colon < 0 ? message : message.substring(0, colon);
     }
 
     private ExpenseToFile toExpense(ReadOutExpense readOut, ExtractIntentsCommand command) {
@@ -185,11 +192,12 @@ public class ClassifierTurn implements ExtractionTurn {
                 .orElseThrow();
     }
 
-    private void fileExpense(CategoryChoice choice, ExpenseToFile expense) {
+    private void fileExpense(int position, CategoryChoice choice, ExpenseToFile expense) {
         try {
             ledgerTurnPort.fileExpense(choice, expense);
         } catch (LedgerCallRefusedException e) {
-            log.warn("Ledger refused expense '{}'", expense.description());
+            log.warn("Ledger refused expense {}", position);
+            log.debug("Ledger refused expense {}: '{}'", position, expense.description());
         }
     }
 
