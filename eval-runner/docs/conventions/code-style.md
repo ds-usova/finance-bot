@@ -4,7 +4,7 @@ What holds for every module is [Code Style](../../../docs/conventions/code-style
 
 ## Production Code
 
-- **Values are records** — `McpCall`, `Proposal`, `Category`.
+- **Values are records** — `TurnCall`, `Proposal`, `Category`.
 - **A class with only static members is `final`** with a private constructor — `Wiring`.
 - **Collaborators arrive through the constructor**, built in `Wiring`. A shared `JsonMapper` is a
   `private static final` field.
