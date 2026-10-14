@@ -91,6 +91,8 @@
   display names reach 120 characters or more, in `CallerTokenInterceptorTest`, `IntentExtractionGrpcServiceTest`,
   `GrpcTurnEndAdapterTest`, `ClassifierTurnTest`, `ExtractIntentsSystemTest` and `TurnRunSystemTest`. Re-delegated
   to the red agents of RU06, RI01–RI03, RS01 and RS03 to shorten them.
+- **RL10 (PI01):** placed repo-root ADR 0022 (`docs/adr/0022-…`), `Supersedes: 0017`. ADR 0017's status is not yet
+  flipped to `Superseded by ADR 0022`; the ledger plan's repo-root ADR takes the next free number, 0023 or above.
 
 ## Suite Runs
 

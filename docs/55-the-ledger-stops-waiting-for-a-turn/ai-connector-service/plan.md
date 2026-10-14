@@ -630,7 +630,7 @@ No spec scenario's `Then:` is a measurement, and the module's testing convention
 
 #### ADR Placeholders
 
-- [ ] PI01 · Place ADR: with the memory off, the connector still reads a caller token's person, message and expiry
+- [x] PI01 · Place ADR: with the memory off, the connector still reads a caller token's person, message and expiry
   without verifying it, only to keep one run per turn and to bound the retries of the turn's end; it supersedes ADR
   0017's single switch for token reading
 
