@@ -637,7 +637,7 @@ class ClassifierTurnTest {
         class Interruption {
 
             @Test
-            @DisplayName("when the thread is interrupted once the first of two expenses is filed - then the second "
+            @DisplayName("when the thread is interrupted after filing the first of two expenses - then the second "
                     + "is not filed and the turn fails")
             void whenThreadInterruptedAfterFirstFiling_thenSecondNotFiledAndTurnFails() {
                 twoExpensesRead();

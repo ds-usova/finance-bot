@@ -54,6 +54,7 @@ class TurnRunSystemTest extends AbstractSystemTest {
                 + "and one turn runs")
         void whenSameTokenHandedOverTwiceWhileFirstTurnRuns_thenBothAnswerEmptyAndOneTurnRuns() {
             String token = CallerTokens.bearer(3001L, "message-3001-1");
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionDelayed(
                     ChatCompletionFixtures.textResponse("nothing to record"), Duration.ofSeconds(1));
 
@@ -78,6 +79,7 @@ class TurnRunSystemTest extends AbstractSystemTest {
                 + "ends acted on after")
         void whenCallCarriesShortDeadline_thenAnswersEmptyWithinItAndTurnEndsActedOnAfter() {
             String token = CallerTokens.bearer(3002L, "message-3002-1");
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionDelayed(
                     ChatCompletionFixtures.textResponse("nothing to record"), Duration.ofSeconds(1));
 
@@ -100,8 +102,8 @@ class TurnRunSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the provider answers a tool call after six seconds - then the turn ends unavailable and "
-                + "no tool call reaches the ledger")
+        @DisplayName("when the provider answers a tool call after six seconds - then the turn ends unavailable, "
+                + "no tool call to the ledger")
         void whenProviderAnswersToolCallAfterSixSeconds_thenTurnEndsUnavailableAndNoToolCallReachesLedger() {
             String token = CallerTokens.bearer(3003L, "message-3003-1");
             McpLedgerStubs.stubCreateExpenseProposalAccepted();

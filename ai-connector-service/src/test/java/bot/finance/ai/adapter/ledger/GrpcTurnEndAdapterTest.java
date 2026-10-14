@@ -155,8 +155,8 @@ class GrpcTurnEndAdapterTest {
         }
 
         @Test
-        @DisplayName("when the ledger stays unavailable past the token's expiry - then it gives up without a later "
-                + "attempt and logs the turn key at ERROR")
+        @DisplayName("when the ledger is unavailable past token expiry - then it gives up without retrying "
+                + "and logs the turn key at ERROR")
         void whenLedgerStaysUnavailablePastTokenExpiry_thenGivesUpWithoutLaterAttemptAndLogsTurnKeyAtError()
                 throws InterruptedException {
             int scripted = 40;

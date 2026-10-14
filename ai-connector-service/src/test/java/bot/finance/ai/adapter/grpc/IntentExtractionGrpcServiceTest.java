@@ -73,8 +73,8 @@ class IntentExtractionGrpcServiceTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when a request is made under a token naming person 42 and message m-1 - then the call "
-                + "answers empty and the port receives that turn key")
+        @DisplayName("when a token names person 42 and message m-1 - then the call answers "
+                + "empty and the port receives that turn key")
         void whenRequestMadeUnderTokenNamingPersonAndMessage_thenCallAnswersEmptyAndPortReceivesTurnKey() {
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
                             intentExtractionStub, CallerTokens.bearer(42L, "m-1"))

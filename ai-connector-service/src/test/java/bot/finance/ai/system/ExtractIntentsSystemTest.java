@@ -217,7 +217,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the provider responds with a server error - then the call answers empty and the turn "
+        @DisplayName("when the provider returns a server error - then the call answers empty and the turn "
                 + "ends unavailable under the token")
         void whenProviderRespondsServerError_thenCallAnswersEmptyAndTurnEndsUnavailable() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();

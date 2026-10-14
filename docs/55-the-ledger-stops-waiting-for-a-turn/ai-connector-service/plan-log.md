@@ -81,12 +81,23 @@
   settled by deciding whether the runner should catch it.
 - **RL06 (GU05):** wave verification attempt 1 failed `GrpcTurnRunnerAdapterTest$Close` past-timeout scenario:
   `close()` returned before the interrupted turn's end finished. Re-delegated with the failure.
+- **RL07 (RS03):** GS03's preflight failed both happy-path tests of `TurnRunSystemTest`: neither stubs `/mcp`, so
+  in the class's fresh context the lazily started MCP client fails `tools/list`, the turn ends `UNAVAILABLE` before
+  the provider is called. A test-premise gap, not a production defect; RS03 re-delegated to stub the ledger's MCP
+  endpoint in both, as the unhappy test does.
+- **RL08 (RS01):** hypothesis: `ExtractIntentsSystemTest.whenProviderAnswersAfterOneSecond_…` has the same gap and
+  passes only because an earlier test in the class initialised the shared MCP client — settled by running it alone.
+- **RL09 (RS01):** the post-green full suite (629 total, 1 failed) failed `DisplayNameConventionsTest`: six new
+  display names reach 120 characters or more, in `CallerTokenInterceptorTest`, `IntentExtractionGrpcServiceTest`,
+  `GrpcTurnEndAdapterTest`, `ClassifierTurnTest`, `ExtractIntentsSystemTest` and `TurnRunSystemTest`. Re-delegated
+  to the red agents of RU06, RI01–RI03, RS01 and RS03 to shorten them.
 
 ## Suite Runs
 
 - baseline · tree 048cc230856ecbf280af51b7f0d34a3096eab09a · total 569 · skipped 0 · green · paths: ai-connector-service
 - stabilization · tree 170a01880dc531bf69a9c26a903926dac9a25643 · total 569 · skipped 25 · green · paths: ai-connector-service
 
+- green · tree 858bb2c6bb8e605726931006718c3f4c2b616dfd · total 629 · skipped 0 · green · paths: ai-connector-service
 ## Stubs
 
 Marker: `stub-intent:`

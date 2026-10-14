@@ -617,14 +617,14 @@ No spec scenario's `Then:` is a measurement, and the module's testing convention
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS02 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS03 · `TurnRunSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS04 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()`
-- [ ] GS05 · `RegisterMessageSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS06 · `RecallExamplesSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS07 · `MetersSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] GS08 · `ChangeStreamUnavailableSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS01 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS02 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS03 · `TurnRunSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS04 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()`
+- [x] GS05 · `RegisterMessageSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS06 · `RecallExamplesSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS07 · `MetersSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS08 · `ChangeStreamUnavailableSystemTest` · covers: `IntentExtractionService.ExtractIntents`
 
 ### Post-Implementation Steps
 

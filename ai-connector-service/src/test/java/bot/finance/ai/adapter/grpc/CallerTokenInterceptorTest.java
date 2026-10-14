@@ -90,8 +90,8 @@ class CallerTokenInterceptorTest {
         }
 
         @Test
-        @DisplayName("when memory is disabled and the token is signed by an unpublished key - then the port sees "
-                + "the turn key and no message identity")
+        @DisplayName("when memory is disabled and the token is unverifiable - then the port sees the turn key "
+                + "and no message identity")
         void whenMemoryDisabledAndTokenWouldNotVerify_thenPortCalledAndMessageIdentityAbsent() {
             SeenContext seen = captureContextAtPort();
 
