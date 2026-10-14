@@ -2,7 +2,6 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.IncomingTurnRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidIncomingTurnException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.IncomingTurn;
 import bot.finance.domain.value.IncomingMessageId;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class IncomingTurnRepositoryAdapter implements IncomingTurnRepository {
 
-    private static final String REFERENCE_UNIQUE_INDEX = "ux_incoming_turn_incoming_message";
     private static final String USER_FOREIGN_KEY = "incoming_turn_user_id_fkey";
 
     private final IncomingTurnEntityRepository incomingTurnEntityRepository;
@@ -29,9 +27,7 @@ public class IncomingTurnRepositoryAdapter implements IncomingTurnRepository {
     @Override
     @Transactional(propagation = Propagation.NESTED)
     public boolean keep(IncomingTurn turn) {
-        if (turn.text().length() > ColumnLimits.TURN_TEXT) {
-            throw new InvalidIncomingTurnException("text exceeds " + ColumnLimits.TURN_TEXT + " characters");
-        }
+        ColumnLimits.validateTurnText(turn.text());
 
         try {
             IncomingTurnEntity entity = IncomingTurnEntity.fromDomain(turn);

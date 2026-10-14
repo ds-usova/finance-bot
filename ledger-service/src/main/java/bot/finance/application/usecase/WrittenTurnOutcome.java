@@ -18,6 +18,7 @@ class WrittenTurnOutcome {
     private final TurnMeters turnMeters;
     private final Clock clock;
     private final Logger log;
+    private final ExtractionTurn extractionTurn;
 
     WrittenTurnOutcome(
             WrittenMessageRepository writtenMessageRepository,
@@ -32,6 +33,7 @@ class WrittenTurnOutcome {
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.log = log;
+        this.extractionTurn = new ExtractionTurn(spendingQueryRepository, log);
     }
 
     boolean settle(WrittenMessageView message, TurnEnding ending) {
@@ -48,7 +50,7 @@ class WrittenTurnOutcome {
         if (ending != TurnEnding.ACTED_ON) {
             log.error("written message {} ended {} and was settled as {}", message.id(), ending, outcome);
         }
-        new ExtractionTurn(spendingQueryRepository, log).discardPeriods(message.userId(), message.incomingMessageId());
+        extractionTurn.discardPeriods(message.userId(), message.incomingMessageId());
         turnMeters.countTurn(outcome);
         return true;
     }

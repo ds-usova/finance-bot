@@ -19,13 +19,6 @@ public class EndTurnUseCase implements EndTurnPort {
 
     private final IncomingTurnRepository incomingTurnRepository;
     private final WrittenMessageRepository writtenMessageRepository;
-    private final ExpenseRepository expenseRepository;
-    private final SpendingQueryRepository spendingQueryRepository;
-    private final MessageDeliveryPort messageDeliveryPort;
-    private final ProposalReportRepository proposalReportRepository;
-    private final TurnMeters turnMeters;
-    private final Clock clock;
-    private final Logger log;
     private final WrittenTurnOutcome writtenTurnOutcome;
     private final IncomingTurnReport incomingTurnReport;
 
@@ -41,13 +34,7 @@ public class EndTurnUseCase implements EndTurnPort {
             LoggerFactory loggerFactory) {
         this.incomingTurnRepository = incomingTurnRepository;
         this.writtenMessageRepository = writtenMessageRepository;
-        this.expenseRepository = expenseRepository;
-        this.spendingQueryRepository = spendingQueryRepository;
-        this.messageDeliveryPort = messageDeliveryPort;
-        this.proposalReportRepository = proposalReportRepository;
-        this.turnMeters = turnMeters;
-        this.clock = clock;
-        this.log = loggerFactory.getLogger(EndTurnUseCase.class);
+        Logger log = loggerFactory.getLogger(EndTurnUseCase.class);
         this.writtenTurnOutcome = new WrittenTurnOutcome(
                 writtenMessageRepository, expenseRepository, spendingQueryRepository, turnMeters, clock, log);
         this.incomingTurnReport = new IncomingTurnReport(
@@ -65,6 +52,7 @@ public class EndTurnUseCase implements EndTurnPort {
         if (command == null) {
             throw new InvalidTurnEndException("turn end is absent");
         }
+
         long userId = command.userId().userId();
         Optional<Long> writtenMessageId = command.reference().writtenMessageId();
         if (writtenMessageId.isPresent()) {

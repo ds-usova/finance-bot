@@ -32,10 +32,6 @@ public class HandOverIncomingTurnUseCase implements HandOverIncomingTurnPort {
     private final GroupingRepository groupingRepository;
     private final UserPreferenceRepository userPreferenceRepository;
     private final IntentExtractionPort intentExtractionPort;
-    private final ExpenseRepository expenseRepository;
-    private final SpendingQueryRepository spendingQueryRepository;
-    private final MessageDeliveryPort messageDeliveryPort;
-    private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
     private final Clock clock;
     private final Duration maxQueueWait;
@@ -60,10 +56,6 @@ public class HandOverIncomingTurnUseCase implements HandOverIncomingTurnPort {
         this.groupingRepository = groupingRepository;
         this.userPreferenceRepository = userPreferenceRepository;
         this.intentExtractionPort = intentExtractionPort;
-        this.expenseRepository = expenseRepository;
-        this.spendingQueryRepository = spendingQueryRepository;
-        this.messageDeliveryPort = messageDeliveryPort;
-        this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.maxQueueWait = maxQueueWait;
@@ -86,6 +78,7 @@ public class HandOverIncomingTurnUseCase implements HandOverIncomingTurnPort {
         if (queued.isEmpty()) {
             return false;
         }
+
         IncomingTurn turn = queued.get();
         IntentExtractionRequest request;
         try {
@@ -100,6 +93,7 @@ public class HandOverIncomingTurnUseCase implements HandOverIncomingTurnPort {
             log.warn("failed to prepare incoming turn for message {}: {}", turn.reference(), e.getMessage());
             return false;
         }
+
         long turnId = turn.id().orElseThrow();
         incomingTurnRepository.recordAttempt(turnId, clock.instant());
         try {
@@ -112,6 +106,7 @@ public class HandOverIncomingTurnUseCase implements HandOverIncomingTurnPort {
             log.warn("hand-over of incoming turn for message {} failed: {}", turn.reference(), e.getMessage());
             return false;
         }
+
         incomingTurnRepository.markHandedOver(turnId, clock.instant());
         return true;
     }

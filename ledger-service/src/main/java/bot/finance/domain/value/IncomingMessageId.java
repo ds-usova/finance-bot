@@ -30,7 +30,7 @@ public record IncomingMessageId(String value) {
         if (writtenMessageId < 1) {
             throw new InvalidIncomingMessageException("written message id must be at least 1");
         }
-        return new IncomingMessageId("web:" + writtenMessageId);
+        return new IncomingMessageId(WEB_PREFIX + writtenMessageId);
     }
 
     public Optional<Long> writtenMessageId() {

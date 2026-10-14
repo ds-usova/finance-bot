@@ -18,10 +18,6 @@ import java.time.Instant;
 public class SweepIncomingTurnsUseCase implements SweepIncomingTurnsPort {
 
     private final IncomingTurnRepository incomingTurnRepository;
-    private final ExpenseRepository expenseRepository;
-    private final SpendingQueryRepository spendingQueryRepository;
-    private final MessageDeliveryPort messageDeliveryPort;
-    private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
     private final Clock clock;
     private final Duration longestTurnLife;
@@ -41,10 +37,6 @@ public class SweepIncomingTurnsUseCase implements SweepIncomingTurnsPort {
             Duration maxQueueWait,
             LoggerFactory loggerFactory) {
         this.incomingTurnRepository = incomingTurnRepository;
-        this.expenseRepository = expenseRepository;
-        this.spendingQueryRepository = spendingQueryRepository;
-        this.messageDeliveryPort = messageDeliveryPort;
-        this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.longestTurnLife = longestTurnLife;

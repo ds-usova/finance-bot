@@ -57,10 +57,7 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
                 throw new IntentExtractionRefusedException(
                         "Intent extraction call was refused with status " + code.name(), e);
             }
-            throw new IntentExtractionFailedException(
-                    "Intent extraction call failed with status "
-                            + e.getStatus().getCode().name(),
-                    e);
+            throw new IntentExtractionFailedException("Intent extraction call failed with status " + code.name(), e);
         }
     }
 }

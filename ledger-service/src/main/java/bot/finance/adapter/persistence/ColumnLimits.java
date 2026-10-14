@@ -3,6 +3,7 @@ package bot.finance.adapter.persistence;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
+import bot.finance.domain.exception.InvalidIncomingTurnException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.Category;
@@ -25,6 +26,12 @@ final class ColumnLimits {
     static void validateWrittenText(String text) {
         if (text.length() > WRITTEN_TEXT) {
             throw new InvalidWrittenMessageException("text exceeds " + WRITTEN_TEXT + " characters");
+        }
+    }
+
+    static void validateTurnText(String text) {
+        if (text.length() > TURN_TEXT) {
+            throw new InvalidIncomingTurnException("text exceeds " + TURN_TEXT + " characters");
         }
     }
 

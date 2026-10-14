@@ -30,6 +30,7 @@ class IncomingTurnReport {
     private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
     private final Logger log;
+    private final ExtractionTurn extractionTurn;
 
     IncomingTurnReport(
             IncomingTurnRepository incomingTurnRepository,
@@ -46,6 +47,7 @@ class IncomingTurnReport {
         this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
         this.log = log;
+        this.extractionTurn = new ExtractionTurn(spendingQueryRepository, log);
     }
 
     boolean settle(IncomingTurn turn, TurnEnding ending) {
@@ -90,7 +92,7 @@ class IncomingTurnReport {
         location.ifPresent(stored -> storeReport(turn, stored));
         turnMeters.countTurn(outcome);
         if (!summaries.isEmpty()) {
-            new ExtractionTurn(spendingQueryRepository, log).discardPeriods(turn.userId(), reference);
+            extractionTurn.discardPeriods(turn.userId(), reference);
         }
     }
 

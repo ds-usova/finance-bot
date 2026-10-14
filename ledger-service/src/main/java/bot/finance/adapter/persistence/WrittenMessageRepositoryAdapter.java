@@ -68,7 +68,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     public Optional<WrittenMessageView> findOldestWaitingFiledSince(Instant filedSince) {
         try {
             return writtenMessageEntityRepository
-                    .findOldestWaitingFiledSince(filedSince.truncatedTo(ChronoUnit.MICROS))
+                    .findOldestWaitingFiledSince(micros(filedSince))
                     .map(WrittenMessageEntity::toView);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find the oldest waiting written message", e);
@@ -78,7 +78,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public void recordAttempt(long messageId, Instant now) {
         try {
-            writtenMessageEntityRepository.recordAttempt(messageId, now.truncatedTo(ChronoUnit.MICROS));
+            writtenMessageEntityRepository.recordAttempt(messageId, micros(now));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to record an attempt on written message " + messageId, e);
         }
@@ -87,7 +87,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public boolean markHandedOver(long messageId, Instant now) {
         try {
-            return writtenMessageEntityRepository.markHandedOver(messageId, now.truncatedTo(ChronoUnit.MICROS)) > 0;
+            return writtenMessageEntityRepository.markHandedOver(messageId, micros(now)) > 0;
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to mark written message " + messageId + " handed over", e);
         }
@@ -97,8 +97,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     public List<WrittenMessageView> findWaitingForSweep(Instant filedBefore, Instant attemptBefore) {
         try {
             return writtenMessageEntityRepository
-                    .findWaitingForSweep(
-                            filedBefore.truncatedTo(ChronoUnit.MICROS), attemptBefore.truncatedTo(ChronoUnit.MICROS))
+                    .findWaitingForSweep(micros(filedBefore), micros(attemptBefore))
                     .stream()
                     .map(WrittenMessageEntity::toView)
                     .toList();
@@ -119,8 +118,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public boolean settle(long messageId, ReportOutcome outcome, Instant now) {
         try {
-            return writtenMessageEntityRepository.settle(messageId, outcome.name(), now.truncatedTo(ChronoUnit.MICROS))
-                    > 0;
+            return writtenMessageEntityRepository.settle(messageId, outcome.name(), micros(now)) > 0;
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to settle written message " + messageId, e);
         }
@@ -129,9 +127,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public List<WrittenMessageView> findReadingUpdatedBefore(Instant cutoff) {
         try {
-            return writtenMessageEntityRepository
-                    .findReadingUpdatedBefore(cutoff.truncatedTo(ChronoUnit.MICROS))
-                    .stream()
+            return writtenMessageEntityRepository.findReadingUpdatedBefore(micros(cutoff)).stream()
                     .map(WrittenMessageEntity::toView)
                     .toList();
         } catch (RuntimeException e) {
@@ -157,7 +153,11 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
                 mapped.text(),
                 mapped.status(),
                 mapped.outcome(),
-                mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
-                mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
+                micros(mapped.createdAt()),
+                micros(mapped.updatedAt()));
+    }
+
+    private static Instant micros(Instant instant) {
+        return instant.truncatedTo(ChronoUnit.MICROS);
     }
 }

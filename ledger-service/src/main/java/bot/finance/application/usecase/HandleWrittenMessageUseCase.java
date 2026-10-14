@@ -30,9 +30,6 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
     private final GroupingRepository groupingRepository;
     private final UserPreferenceRepository userPreferenceRepository;
     private final IntentExtractionPort intentExtractionPort;
-    private final ExpenseRepository expenseRepository;
-    private final SpendingQueryRepository spendingQueryRepository;
-    private final TurnMeters turnMeters;
     private final Clock clock;
     private final Duration maxQueueWait;
     private final Logger log;
@@ -54,9 +51,6 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
         this.groupingRepository = groupingRepository;
         this.userPreferenceRepository = userPreferenceRepository;
         this.intentExtractionPort = intentExtractionPort;
-        this.expenseRepository = expenseRepository;
-        this.spendingQueryRepository = spendingQueryRepository;
-        this.turnMeters = turnMeters;
         this.clock = clock;
         this.maxQueueWait = maxQueueWait;
         this.log = loggerFactory.getLogger(HandleWrittenMessageUseCase.class);
@@ -72,6 +66,7 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
         if (waiting.isEmpty()) {
             return false;
         }
+
         WrittenMessageView message = waiting.get();
         IntentExtractionRequest request;
         try {
@@ -84,6 +79,7 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
             log.warn("failed to prepare written message {}: {}", message.id(), e.getMessage());
             return false;
         }
+
         writtenMessageRepository.recordAttempt(message.id(), clock.instant());
         try {
             intentExtractionPort.extract(request);
@@ -95,6 +91,7 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
             log.warn("hand-over of written message {} failed: {}", message.id(), e.getMessage());
             return false;
         }
+
         writtenMessageRepository.markHandedOver(message.id(), clock.instant());
         return true;
     }
