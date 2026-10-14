@@ -116,6 +116,25 @@ class IncomingMessageIdTest {
     }
 
     @Nested
+    @DisplayName("writtenMessageId()")
+    class WrittenMessageId {
+
+        @Test
+        @DisplayName("when the id is the one ofWrittenMessage writes for 42 - then the written message id is 42")
+        void whenIdIsTheOneWrittenFor42_thenWrittenMessageIdIs42() {
+            assertThat(IncomingMessageId.ofWrittenMessage(42L).writtenMessageId())
+                    .contains(42L);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"777:1", "web:", "web:abc", "web:0", "web:-1", "web:99999999999999999999"})
+        @DisplayName("when the id does not name a written message - then the written message id is empty")
+        void whenIdDoesNotNameAWrittenMessage_thenWrittenMessageIdIsEmpty(String value) {
+            assertThat(new IncomingMessageId(value).writtenMessageId()).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("reading the value")
     class Value {
 

@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
+import bot.finance.adapter.persistence.IncomingTurnEntity;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.application.port.UserRepository;
@@ -21,6 +22,7 @@ import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.IncomingTurnRowUtils;
 import bot.finance.common.rows.UserPreferenceRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
@@ -42,7 +44,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
 
     private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RECEIVE_MESSAGE;
+
+    private static final TelegramTestBot.TelegramScenario WITHHELD_END_SCENARIO =
+            new TelegramTestBot.TelegramScenario(1401, 1014, 2014);
 
     private static final String FROM_ID_STRING = SCENARIO.userExternalId();
     private static final String CHAT_ID_STRING = SCENARIO.conversationId();
@@ -138,6 +142,14 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
         logCapture.close();
     }
 
+    private List<IncomingTurnEntity> turnRowsOf(TelegramTestBot.TelegramScenario scenario) {
+        return userRepository
+                .findByExternalId(scenario.userExternalId())
+                .map(user -> IncomingTurnRowUtils.turnRowsFor(
+                        jdbcAggregateTemplate, user.id().orElseThrow()))
+                .orElse(List.of());
+    }
+
     private void logPollLoopState() {
         List<String> polls = recordedPolls(TOKEN).stream()
                 .map(LoggedRequest::getBodyAsString)
@@ -154,7 +166,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when the poll loop picks up a text message - then the turn records one proposal and reports it "
                 + "back with its buttons")
-        @Disabled("RS01: the turn is kept and handed over, its end arriving from the connector afterwards")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
             WireMockStubs.telegramDeliversOnce(
@@ -234,6 +245,14 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             String incomingMessageIdClaim = claims.getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM);
             assertThat(incomingMessageIdClaim).as("jwt imi claim").isNotNull();
 
+            // then: one report goes back into the chat, threaded onto the message it answers
+            await("a sendMessage reply is recorded for the confirmed batch")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
+                            .as("sendMessage requests recorded for token %s", TOKEN)
+                            .isNotEmpty());
+
             // then: one proposal is stored, filed under the message that produced it
             List<ExpenseEntity> proposalRows = ExpenseRowUtils.expenseRowsFor(
                     jdbcAggregateTemplate, storedUser.id().orElseThrow(), ExpenseStatus.PENDING);
@@ -259,14 +278,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(mcpAnswers.get(1))
                     .as("the create_expense_proposal answer")
                     .contains(PROPOSAL_CATEGORY);
-
-            // then: one report goes back into the chat, threaded onto the message it answers
-            await("a sendMessage reply is recorded for the confirmed batch")
-                    .atMost(POLL_TIMEOUT)
-                    .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
-                            .as("sendMessage requests recorded for token %s", TOKEN)
-                            .isNotEmpty());
 
             List<LoggedRequest> sent = recordedSendMessagesFor(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);
@@ -304,9 +315,71 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
         }
 
         @Test
+        @DisplayName("when the connector withholds the turn's end - then the turn is stamped handed over and no "
+                + "report is sent")
+        void whenConnectorWithholdsTurnEnd_thenTurnIsStampedHandedOverAndNoReportIsSent() {
+            TelegramTestBot.TelegramScenario scenario = WITHHELD_END_SCENARIO;
+
+            // given: the connector withholds the turn's end
+            GrpcStubServer.withholdTurnEnd();
+            GrpcStubServer.armMcpCallbacks("http://localhost:" + port);
+            WireMockStubs.telegramDeliversOnce(
+                    TOKEN,
+                    TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                            scenario.updateId(), scenario.userId(), scenario.chatId(), MESSAGE_TEXT)));
+
+            // when: the poll loop picks up a text message
+            await("the batch is confirmed with a follow-up getUpdates carrying offset=" + scenario.nextOffset())
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, scenario.nextOffset()))
+                            .as("follow-up getUpdates polls carrying offset=%s", scenario.nextOffset())
+                            .isNotEmpty());
+
+            // then: the connector receives the request
+            await("the AI connector receives an extraction request")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(GrpcStubServer.lastExtractionRequest())
+                            .as("last ExtractIntentsRequest received by the stub AI connector")
+                            .isNotNull());
+            assertThat(GrpcStubServer.lastExtractionRequest().getText())
+                    .as("extraction request text")
+                    .isEqualTo(MESSAGE_TEXT);
+
+            // then: the turn's row is stamped handed over
+            await("the turn's row is stamped handed over")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(turnRowsOf(scenario))
+                            .as("turn rows kept for the sender")
+                            .singleElement()
+                            .satisfies(row -> assertThat(row.handedOverAt())
+                                    .as("handed_over_at of the turn's row")
+                                    .isNotNull()));
+            try {
+                IncomingTurnEntity row = turnRowsOf(scenario).get(0);
+                assertThat(row.incomingMessageId())
+                        .as("the turn's message reference")
+                        .isEqualTo(scenario.conversationId() + ":" + TelegramFixtures.MESSAGE_ID);
+
+                // then: no report is sent
+                await("no report is sent for the turn whose end never came")
+                        .during(Duration.ofSeconds(2))
+                        .atMost(POLL_TIMEOUT)
+                        .pollInterval(POLL_INTERVAL)
+                        .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, scenario))
+                                .as("sendMessage requests recorded for the conversation")
+                                .isEmpty());
+            } finally {
+                turnRowsOf(scenario)
+                        .forEach(row -> jdbcAggregateTemplate.deleteById(row.id(), IncomingTurnEntity.class));
+            }
+        }
+
+        @Test
         @DisplayName("when the sender's stored preference holds EUR - then the extraction request carries EUR as "
                 + "the default currency")
-        @Disabled("RS01: the turn is kept and handed over, its end arriving from the connector afterwards")
         void whenSendersStoredPreferenceHoldsEur_thenExtractionRequestCarriesEurAsDefaultCurrency() {
             TelegramTestBot.TelegramScenario scenario = TelegramTestBot.RECEIVE_MESSAGE_WITH_DEFAULT_CURRENCY;
             String externalId = scenario.userExternalId();

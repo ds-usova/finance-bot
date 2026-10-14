@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.port.CreateExpenseProposalPort;
+import bot.finance.application.port.EndTurnPort;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.common.boot.TurnOperationsAdapterTest;
 import bot.finance.common.fixtures.IncomingMessages;
@@ -19,6 +20,7 @@ import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Money;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
@@ -49,8 +51,8 @@ import org.springframework.grpc.server.lifecycle.GrpcServerLifecycle;
 
 /**
  * Integration test for the interceptor guarding the ledger's turn operations. Enters through the protocol - real
- * gRPC calls to the booted server - with only {@link CreateExpenseProposalPort} and {@link SummarizeSpendingPort}
- * mocked. What the operations do with an accepted call belongs to {@code LedgerTurnGrpcServiceTest}.
+ * gRPC calls to the booted server - with only {@link CreateExpenseProposalPort}, {@link SummarizeSpendingPort} and
+ * {@link EndTurnPort} mocked. What the operations do with an accepted call belongs to {@code LedgerTurnGrpcServiceTest}.
  */
 @TurnOperationsAdapterTest
 class TurnOperationsSecurityConfigurationTest {
@@ -69,6 +71,9 @@ class TurnOperationsSecurityConfigurationTest {
 
     @Autowired
     private SummarizeSpendingPort summarizeSpendingPort;
+
+    @Autowired
+    private EndTurnPort endTurnPort;
 
     private int port() {
         return grpcServerLifecycle.getPort();
@@ -92,6 +97,10 @@ class TurnOperationsSecurityConfigurationTest {
                 port(),
                 token,
                 stub -> stub.recordSpendingPeriod(TurnOperationCalls.recordPeriod("2026-07-01", "2026-07-31")));
+    }
+
+    private void callEndTurn(String token) {
+        TurnOperationCalls.endTurn(port(), token, TurnEnd.TURN_END_ACTED_ON);
     }
 
     @Nested
@@ -119,6 +128,14 @@ class TurnOperationsSecurityConfigurationTest {
         }
 
         @Test
+        @DisplayName("when a token the ledger minted for a message is presented to EndTurn - then the call is answered")
+        void whenALedgerTokenIsPresentedToEndTurn_thenTheCallIsAnswered() {
+            String token = McpTokens.tokenFor(accessTokenMinter, USER_ID);
+
+            assertThatCode(() -> callEndTurn(token)).doesNotThrowAnyException();
+        }
+
+        @Test
         @DisplayName("when the health service is asked without a credential - then it answers serving")
         void whenTheHealthServiceIsAskedWithoutACredential_thenItAnswersServing() {
             ManagedChannel channel = channel();
@@ -135,6 +152,16 @@ class TurnOperationsSecurityConfigurationTest {
         @Test
         @DisplayName("when the reflection service is asked without a credential - then it names the turn service")
         void whenTheReflectionServiceIsAskedWithoutACredential_thenItNamesTheTurnService() throws Exception {
+            assertThat(listedServices()).contains("bot.finance.ledger.v1.LedgerTurnService");
+        }
+
+        @Test
+        @DisplayName("when the reflection service is asked without a credential - then it names the turn end service")
+        void whenTheReflectionServiceIsAskedWithoutACredential_thenItNamesTheTurnEndService() throws Exception {
+            assertThat(listedServices()).contains("bot.finance.ledger.v1.LedgerTurnEndService");
+        }
+
+        private List<String> listedServices() throws Exception {
             ManagedChannel channel = channel();
             try {
                 CompletableFuture<ServerReflectionResponse> answer = new CompletableFuture<>();
@@ -158,12 +185,9 @@ class TurnOperationsSecurityConfigurationTest {
                         .build());
                 requests.onCompleted();
 
-                List<String> services =
-                        answer.get(10, TimeUnit.SECONDS).getListServicesResponse().getServiceList().stream()
-                                .map(ServiceResponse::getName)
-                                .toList();
-
-                assertThat(services).contains("bot.finance.ledger.v1.LedgerTurnService");
+                return answer.get(10, TimeUnit.SECONDS).getListServicesResponse().getServiceList().stream()
+                        .map(ServiceResponse::getName)
+                        .toList();
             } finally {
                 channel.shutdownNow();
             }
@@ -192,20 +216,20 @@ class TurnOperationsSecurityConfigurationTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("refusedCredentials")
-        @DisplayName("when the credential cannot be accepted - then both operations fail unauthenticated")
-        void whenTheCredentialCannotBeAccepted_thenBothOperationsFailUnauthenticated(String credential, String token) {
-            assertRefusedOnBothOperations(token);
+        @DisplayName("when the credential cannot be accepted - then every operation fails unauthenticated")
+        void whenTheCredentialCannotBeAccepted_thenEveryOperationFailsUnauthenticated(String credential, String token) {
+            assertRefusedOnEveryOperation(token);
         }
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("tokensWithoutAMessage")
-        @DisplayName("when the token carries no usable message reference - then both operations fail unauthenticated")
-        void whenTheTokenCarriesNoUsableMessageReference_thenBothOperationsFailUnauthenticated(
+        @DisplayName("when the token carries no usable message reference - then every operation fails unauthenticated")
+        void whenTheTokenCarriesNoUsableMessageReference_thenEveryOperationFailsUnauthenticated(
                 String credential, String token) {
-            assertRefusedOnBothOperations(token);
+            assertRefusedOnEveryOperation(token);
         }
 
-        private void assertRefusedOnBothOperations(String token) {
+        private void assertRefusedOnEveryOperation(String token) {
             assertThatThrownBy(() -> callFileExpenseProposal(token))
                     .isInstanceOfSatisfying(
                             StatusRuntimeException.class,
@@ -214,8 +238,12 @@ class TurnOperationsSecurityConfigurationTest {
                     .isInstanceOfSatisfying(
                             StatusRuntimeException.class,
                             e -> assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.UNAUTHENTICATED));
+            assertThatThrownBy(() -> callEndTurn(token))
+                    .isInstanceOfSatisfying(
+                            StatusRuntimeException.class,
+                            e -> assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.UNAUTHENTICATED));
 
-            verifyNoInteractions(createExpenseProposalPort, summarizeSpendingPort);
+            verifyNoInteractions(createExpenseProposalPort, summarizeSpendingPort, endTurnPort);
         }
     }
 }

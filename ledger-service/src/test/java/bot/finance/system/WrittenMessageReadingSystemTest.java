@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.WrittenMessageEntity;
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.port.UserRepository;
 import bot.finance.common.boot.AbstractSystemTest;
@@ -17,11 +18,12 @@ import bot.finance.domain.model.User;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.WrittenMessageStatus;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.grpc.Status;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,7 +52,6 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when the schedule comes round to a stored waiting message - then it is read to DONE with entries")
-        @Disabled("RS05: the text is handed over, and settled once the connector ends the turn")
         void whenTheScheduleComesRoundToAStoredWaitingMessage_thenItIsReadToDoneWithEntries() {
             // given: a waiting message stored for a person, and the connector armed to record one proposal per expense
             long userId = userRepository
@@ -91,6 +92,45 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
                     .as("proposal reports of the person")
                     .isEmpty();
         }
+
+        @Test
+        @DisplayName("when the connector withholds the turn's end - then the message is READING and stays unsettled")
+        void whenTheConnectorWithholdsTheTurnsEnd_thenTheMessageIsReadingAndStaysUnsettled() {
+            // given: a waiting message stored for a person, and a connector that withholds the turn's end
+            long userId = userRepository
+                    .create(User.newUser("written-message-reading-withheld-user"), Grouping.defaults())
+                    .id()
+                    .orElseThrow();
+            long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
+                    jdbcAggregateTemplate, userId, MESSAGE_TEXT, WrittenMessageStatus.WAITING, null, Instant.now());
+            GrpcStubServer.withholdTurnEnd();
+
+            // when: the reader's schedule comes round
+            await("the message is handed over and READING")
+                    .atMost(TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(
+                            () -> assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                                            .status())
+                                    .as("status of message %s", messageId)
+                                    .isEqualTo("READING"));
+
+            // then: it stays READING, with no outcome
+            await("the message stays unsettled")
+                    .during(Duration.ofSeconds(3))
+                    .atMost(TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> {
+                        WrittenMessageEntity row =
+                                WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId);
+                        assertThat(row.status())
+                                .as("status of message %s", messageId)
+                                .isEqualTo("READING");
+                        assertThat(row.outcome())
+                                .as("outcome of message %s", messageId)
+                                .isNull();
+                    });
+        }
     }
 
     @Nested
@@ -99,16 +139,16 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when the connector fails every extraction - then the message is settled FAILED with no entry")
-        @Disabled("RS05: the connector accepts the hand-over and ends the turn failed, rather than failing the call")
         void whenTheConnectorFailsEveryExtraction_thenTheMessageIsSettledFailedWithNoEntry() {
-            // given: a waiting message stored for a person, and a connector that is unavailable
+            // given: a waiting message stored for a person, and a connector that accepts the hand-over and ends the
+            // turn failed
             long userId = userRepository
                     .create(User.newUser("written-message-reading-failing-user"), Grouping.defaults())
                     .id()
                     .orElseThrow();
             long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
                     jdbcAggregateTemplate, userId, MESSAGE_TEXT, WrittenMessageStatus.WAITING, null, Instant.now());
-            GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
+            GrpcStubServer.endTurnWith(TurnEnd.TURN_END_FAILED);
 
             // when: the reader's schedule comes round
             await("the message is settled")
@@ -128,6 +168,88 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
             assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId))
                     .as("entries of the person")
                     .noneSatisfy(entry -> assertThat(entry.incomingMessageId()).isEqualTo("web:" + messageId));
+        }
+
+        @Test
+        @DisplayName("when every hand-over fails as unavailable - then the message stays WAITING with its update time "
+                + "moved on")
+        void whenEveryHandOverFailsAsUnavailable_thenTheMessageStaysWaitingWithItsUpdateTimeMovedOn() {
+            // given: a waiting message stored for a person, and a connector failing every hand-over
+            long userId = userRepository
+                    .create(User.newUser("written-message-reading-unavailable-user"), Grouping.defaults())
+                    .id()
+                    .orElseThrow();
+            long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
+                    jdbcAggregateTemplate, userId, MESSAGE_TEXT, WrittenMessageStatus.WAITING, null, Instant.now());
+            GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
+
+            try {
+                // when: the reader's schedule comes round twice
+                await("the first attempt moves the message's update time past its filing")
+                        .atMost(TIMEOUT)
+                        .pollInterval(POLL_INTERVAL)
+                        .untilAsserted(() -> {
+                            WrittenMessageEntity row =
+                                    WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId);
+                            assertThat(row.updatedAt())
+                                    .as("updated_at of message %s", messageId)
+                                    .isAfter(row.createdAt());
+                        });
+                Instant afterFirstAttempt = WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                        .updatedAt();
+                await("the second attempt moves it again")
+                        .atMost(TIMEOUT)
+                        .pollInterval(POLL_INTERVAL)
+                        .untilAsserted(() -> assertThat(
+                                        WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                                                .updatedAt())
+                                .as("updated_at of message %s", messageId)
+                                .isAfter(afterFirstAttempt));
+
+                // then: the message is still WAITING
+                WrittenMessageEntity row = WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId);
+                assertThat(row.status()).as("status of message %s", messageId).isEqualTo("WAITING");
+                assertThat(row.outcome()).as("outcome of message %s", messageId).isNull();
+            } finally {
+                jdbcAggregateTemplate.deleteById(messageId, WrittenMessageEntity.class);
+            }
+        }
+
+        @Test
+        @DisplayName("when a waiting message was filed and last touched an hour ago - then it is settled FAILED "
+                + "without a hand-over")
+        void whenAWaitingMessageWasFiledAndLastTouchedAnHourAgo_thenItIsSettledFailedWithoutAHandOver() {
+            // given: a waiting message filed an hour ago and touched an hour ago, with nothing under it
+            String text = "sweep-me " + MESSAGE_TEXT;
+            Instant anHourAgo = Instant.now().minus(Duration.ofHours(1));
+            long userId = userRepository
+                    .create(User.newUser("written-message-reading-stale-user"), Grouping.defaults())
+                    .id()
+                    .orElseThrow();
+            long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
+                    jdbcAggregateTemplate, userId, text, WrittenMessageStatus.WAITING, null, anHourAgo, anHourAgo);
+
+            // when: the reader's schedule comes round
+            await("the message is settled")
+                    .atMost(TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(
+                            () -> assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                                            .status())
+                                    .as("status of message %s", messageId)
+                                    .isEqualTo("DONE"));
+
+            // then: it is settled FAILED
+            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                            .outcome())
+                    .as("outcome")
+                    .isEqualTo(ReportOutcome.FAILED.name());
+
+            // then: it was never handed over to the connector
+            assertThat(Optional.ofNullable(GrpcStubServer.lastExtractionRequest())
+                            .map(ExtractIntentsRequest::getText))
+                    .as("text of the last hand-over the connector received")
+                    .isNotEqualTo(Optional.of(text));
         }
     }
 }

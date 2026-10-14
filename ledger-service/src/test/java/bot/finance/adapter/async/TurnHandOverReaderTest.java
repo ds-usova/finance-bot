@@ -104,15 +104,65 @@ class TurnHandOverReaderTest {
         @DisplayName("when the scheduled pass runs - then it sweeps once and reads until nothing waits")
         void whenScheduledPassRuns_thenItSweepsOnceAndReadsUntilNothingWaits() {
             ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+            when(handOverIncomingTurnPort.handOverNext()).thenReturn(true, false);
             when(handleWrittenMessagePort.handleNext()).thenReturn(true, true, false);
             Runnable pass = scheduledPassOf(executor, readerOn(executor));
 
             pass.run();
 
-            InOrder order = inOrder(sweepWrittenMessagesPort, handleWrittenMessagePort);
+            InOrder order = inOrder(
+                    sweepIncomingTurnsPort,
+                    sweepWrittenMessagesPort,
+                    handOverIncomingTurnPort,
+                    handleWrittenMessagePort);
+            order.verify(sweepIncomingTurnsPort).sweep();
             order.verify(sweepWrittenMessagesPort).sweep();
+            order.verify(handOverIncomingTurnPort, times(2)).handOverNext();
             order.verify(handleWrittenMessagePort, times(3)).handleNext();
+            verify(sweepIncomingTurnsPort, times(1)).sweep();
             verify(sweepWrittenMessagesPort, times(1)).sweep();
+        }
+
+        @Test
+        @DisplayName("when the Telegram sweep fails - then nothing propagates and the other sweep and both looks run")
+        void whenTelegramSweepFails_thenNothingPropagatesAndOtherSweepAndBothLooksRun() {
+            ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+            doThrow(new PersistenceFailedException("sweep failed", new RuntimeException()))
+                    .when(sweepIncomingTurnsPort)
+                    .sweep();
+            Runnable pass = scheduledPassOf(executor, readerOn(executor));
+
+            assertThatCode(pass::run).doesNotThrowAnyException();
+
+            verify(sweepWrittenMessagesPort).sweep();
+            verify(handOverIncomingTurnPort).handOverNext();
+            verify(handleWrittenMessagePort).handleNext();
+        }
+
+        @Test
+        @DisplayName("when the Telegram hand-over fails - then nothing propagates and the written look still runs")
+        void whenTelegramHandOverFails_thenNothingPropagatesAndWrittenLookStillRuns() {
+            ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+            when(handOverIncomingTurnPort.handOverNext())
+                    .thenThrow(new PersistenceFailedException("hand-over failed", new RuntimeException()));
+            Runnable pass = scheduledPassOf(executor, readerOn(executor));
+
+            assertThatCode(pass::run).doesNotThrowAnyException();
+
+            verify(handOverIncomingTurnPort).handOverNext();
+            verify(handleWrittenMessagePort).handleNext();
+        }
+
+        @Test
+        @DisplayName("when the Telegram hand-over answers true, true, then false - then it is called three times")
+        void whenTelegramHandOverAnswersTrueTrueThenFalse_thenItIsCalledThreeTimes() {
+            ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+            when(handOverIncomingTurnPort.handOverNext()).thenReturn(true, true, false);
+            Runnable pass = scheduledPassOf(executor, readerOn(executor));
+
+            pass.run();
+
+            verify(handOverIncomingTurnPort, times(3)).handOverNext();
         }
 
         @Test
@@ -200,8 +250,14 @@ class TurnHandOverReaderTest {
             reader.dispatch();
 
             assertThat(handed).hasValue(1);
-            InOrder order = inOrder(sweepWrittenMessagesPort, handleWrittenMessagePort);
+            InOrder order = inOrder(
+                    sweepIncomingTurnsPort,
+                    sweepWrittenMessagesPort,
+                    handOverIncomingTurnPort,
+                    handleWrittenMessagePort);
+            order.verify(sweepIncomingTurnsPort).sweep();
             order.verify(sweepWrittenMessagesPort).sweep();
+            order.verify(handOverIncomingTurnPort).handOverNext();
             order.verify(handleWrittenMessagePort).handleNext();
         }
 
@@ -214,7 +270,11 @@ class TurnHandOverReaderTest {
             assertThatCode(reader::dispatch).doesNotThrowAnyException();
 
             assertThat(handed).hasValue(1);
-            verifyNoInteractions(sweepWrittenMessagesPort, handleWrittenMessagePort);
+            verifyNoInteractions(
+                    sweepIncomingTurnsPort,
+                    sweepWrittenMessagesPort,
+                    handOverIncomingTurnPort,
+                    handleWrittenMessagePort);
         }
     }
 }

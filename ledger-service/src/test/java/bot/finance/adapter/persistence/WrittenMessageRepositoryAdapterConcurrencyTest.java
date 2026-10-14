@@ -2,11 +2,14 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.common.rows.WrittenMessageRowUtils;
 import bot.finance.domain.exception.WrittenMessageInProgressException;
 import bot.finance.domain.model.WrittenMessage;
+import bot.finance.domain.value.WrittenMessageStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -61,28 +63,24 @@ class WrittenMessageRepositoryAdapterConcurrencyTest {
     }
 
     @Nested
-    @DisplayName("claiming the oldest waiting message concurrently")
-    class ClaimOldestWaiting {
+    @DisplayName("settling a message concurrently")
+    class Settle {
 
         @Test
-        @Disabled("RI04: the claim gives way to settling a text from either state")
-        @DisplayName("when two threads claim at the same moment - then exactly one gets the message")
-        void whenTwoThreadsClaimTogether_thenExactlyOneGetsTheMessage() throws Exception {
-            // userId = UserRowUtils.storedUserId(userEntityRepository, "written-claim-concurrency-user");
-            // long id = WrittenMessageRowUtils.storedWrittenMessageId(
-            //         jdbcAggregateTemplate, userId, "coffee", WrittenMessageStatus.WAITING, null, NOW);
-            //
-            // List<Future<Optional<WrittenMessageView>>> results = runConcurrently(
-            //         () -> adapter.claimOldestWaiting(Instant.now()), () ->
-            // adapter.claimOldestWaiting(Instant.now()));
-            //
-            // Optional<WrittenMessageView> first = results.get(0).get();
-            // Optional<WrittenMessageView> second = results.get(1).get();
-            // assertThat(List.of(first.isPresent(), second.isPresent())).containsExactlyInAnyOrder(true, false);
-            // assertThat(first.or(() -> second).orElseThrow().id()).isEqualTo(id);
-            // assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
-            //                 .status())
-            //         .isEqualTo("READING");
+        @DisplayName("when two threads settle one READING text at the same moment - then exactly one answers true")
+        void whenTwoThreadsSettleTogether_thenExactlyOneAnswersTrue() throws Exception {
+            userId = UserRowUtils.storedUserId(userEntityRepository, "written-settle-concurrency-user");
+            long id = WrittenMessageRowUtils.storedWrittenMessageId(
+                    jdbcAggregateTemplate, userId, "coffee", WrittenMessageStatus.READING, null, NOW);
+
+            List<Future<Boolean>> results = runConcurrently(
+                    () -> adapter.settle(id, ReportOutcome.RECORDED, Instant.now()),
+                    () -> adapter.settle(id, ReportOutcome.RECORDED, Instant.now()));
+
+            assertThat(List.of(results.get(0).get(), results.get(1).get())).containsExactlyInAnyOrder(true, false);
+            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
+                            .status())
+                    .isEqualTo("DONE");
         }
     }
 

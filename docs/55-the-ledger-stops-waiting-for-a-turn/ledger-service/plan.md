@@ -752,7 +752,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `IncomingTurn` · test: `IncomingTurnTest` · covers: `newTurn()`, `stored()`, `keptOn()` · scenarios:
+- [x] RU01 · `IncomingTurn` · test: `IncomingTurnTest` · covers: `newTurn()`, `stored()`, `keptOn()` · scenarios:
   AC01, AC31
   - `newTurn()`:
     - given: user 7, conversation `777`, inbound message `1`, a text, kept at an instant
@@ -773,7 +773,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a turn kept at `2026-08-04T23:59:59Z`
       when: its day is read in UTC, and in `+02:00`
       then: it is `2026-08-04` in UTC and `2026-08-05` in `+02:00`
-- [ ] RU02 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `writtenMessageId()` · scenarios: AC10
+- [x] RU02 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `writtenMessageId()` · scenarios: AC10
   - `writtenMessageId()`:
     - given: the id `ofWrittenMessage(42)` writes
       when: its written message id is read
@@ -781,12 +781,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: `777:1`, `web:`, `web:abc`, `web:0`, `web:-1` or `web:99999999999999999999`
       when: its written message id is read
       then: it is empty
-- [ ] RU03 · `EndTurnCommand` · test: `EndTurnCommandTest` · covers: `EndTurnCommand()` · scenarios: AC09
+- [x] RU03 · `EndTurnCommand` · test: `EndTurnCommandTest` · covers: `EndTurnCommand()` · scenarios: AC09
   - `EndTurnCommand()`:
     - given: a null user id, a null reference or a null ending
       when: the command is constructed
       then: throws InvalidTurnEndException
-- [ ] RU04 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest` · covers: `toEnding()` · scenarios: AC09
+- [x] RU04 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest` · covers: `toEnding()` · scenarios: AC09
   - `toEnding()`:
     - given: `TURN_END_ACTED_ON`, `TURN_END_UNAVAILABLE` or `TURN_END_FAILED`
       when: it is mapped
@@ -794,7 +794,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: `TURN_END_UNSPECIFIED`, or a value this build does not know
       when: it is mapped
       then: the ending is `FAILED`
-- [ ] RU05 · `IncomingTurnReport` · test: `IncomingTurnReportTest` · covers: `settle()`, `settleSwept()` · scenarios:
+- [x] RU05 · `IncomingTurnReport` · test: `IncomingTurnReportTest` · covers: `settle()`, `settleSwept()` · scenarios:
   AC09, AC12, AC14, AC15, AC33
   - `settle()`:
     - given: an acted-on ending and two proposals under the turn's message
@@ -839,6 +839,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: discarding the periods throws PersistenceFailedException after the delivery
       when: the turn is settled
       then: nothing propagates, and one warning names the message
+    - (added) given: the delete answers false
+      when: the turn is settled
+      then: it answers false, and nothing is delivered or counted
+    - (added) given: an acted-on ending
+      when: the turn is settled
+      then: no error line is written
   - `settleSwept()`:
     - given: a proposal under the turn's message
       when: the turn is settled by the sweep
@@ -847,7 +853,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: nothing under the message
       when: the turn is settled by the sweep
       then: its `FAILED` report is delivered and counted `FAILED`
-- [ ] RU06 · `WrittenTurnOutcome` · test: `WrittenTurnOutcomeTest` · covers: `settle()` · scenarios: AC10, AC11,
+- [x] RU06 · `WrittenTurnOutcome` · test: `WrittenTurnOutcomeTest` · covers: `settle()` · scenarios: AC10, AC11,
   AC14
   - `settle()`:
     - given: an acted-on ending, a day stored under the text's message and no period
@@ -874,7 +880,10 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: discarding the periods throws PersistenceFailedException after the settle
       when: the text is settled
       then: the turn is still counted, nothing propagates, and one warning names the message
-- [ ] RU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
+    - (added) given: the settle answers false
+      when: the text is settled
+      then: it answers false, and nothing is counted, discarded or logged
+- [x] RU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
   scenarios: AC01, AC04, AC17
   - update: every test in this class — delete
   - `handle()`:
@@ -897,7 +906,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: initialize throws PersistenceFailedException
       when: the message is handled
       then: the same exception propagates and nothing is kept
-- [ ] RU08 · `HandOverIncomingTurnUseCase` · test: `HandOverIncomingTurnUseCaseTest` · covers: `handOverNext()` ·
+- [x] RU08 · `HandOverIncomingTurnUseCase` · test: `HandOverIncomingTurnUseCaseTest` · covers: `handOverNext()` ·
   scenarios: AC02, AC03, AC18, AC25, AC27, AC28, AC29, AC30, AC31
   - `handOverNext()`:
     - given: no turn queued since the clock's instant less the wait
@@ -943,7 +952,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the hand-over returns and stamping it throws PersistenceFailedException
       when: the look runs
       then: the same exception propagates and the turn is neither deleted nor reported
-- [ ] RU09 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · covers: `handleNext()` ·
+- [x] RU09 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · covers: `handleNext()` ·
   scenarios: AC02, AC03, AC18, AC25, AC27, AC28, AC29, AC30, AC31
   - update: every test in this class — delete
   - `handleNext()`:
@@ -983,7 +992,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the hand-over returns and moving the text to `READING` throws PersistenceFailedException
       when: the look runs
       then: the same exception propagates and the text is never settled
-- [ ] RU10 · `EndTurnUseCase` · test: `EndTurnUseCaseTest` · covers: `end()` · scenarios: AC09, AC10, AC11, AC14,
+- [x] RU10 · `EndTurnUseCase` · test: `EndTurnUseCaseTest` · covers: `end()` · scenarios: AC09, AC10, AC11, AC14,
   AC22
   - `end()`:
     - given: a null command
@@ -1001,7 +1010,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: finding the turn or the text throws PersistenceFailedException
       when: an end is taken
       then: the same exception propagates and nothing is delivered or settled
-- [ ] RU11 · `SweepIncomingTurnsUseCase` · test: `SweepIncomingTurnsUseCaseTest` · covers: `sweep()` · scenarios:
+- [x] RU11 · `SweepIncomingTurnsUseCase` · test: `SweepIncomingTurnsUseCaseTest` · covers: `sweep()` · scenarios:
   AC15, AC23, AC24, AC27, AC33, AC34
   - `sweep()`:
     - given: no turn handed over or queued
@@ -1029,7 +1038,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       PersistenceFailedException
       when: the sweep runs
       then: the same exception propagates and the second turn is never deleted
-- [ ] RU12 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · covers: `sweep()` · scenarios:
+- [x] RU12 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · covers: `sweep()` · scenarios:
   AC16, AC24, AC27, AC34
   - `sweep()`:
     - given: a waiting text filed before the clock's instant less the wait and touched before the instant less the
@@ -1052,7 +1061,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the oldest waiting text was filed five minutes before the clock's instant, or none waits
       when: the sweep runs
       then: the oldest queued age is recorded for the written channel as five minutes, or as zero
-- [ ] RU13 · `TurnHandOverReader` · test: `TurnHandOverReaderTest` · covers: `start()`, `dispatch()` · scenarios:
+- [x] RU13 · `TurnHandOverReader` · test: `TurnHandOverReaderTest` · covers: `start()`, `dispatch()` · scenarios:
   AC01, AC23, AC30
   - update: `whenScheduledPassRuns_thenItSweepsOnceAndReadsUntilNothingWaits()` — verify in order the Telegram
     sweep and the written sweep once each, then the Telegram look until it answers false, then the written look
@@ -1071,7 +1080,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: `handOverNext()` answers true, true, then false
       when: the scheduled pass runs
       then: it is called three times and no more
-- [ ] RU14 · `WrittenMessageReaderProperties` · test: `WrittenMessageReaderPropertiesTest` · covers:
+- [x] RU14 · `WrittenMessageReaderProperties` · test: `WrittenMessageReaderPropertiesTest` · covers:
   `WrittenMessageReaderProperties()` · scenarios: AC27
   - `WrittenMessageReaderProperties()`:
     - given: a null, zero or negative longest queue wait
@@ -1080,7 +1089,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterTest` · covers: `keep()`,
+- [x] RI01 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterTest` · covers: `keep()`,
   `findOldestQueuedKeptSince()`, `recordAttempt()`, `markHandedOver()`, `findFor()`, `delete()`,
   `findHandedOverBefore()`, `findQueuedForSweep()`, `oldestQueuedKeptAt()` · scenarios: AC01, AC02, AC04, AC15,
   AC17, AC19, AC22, AC27, AC34
@@ -1147,13 +1156,13 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the entity repository throws QueryTimeoutException
       when: any method is called
       then: PersistenceFailedException carries it
-- [ ] RI02 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterConcurrencyTest` · covers:
+- [x] RI02 · `IncomingTurnRepositoryAdapter` · test: `IncomingTurnRepositoryAdapterConcurrencyTest` · covers:
   `delete()` · scenarios: AC12
   - `delete()`:
     - given: one kept turn
       when: two threads delete it at the same moment
       then: exactly one answers true
-- [ ] RI03 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · covers:
+- [x] RI03 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · covers:
   `findOldestWaitingFiledSince()`, `recordAttempt()`, `markHandedOver()`, `settle()`, `findWaitingForSweep()`,
   `oldestWaitingFiledAt()` · scenarios: AC02, AC10, AC19, AC27, AC34
   - update: `whenTwoMessagesWait_thenOlderIsClaimed()` — delete
@@ -1199,14 +1208,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       when: `findOldestWaitingFiledSince()`, `recordAttempt()`, `markHandedOver()`, `findWaitingForSweep()` or
       `oldestWaitingFiledAt()` is called
       then: PersistenceFailedException carries it
-- [ ] RI04 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · covers:
+- [x] RI04 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · covers:
   `settle()` · scenarios: AC12
   - update: `whenTwoThreadsClaimTogether_thenExactlyOneGetsTheMessage()` — delete
   - `settle()`:
     - given: one `READING` text
       when: two threads settle it at the same moment
       then: exactly one answers true
-- [ ] RI05 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI05 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()` · scenarios: AC03, AC18, AC25
   - update: `whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionNamingTheStatus()` — drop
     `INVALID_ARGUMENT` and `UNAUTHENTICATED` from its values and add `RESOURCE_EXHAUSTED`; its assertions stand
@@ -1217,7 +1226,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the stub server answers later than the hand-over's deadline
       when: extract() is called
       then: throws IntentExtractionFailedException naming `DEADLINE_EXCEEDED`
-- [ ] RI06 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest` · covers: `countSwept()`,
+- [x] RI06 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest` · covers: `countSwept()`,
   `recordOldestQueued()` · scenarios: AC24, AC34
   - `countSwept()`:
     - given: one incoming turn and two written turns counted swept
@@ -1230,7 +1239,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: zero recorded for the written channel
       when: the scrape is read
       then: the gauge reads 0 under `channel="web"`
-- [ ] RI07 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
+- [x] RI07 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
   `LedgerTurnEndService.EndTurn` · mocks: `EndTurnPort` · scenarios: AC13
   - update: premise — a third operation, EndTurn, is guarded by the same interceptor · a test refusing a credential
     on both operations also calls EndTurn and verifies the end port is never called; this reaches
@@ -1242,7 +1251,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: no credential
       when: the reflection service is asked to list the services
       then: it names `bot.finance.ledger.v1.LedgerTurnEndService`
-- [ ] RI08 · `LedgerTurnEndGrpcService` · test: `LedgerTurnEndGrpcServiceTest` · covers: `LedgerTurnEndService.EndTurn`
+- [x] RI08 · `LedgerTurnEndGrpcService` · test: `LedgerTurnEndGrpcServiceTest` · covers: `LedgerTurnEndService.EndTurn`
   · mocks: `EndTurnPort` · scenarios: AC09, AC11, AC14, AC22
   - Happy Path:
     - given: the port returns
@@ -1264,7 +1273,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC01,
+- [x] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC01,
   AC02, AC09
   - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — re-enable
     it; the stub's callbacks run after it answers, so the stored proposal and what `/mcp` answered are asserted only
@@ -1276,7 +1285,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       when: the poll loop picks up a text message
       then: the batch is confirmed, the connector receives the request, the turn's row is stamped handed over, and no
       report is sent
-- [ ] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios:
+- [x] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios:
   AC03, AC09
   - update: `whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed()` — re-enable it, and move the
     arrangement `stubTelegramAndConnector()` makes into its body, since the new scenario arranges another; the stub
@@ -1286,7 +1295,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the `HANDLE_MESSAGE_REFUSED` scenario, and the stub failing the hand-over with `INVALID_ARGUMENT`
       when: the loop picks the update up
       then: one report says nothing was noted, with no buttons, and no turn row is left for the message
-- [ ] RS03 · `EndTurnSystemTest` · covers: `LedgerTurnEndService.EndTurn` · scenarios: AC09, AC13, AC22
+- [x] RS03 · `EndTurnSystemTest` · covers: `LedgerTurnEndService.EndTurn` · scenarios: AC09, AC13, AC22
   - Happy Path:
     - given: a stored person, a turn of theirs handed over under the `END_TURN` scenario's conversation, and a token
       the application minted for them and that message
@@ -1297,7 +1306,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the same kind of turn
       when: EndTurn is called with a token another stored person was minted for that message
       then: the call answers empty, no report is sent and the row remains
-- [ ] RS04 · `SweepIncomingTurnsSystemTest` · covers: `SweepIncomingTurnsPort.sweep()` · scenarios: AC15, AC24, AC27,
+- [x] RS04 · `SweepIncomingTurnsSystemTest` · covers: `SweepIncomingTurnsPort.sweep()` · scenarios: AC15, AC24, AC27,
   AC33
   - Happy Path:
     - given: a turn handed over an hour ago under the `SWEEP_INCOMING_TURN` scenario's conversation, a pending
@@ -1312,7 +1321,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: Telegram refusing `sendMessage`, and a turn handed over an hour ago
       when: the schedule comes round
       then: the row is gone, and `ledger_turns_total` under `outcome="UNREPORTED"` has grown by one
-- [ ] RS05 · `WrittenMessageReadingSystemTest` · covers: `HandleWrittenMessagePort.handleNext()` · scenarios: AC02,
+- [x] RS05 · `WrittenMessageReadingSystemTest` · covers: `HandleWrittenMessagePort.handleNext()` · scenarios: AC02,
   AC10, AC18, AC27
   - update: `whenTheScheduleComesRoundToAStoredWaitingMessage_thenItIsReadToDoneWithEntries()` — re-enable it; its
     assertions stand
@@ -1331,14 +1340,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a waiting text filed an hour ago and touched an hour ago, nothing under it
       when: the schedule comes round
       then: it is settled `DONE`, `FAILED`, and never handed over
-- [ ] RS06 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages` · scenarios: AC10
+- [x] RS06 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages` · scenarios: AC10
   - update: `whenAPersonFilesTwoExpensesInOneText_thenItIsReadToDoneWithTwoPendingEntries()` — re-enable it; its
     assertions stand
-- [ ] RS07 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC09
+- [x] RS07 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC09
   - update: `whenPollLoopPicksUpSpendingQuestion_thenReplyReportsTheInPeriodTotals()` — re-enable it; what `/mcp`
     answered is asserted once the reply is recorded, since the stub's callbacks run after it answers; every other
     assertion stands
-- [ ] RS08 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: AC34
+- [x] RS08 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: AC34
   - update: `whenPrometheusIsScrapedAfterAConfirmedTurn_thenItCarriesTurnToolCallAndResolutionCounts()` — re-enable
     it; the turn's proposal is filed only after its batch is taken in, so a tap in the same batch finds nothing:
     deliver the tap in a batch of its own once the report is recorded; its three assertions stand
@@ -1346,7 +1355,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the application running
       when: the management port is scraped after the reader's first pass
       then: it carries `ledger_turn_queue_oldest_seconds` under `channel="telegram"` and under `channel="web"`
-- [ ] RS09 · `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC01
+- [x] RS09 · `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC01
   - update: `whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageIsStillHandled()` — re-enable it; the
     stub ends the turn it accepts, so the reply still arrives and every assertion stands
 

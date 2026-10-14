@@ -3,6 +3,7 @@ package bot.finance.adapter.aiconnector;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.mcp.CreateExpenseProposalToolRequest;
+import bot.finance.application.dto.TurnEnding;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseStatus;
@@ -12,12 +13,16 @@ import bot.finance.domain.value.SpendingPeriod;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalResponse;
 import bot.finance.ledger.adapter.grpc.v1.RecordSpendingPeriodResponse;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class LedgerTurnProtoMapperTest {
 
@@ -121,6 +126,27 @@ class LedgerTurnProtoMapperTest {
 
             assertThat(response).isNotNull();
             assertThat(response.getAmount()).isEqualTo("7200");
+        }
+    }
+
+    @Nested
+    @DisplayName("toEnding()")
+    class ToEnding {
+
+        @ParameterizedTest
+        @CsvSource({"TURN_END_ACTED_ON,ACTED_ON", "TURN_END_UNAVAILABLE,UNAVAILABLE", "TURN_END_FAILED,FAILED"})
+        @DisplayName("when a known end is mapped - then the ending is its own")
+        void whenKnownEndIsMapped_thenEndingIsItsOwn(TurnEnd end, TurnEnding expected) {
+            assertThat(LedgerTurnProtoMapper.toEnding(end)).isEqualTo(expected);
+        }
+
+        @ParameterizedTest
+        @EnumSource(
+                value = TurnEnd.class,
+                names = {"TURN_END_UNSPECIFIED", "UNRECOGNIZED"})
+        @DisplayName("when an unspecified or unknown end is mapped - then the ending is FAILED")
+        void whenUnspecifiedOrUnknownEndIsMapped_thenEndingIsFailed(TurnEnd end) {
+            assertThat(LedgerTurnProtoMapper.toEnding(end)).isEqualTo(TurnEnding.FAILED);
         }
     }
 

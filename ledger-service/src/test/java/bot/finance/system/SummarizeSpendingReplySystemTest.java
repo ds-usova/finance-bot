@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -137,7 +136,6 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when the poll loop picks up a text message asking what was spent - then the reply reports "
                 + "the in-period totals")
-        @Disabled("RS07: the reply is recorded once the turn ends, after the connector's callbacks ran")
         void whenPollLoopPicksUpSpendingQuestion_thenReplyReportsTheInPeriodTotals() {
             // then: the message is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
@@ -159,6 +157,14 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                     .as("extraction request current_date")
                     .isEqualTo(LocalDate.now(Clock.systemUTC()));
 
+            // then: one report goes back into the chat, threaded onto the message it answers
+            await("a sendMessage reply is recorded for the answered turn")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
+                            .as("sendMessage requests recorded for token %s", TOKEN)
+                            .isNotEmpty());
+
             // then: the model's summarize_spending call reached /mcp and was accepted for the seeded period
             List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
             assertThat(mcpAnswers)
@@ -168,14 +174,6 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                     .as("the summarize_spending answer echoes the accepted period")
                     .contains(PERIOD_FROM)
                     .contains(PERIOD_TO);
-
-            // then: one report goes back into the chat, threaded onto the message it answers
-            await("a sendMessage reply is recorded for the answered turn")
-                    .atMost(POLL_TIMEOUT)
-                    .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
-                            .as("sendMessage requests recorded for token %s", TOKEN)
-                            .isNotEmpty());
 
             List<LoggedRequest> sent = recordedSendMessagesFor(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);

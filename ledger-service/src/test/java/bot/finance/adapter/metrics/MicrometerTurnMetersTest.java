@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnChannel;
 import bot.finance.common.boot.MetricsAdapterTest;
 import bot.finance.common.fixtures.PrometheusScrapes;
+import io.restassured.RestAssured;
+import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,6 +86,62 @@ class MicrometerTurnMetersTest {
 
             double after = scrapedValue(MeterName.PROPOSALS_RESOLVED.meterName(), "resolution=\"discarded\"");
             assertThat(after - before).isEqualTo(1.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("countSwept()")
+    class CountSwept {
+
+        @Test
+        @DisplayName(
+                "when an incoming turn and two written turns are counted swept - then each channel's counter grows")
+        void whenIncomingAndWrittenTurnsCountedSwept_thenEachChannelsCounterGrows() {
+            double telegramBefore = scrapedValue(MeterName.TURNS_SWEPT.meterName(), "channel=\"telegram\"");
+            double webBefore = scrapedValue(MeterName.TURNS_SWEPT.meterName(), "channel=\"web\"");
+
+            meters.countSwept(TurnChannel.INCOMING);
+            meters.countSwept(TurnChannel.WRITTEN);
+            meters.countSwept(TurnChannel.WRITTEN);
+
+            double telegramAfter = scrapedValue(MeterName.TURNS_SWEPT.meterName(), "channel=\"telegram\"");
+            double webAfter = scrapedValue(MeterName.TURNS_SWEPT.meterName(), "channel=\"web\"");
+            assertThat(telegramAfter - telegramBefore).isEqualTo(1.0);
+            assertThat(webAfter - webBefore).isEqualTo(2.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("recordOldestQueued()")
+    class RecordOldestQueued {
+
+        @Test
+        @DisplayName("when 90 seconds and then 30 seconds are recorded - then the gauge reads the latest")
+        void whenNinetyThenThirtySecondsRecorded_thenGaugeReadsTheLatest() {
+            meters.recordOldestQueued(TurnChannel.INCOMING, Duration.ofSeconds(90));
+            meters.recordOldestQueued(TurnChannel.INCOMING, Duration.ofSeconds(30));
+
+            assertThat(scrapedValue(MeterName.TURN_QUEUE_OLDEST.meterName(), "channel=\"telegram\""))
+                    .isEqualTo(30.0);
+        }
+
+        @Test
+        @DisplayName("when zero is recorded for the written channel - then the gauge reads zero")
+        void whenZeroRecordedForWrittenChannel_thenGaugeReadsZero() {
+            meters.recordOldestQueued(TurnChannel.WRITTEN, Duration.ofSeconds(45));
+            meters.recordOldestQueued(TurnChannel.WRITTEN, Duration.ZERO);
+
+            String line = MeterName.TURN_QUEUE_OLDEST.meterName() + "{channel=\"web\"}";
+            String scrape = RestAssured.given()
+                    .port(managementPort)
+                    .when()
+                    .get("/actuator/prometheus")
+                    .asString();
+
+            assertThat(scrape.lines().filter(rendered -> rendered.startsWith(line)))
+                    .singleElement()
+                    .asString()
+                    .endsWith(" 0.0");
         }
     }
 

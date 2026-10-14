@@ -97,6 +97,40 @@
   ST22's deadline.
 - **RL02 (ST13):** `WrittenMessageRepositoryAdapter.settle()` carries a `TODO` to settle a `WAITING` text as well as
   a `READING` one, the behaviour RI03's `settle()` scenario pins.
+- **RL03 (RU12):** plan defect — the scenario "a waiting text with only a period under it is settled `FAILED`"
+  fits no test: `SweepWrittenMessagesUseCase` takes no `SpendingQueryRepository`, so a period is indistinguishable
+  from nothing under the text, which the "nothing under it" scenario already pins. Left unwritten.
+- **RL04 (RS05):** "never handed over" is asserted as the connector's last request not being this text;
+  `GrpcStubServer` keeps no request count, so a leftover row from another class could mask a hand-over.
+- **RL05 (RU13, RI06):** the red wave's run found two tests passing against the stubs for want of a positive check —
+  `TurnHandOverReaderTest`'s `handOverNext()`-throws test and `MicrometerTurnMetersTest`'s zero-gauge test. Each was
+  re-delegated once.
+- **RL06 (red wave):** expected passes against the stubs, each asserting an absence or a minimum the stub already
+  answers, or behaviour stabilization delivered:
+  - `HandleIncomingMessageUseCaseTest.whenCommandIsNull_thenThrowsInvalidIncomingMessageExceptionAndNoPortIsCalled`
+    and `EndTurnUseCaseTest.whenTheCommandIsNull_thenThrowsInvalidTurnEndExceptionAndNoPortIsCalled` — the null
+    guards are stabilization's.
+  - `IncomingTurnTest.whenTurnIsBuiltFromEveryField_thenItCarriesThemAndHasNoIdAttemptOrHandOver` and
+    `whenTurnIsRebuiltWithIdAttemptAndHandOver_thenItAnswersThem` — the entity's fields are stabilization's.
+  - `IncomingMessageIdTest.whenIdDoesNotNameAWrittenMessage_thenWrittenMessageIdIsEmpty` (six values) — the stub
+    answers empty.
+  - `IncomingTurnRepositoryAdapterTest`: `whenOnlyHandedOverOrDeletedTurnsFollowTheInstant_thenAnswerIsEmpty`,
+    `whenTurnIsAlreadyHandedOver_thenAnswersFalseAndRowIsUnchanged`, `whenTurnIsDeleted_thenAnswersFalseAndNoRowAppears`,
+    `whenTurnWasKeptForAnotherPerson_thenAnswerIsEmpty`, `whenNoTurnIsQueued_thenAnswerIsEmpty` — the stubs answer
+    empty or false.
+  - `WrittenMessageRepositoryAdapterTest`: `whenOnlyReadingAndDoneTextsFollowTheInstant_thenAnswerIsEmpty`,
+    `whenTextIsReadingOrDone_thenAnswersFalseAndRowIsUnchanged`, `whenNoTextWaits_thenAnswerIsEmpty` — the stubs
+    answer empty or false.
+  - `WrittenMessageRepositoryAdapterConcurrencyTest.whenTwoThreadsSettleTogether_thenExactlyOneAnswersTrue` — the
+    existing settle of a `READING` text.
+  - `AiConnectorIntentExtractionAdapterTest.whenStubServerAnswersLaterThanDeadline_thenThrowsIntentExtractionFailedExceptionNamingDeadlineExceeded`
+    — the adapter already maps any status to the failed exception, and ST26 set the 1 s deadline.
+  - `LedgerTurnEndGrpcServiceTest.whenEndTurnIsCalled_thenNoTurnCallLineIsLogged` — the stub logs nothing.
+  - `TurnOperationsSecurityConfigurationTest.whenALedgerTokenIsPresentedToEndTurn_thenTheCallIsAnswered` and
+    `whenTheReflectionServiceIsAskedWithoutACredential_thenItNamesTheTurnEndService` — the service is registered and
+    the stub answers empty (RF13).
+  - `EndTurnSystemTest.whenTurnIsEndedWithAnotherPersonsToken_thenNothingIsReportedAndRowRemains` — nothing happens
+    against the stub.
 
 ## Suite Runs
 

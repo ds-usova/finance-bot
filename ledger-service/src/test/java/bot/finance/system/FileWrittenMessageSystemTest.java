@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,7 +64,6 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when a person files two expenses in one text - then it is read to DONE with two pending entries")
-        @Disabled("RS06: the text is handed over, and settled once the connector ends the turn")
         void whenAPersonFilesTwoExpensesInOneText_thenItIsReadToDoneWithTwoPendingEntries() {
             // given: a person signed in, and the connector armed to record one proposal per expense
             String externalId = "file-written-message-happy-user";

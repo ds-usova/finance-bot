@@ -15,6 +15,7 @@ import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.IntentExtractionFailedException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
@@ -24,6 +25,7 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -167,7 +169,7 @@ class AiConnectorIntentExtractionAdapterTest {
         @ParameterizedTest
         @EnumSource(
                 value = Status.Code.class,
-                names = {"INVALID_ARGUMENT", "UNAVAILABLE", "FAILED_PRECONDITION", "UNAUTHENTICATED"})
+                names = {"UNAVAILABLE", "FAILED_PRECONDITION", "RESOURCE_EXHAUSTED"})
         @DisplayName("when the stub server fails the call - then throws IntentExtractionFailedException naming the "
                 + "status")
         void whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionNamingTheStatus(Status.Code code) {
@@ -189,6 +191,44 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
             StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
             assertThat(cause.getStatus().getCode()).isEqualTo(code);
+        }
+
+        @ParameterizedTest
+        @EnumSource(
+                value = Status.Code.class,
+                names = {"UNAUTHENTICATED", "INVALID_ARGUMENT"})
+        @DisplayName("when the stub server refuses the call - then throws IntentExtractionRefusedException naming "
+                + "the status")
+        void whenStubServerRefusesCall_thenThrowsIntentExtractionRefusedExceptionNamingTheStatus(Status.Code code) {
+            GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub refusal"));
+            IntentExtractionRequest request = requestFor(1L, newIncomingMessageId());
+
+            IntentExtractionRefusedException thrown =
+                    catchThrowableOfType(() -> adapter.extract(request), IntentExtractionRefusedException.class);
+
+            assertThat(thrown).isNotNull();
+            assertThat(thrown.getMessage()).contains(code.name());
+            assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
+            assertThat(cause.getStatus().getCode()).isEqualTo(code);
+        }
+
+        @Test
+        @DisplayName("when the stub server answers later than the deadline - then throws "
+                + "IntentExtractionFailedException naming DEADLINE_EXCEEDED")
+        void whenStubServerAnswersLaterThanDeadline_thenThrowsIntentExtractionFailedExceptionNamingDeadlineExceeded() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            GrpcStubServer.delayExtractionAnswerBy(Duration.ofSeconds(3));
+            IntentExtractionRequest request = requestFor(1L, newIncomingMessageId());
+
+            IntentExtractionFailedException thrown =
+                    catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);
+
+            assertThat(thrown).isNotNull();
+            assertThat(thrown.getMessage()).contains("DEADLINE_EXCEEDED");
+            assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
+            assertThat(cause.getStatus().getCode()).isEqualTo(Status.Code.DEADLINE_EXCEEDED);
         }
 
         @Test

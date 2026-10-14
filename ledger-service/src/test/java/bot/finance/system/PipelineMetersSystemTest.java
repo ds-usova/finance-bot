@@ -2,6 +2,10 @@ package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -11,6 +15,7 @@ import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.port.UserRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.containers.WireMockSupport;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramFixtures;
@@ -18,13 +23,13 @@ import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -97,7 +102,6 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when prometheus is scraped after a confirmed turn - then it carries turn, tool call and "
                 + "resolution counts")
-        @Disabled("RS08: the proposal is filed after its batch is taken in, so the tap needs a batch of its own")
         void whenPrometheusIsScrapedAfterAConfirmedTurn_thenItCarriesTurnToolCallAndResolutionCounts() {
             // given: a Telegram turn processed end to end, its report's Confirm button tapped
             WireMockStubs.telegramReturnsNoUpdates(TOKEN);
@@ -123,16 +127,27 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
 
             WireMockStubs.telegramDeliversOnce(
                     TOKEN,
-                    TelegramFixtures.updatesResponse(
-                            TelegramFixtures.textMessageUpdate(
-                                    SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT),
-                            TelegramFixtures.callbackQueryUpdate(
-                                    callbackUpdateId,
-                                    SCENARIO.callbackQueryId(),
-                                    SCENARIO.userId(),
-                                    SCENARIO.chatId(),
-                                    TelegramFixtures.MESSAGE_ID,
-                                    "accept:" + reference)));
+                    TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                            SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
+
+            await("the report is recorded for the turn").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            recordedSendMessagesFor(TOKEN, SCENARIO))
+                    .as("sendMessage requests recorded for token %s", TOKEN)
+                    .isNotEmpty());
+
+            // the proposal now exists, so the tap goes out in a batch of its own
+            WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.getUpdatesPath(TOKEN)))
+                    .inScenario("pipeline-meters-tap")
+                    .whenScenarioStateIs(Scenario.STARTED)
+                    .willSetStateTo("delivered")
+                    .atPriority(1)
+                    .willReturn(okJson(TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
+                            callbackUpdateId,
+                            SCENARIO.callbackQueryId(),
+                            SCENARIO.userId(),
+                            SCENARIO.chatId(),
+                            TelegramFixtures.MESSAGE_ID,
+                            "accept:" + reference)))));
 
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + nextOffset)
                     .atMost(TIMEOUT)
@@ -181,6 +196,32 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
                     .as("accepted resolution count")
                     .containsPattern(Pattern.compile("(?m)^" + MeterName.PROPOSALS_RESOLVED.meterName()
                             + "\\{(?=[^}]*resolution=\"accepted\")[^}]*}"));
+        }
+
+        @Test
+        @DisplayName("when prometheus is scraped after the reader's first pass - then it carries the oldest queued "
+                + "age for both channels")
+        void whenPrometheusIsScrapedAfterTheReadersFirstPass_thenItCarriesTheOldestQueuedAgeForBothChannels() {
+            // given: the application running, the reader's first pass done
+            // when: the management port is scraped
+            // then: the scrape carries the oldest queued age under the telegram channel and under the web channel
+            await("the scrape carries the oldest queued age for both channels")
+                    .atMost(TIMEOUT)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        Response scrape = scrapePrometheus();
+                        scrape.then().statusCode(200);
+                        String body = scrape.getBody().asString();
+
+                        assertThat(body)
+                                .as("oldest queued age of the telegram channel")
+                                .containsPattern(Pattern.compile("(?m)^" + MeterName.TURN_QUEUE_OLDEST.meterName()
+                                        + "\\{(?=[^}]*channel=\"telegram\")[^}]*}"));
+                        assertThat(body)
+                                .as("oldest queued age of the web channel")
+                                .containsPattern(Pattern.compile("(?m)^" + MeterName.TURN_QUEUE_OLDEST.meterName()
+                                        + "\\{(?=[^}]*channel=\"web\")[^}]*}"));
+                    });
         }
     }
 
