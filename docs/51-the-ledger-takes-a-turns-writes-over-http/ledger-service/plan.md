@@ -588,7 +588,7 @@ through this change. AC15 is the evaluation runner's, in its own plan.
 
 #### ADR Placeholders
 
-- [ ] PI01 · Place ADR: the ledger serves a turn's writes as gRPC operations on a port of their own, beside its
+- [x] PI01 · Place ADR: the ledger serves a turn's writes as gRPC operations on a port of their own, beside its
   MCP tools, behind the tools' own credential
 
 ## Open Questions
