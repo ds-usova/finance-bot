@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB08 · BR01 · BT10 · BP00
+**Last ids:** BB08 · BR01 · BT11 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -126,15 +126,6 @@ never changes once given.
   `WebExceptionHandler` maps no transaction exception, so such a failure reaches `onUnexpected` and answers 500;
   deferred by the design as DF07
 
-### BT08 · `ai-connector-service` — the tool-calling turn answers `list_categories` from the request's catalogue
-
-- **Kind** deferred change · **Priority** normal · **Size** M
-- **Raised by** task 51, 2026-10-13 · [origin](51-the-ledger-takes-a-turns-writes-over-http/design-log.md)
-- **What** once the extraction request carries the whole catalogue, the connector answers the model's
-  `list_categories` call itself instead of calling the ledger. The model still asks one grouping at a time, and the
-  catalogue never enters its prompt
-- **Why** one network round trip per grouping asked about, for an answer the request already holds (task 51, DN01)
-
 ### BT10 · `ledger-service`, `ai-connector-service` — the turn becomes asynchronous
 
 - **Kind** deferred change · **Priority** normal · **Size** L
@@ -148,3 +139,12 @@ never changes once given.
   turn that fails as unavailable is never retried today: the user gets a failed or partial report, or none when
   the store is down, and must resend, which files a partial turn's expenses again
   (`ledger-service/docs/contracts/out/ai-connector.md`)
+
+### BT11 · `ledger-service` — the ledger stops serving `list_categories`
+
+- **Kind** deferred change · **Priority** low · **Size** S
+- **Raised by** task 54, 2026-10-14 · [origin](implemented/54-the-connector-answers-a-category-lookup-itself/design-log.md)
+- **What** the ledger's MCP endpoint drops `list_categories`, and `create_expense_proposal`'s `grouping`
+  description stops pointing at it
+- **Why** the connector answers the lookup from the request's catalogue (task 54) and never offers the ledger's
+  tool; kept while another MCP client may need it (task 54, DN02)
