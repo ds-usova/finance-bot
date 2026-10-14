@@ -18,8 +18,8 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public final class TurnCallLog {
 
-    private static final Pattern LINE =
-            Pattern.compile("turn_call operation=(\\S+) via=\\S+ outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
+    private static final Pattern LINE = Pattern.compile(
+            "turn_call operation=(\\S+) via=\\S+ outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
     private static final JsonMapper JSON = new JsonMapper();
 
     private final Path file;
