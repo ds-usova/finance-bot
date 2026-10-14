@@ -820,7 +820,7 @@ driving `ExtractIntents` — which keep their assertions through this change.
 
 #### ADR Placeholders
 
-- [ ] PI01 · Place ADR: in the classifier mode, the connector reads a message with the model, picks each category
+- [x] PI01 · Place ADR: in the classifier mode, the connector reads a message with the model, picks each category
   with a classifier, and files through the ledger's turn operations; ADR 0008 stays in force for the tool-calling
   mode
 

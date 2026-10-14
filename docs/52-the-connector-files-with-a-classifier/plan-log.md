@@ -167,6 +167,8 @@
   each entry is valid and the same-groupings-same-order check passes, so the call proceeds instead of answering
   `INVALID_ARGUMENT`. A grouping repeated in the catalogue is refused by AC17 whatever `category_groupings` says.
   Added to RU02 as a scenario; RU02 and GU02 reopened for it.
+  `ExtractIntentsCommandTest.Construction.whenGroupingRepeatedInGroupingsAndCatalogue_thenThrowsInvalidValueException`
+  failed red; `ExtractIntentsCommand` now refuses a catalogue naming a grouping twice, and the class passes.
 - **RL12 (RI03, RU09):** hypothesis: question keys are `"0"`, `"1"`, … and the returned positions match them —
   settled by the green steps.
 
@@ -177,6 +179,7 @@
 
 - green · tree dee553e65f84521f301df6dbba0dfd16ede7e6cb · total 549 · skipped 0 · red · paths: ai-connector-service
 - refactor · tree abb9d4361040795129853b0851e7e146576c0356 · total 549 · skipped 0 · green · paths: ai-connector-service
+- wrap-up · tree 398812fe77bc5fe9b045d2d43ee01965d6373030 · total 550 · skipped 0 · green · paths: ai-connector-service
 ## Stubs
 
 Marker: `stub-intent:`

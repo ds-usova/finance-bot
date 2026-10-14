@@ -208,6 +208,23 @@ class ExtractIntentsCommandTest {
                     Arguments.of("another order", catalogueOf(List.of("Other", "Food", "Travel"))));
         }
 
+        @Test
+        @DisplayName("when a grouping is named twice in both the groupings and the catalogue - then throws "
+                + "InvalidValueException")
+        void whenGroupingRepeatedInGroupingsAndCatalogue_thenThrowsInvalidValueException() {
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT,
+                            List.of("Food", "Food"),
+                            "Food",
+                            Optional.empty(),
+                            CURRENT_DATE,
+                            Optional.empty(),
+                            List.of(
+                                    new CatalogueEntry("Food", List.of("Cafe")),
+                                    new CatalogueEntry("Food", List.of("Groceries")))))
+                    .isInstanceOf(InvalidValueException.class);
+        }
+
         private static Stream<List<String>> categoryGroupingsWithInvalidElement() {
             return Stream.of(Arrays.asList("Food", null), Arrays.asList("Food", "   "));
         }

@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public record ExtractIntentsCommand(
         String text,
@@ -53,6 +54,9 @@ public record ExtractIntentsCommand(
         }
         List<String> catalogueGroupings =
                 catalogue.stream().map(CatalogueEntry::grouping).toList();
+        if (catalogueGroupings.size() != Set.copyOf(catalogueGroupings).size()) {
+            throw new InvalidValueException("Catalogue must not name a grouping twice");
+        }
         if (!catalogueGroupings.equals(categoryGroupings)) {
             throw new InvalidValueException("Catalogue must hold one entry per category grouping, in order");
         }
