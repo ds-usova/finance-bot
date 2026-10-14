@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when the loop picks the update up - then one sendMessage reports nothing was noted, with no "
                 + "buttons")
+        @Disabled("RS02: the connector accepts the hand-over and ends the turn failed, rather than failing the call")
         void whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed() {
             // then: a connector that never answered does not stall the loop
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> assertThat(

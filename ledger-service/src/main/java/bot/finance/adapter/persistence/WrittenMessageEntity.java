@@ -19,7 +19,8 @@ public record WrittenMessageEntity(
                 userId,
                 text,
                 WrittenMessageStatus.valueOf(status),
-                Optional.ofNullable(outcome).map(ReportOutcome::valueOf));
+                Optional.ofNullable(outcome).map(ReportOutcome::valueOf),
+                createdAt);
     }
 
     public static WrittenMessageEntity fromDomain(WrittenMessage message) {

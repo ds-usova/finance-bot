@@ -13,11 +13,14 @@ import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.DiscardExpensesPort;
+import bot.finance.application.port.EndTurnPort;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.FileWrittenMessagePort;
 import bot.finance.application.port.GroupingRepository;
+import bot.finance.application.port.HandOverIncomingTurnPort;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.HandleWrittenMessagePort;
+import bot.finance.application.port.IncomingTurnRepository;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.ListCategoriesPort;
@@ -32,11 +35,12 @@ import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.SweepIncomingTurnsPort;
 import bot.finance.application.port.SweepWrittenMessagesPort;
+import bot.finance.application.port.TurnHandOverDispatchPort;
 import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.UserRepository;
-import bot.finance.application.port.WrittenMessageReadingDispatchPort;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
@@ -48,7 +52,9 @@ import bot.finance.application.usecase.ClearEmptiedReportsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.DiscardExpensesUseCase;
+import bot.finance.application.usecase.EndTurnUseCase;
 import bot.finance.application.usecase.FileWrittenMessageUseCase;
+import bot.finance.application.usecase.HandOverIncomingTurnUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.application.usecase.HandleWrittenMessageUseCase;
 import bot.finance.application.usecase.InitializeUserUseCase;
@@ -59,6 +65,7 @@ import bot.finance.application.usecase.ReadWrittenMessageUseCase;
 import bot.finance.application.usecase.ReplacePreferencesUseCase;
 import bot.finance.application.usecase.ResolveProposalsUseCase;
 import bot.finance.application.usecase.SummarizeSpendingUseCase;
+import bot.finance.application.usecase.SweepIncomingTurnsUseCase;
 import bot.finance.application.usecase.SweepWrittenMessagesUseCase;
 import java.time.Clock;
 import java.time.Duration;
@@ -71,27 +78,11 @@ public class UseCaseConfiguration {
     @Bean
     HandleIncomingMessagePort handleIncomingMessagePort(
             InitializeUserPort initializeUserPort,
-            GroupingRepository groupingRepository,
-            IntentExtractionPort intentExtractionPort,
-            MessageDeliveryPort messageDeliveryPort,
-            SpendingQueryRepository spendingQueryRepository,
-            ExpenseRepository expenseRepository,
-            ProposalReportRepository proposalReportRepository,
-            TurnMeters turnMeters,
-            UserPreferenceRepository userPreferenceRepository,
+            IncomingTurnRepository incomingTurnRepository,
+            TurnHandOverDispatchPort turnHandOverDispatchPort,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
-                initializeUserPort,
-                groupingRepository,
-                intentExtractionPort,
-                messageDeliveryPort,
-                Clock.systemUTC(),
-                spendingQueryRepository,
-                expenseRepository,
-                proposalReportRepository,
-                turnMeters,
-                userPreferenceRepository,
-                loggerFactory);
+                initializeUserPort, incomingTurnRepository, turnHandOverDispatchPort, Clock.systemUTC(), loggerFactory);
     }
 
     @Bean
@@ -213,14 +204,10 @@ public class UseCaseConfiguration {
     FileWrittenMessagePort fileWrittenMessagePort(
             UserRepository userRepository,
             WrittenMessageRepository writtenMessageRepository,
-            WrittenMessageReadingDispatchPort writtenMessageReadingDispatchPort,
+            TurnHandOverDispatchPort turnHandOverDispatchPort,
             LoggerFactory loggerFactory) {
         return new FileWrittenMessageUseCase(
-                userRepository,
-                writtenMessageRepository,
-                writtenMessageReadingDispatchPort,
-                Clock.systemUTC(),
-                loggerFactory);
+                userRepository, writtenMessageRepository, turnHandOverDispatchPort, Clock.systemUTC(), loggerFactory);
     }
 
     @Bean
@@ -246,6 +233,7 @@ public class UseCaseConfiguration {
             ExpenseRepository expenseRepository,
             SpendingQueryRepository spendingQueryRepository,
             TurnMeters turnMeters,
+            WrittenMessageReaderProperties readerProperties,
             LoggerFactory loggerFactory) {
         return new HandleWrittenMessageUseCase(
                 writtenMessageRepository,
@@ -256,6 +244,7 @@ public class UseCaseConfiguration {
                 spendingQueryRepository,
                 turnMeters,
                 Clock.systemUTC(),
+                readerProperties.maxQueueWait(),
                 loggerFactory);
     }
 
@@ -263,15 +252,92 @@ public class UseCaseConfiguration {
     SweepWrittenMessagesPort sweepWrittenMessagesPort(
             WrittenMessageRepository writtenMessageRepository,
             ExpenseRepository expenseRepository,
+            TurnMeters turnMeters,
             AccessTokenProperties accessTokenProperties,
             WrittenMessageReaderProperties readerProperties,
             LoggerFactory loggerFactory) {
-        Duration longestTurnLife = accessTokenProperties
-                .ttl()
-                .plus(accessTokenProperties.clockSkew())
-                .plus(readerProperties.sweepMargin());
         return new SweepWrittenMessagesUseCase(
-                writtenMessageRepository, expenseRepository, Clock.systemUTC(), longestTurnLife, loggerFactory);
+                writtenMessageRepository,
+                expenseRepository,
+                turnMeters,
+                Clock.systemUTC(),
+                longestTurnLife(accessTokenProperties, readerProperties),
+                readerProperties.maxQueueWait(),
+                loggerFactory);
+    }
+
+    @Bean
+    HandOverIncomingTurnPort handOverIncomingTurnPort(
+            IncomingTurnRepository incomingTurnRepository,
+            GroupingRepository groupingRepository,
+            UserPreferenceRepository userPreferenceRepository,
+            IntentExtractionPort intentExtractionPort,
+            ExpenseRepository expenseRepository,
+            SpendingQueryRepository spendingQueryRepository,
+            MessageDeliveryPort messageDeliveryPort,
+            ProposalReportRepository proposalReportRepository,
+            TurnMeters turnMeters,
+            WrittenMessageReaderProperties readerProperties,
+            LoggerFactory loggerFactory) {
+        return new HandOverIncomingTurnUseCase(
+                incomingTurnRepository,
+                groupingRepository,
+                userPreferenceRepository,
+                intentExtractionPort,
+                expenseRepository,
+                spendingQueryRepository,
+                messageDeliveryPort,
+                proposalReportRepository,
+                turnMeters,
+                Clock.systemUTC(),
+                readerProperties.maxQueueWait(),
+                loggerFactory);
+    }
+
+    @Bean
+    EndTurnPort endTurnPort(
+            IncomingTurnRepository incomingTurnRepository,
+            WrittenMessageRepository writtenMessageRepository,
+            ExpenseRepository expenseRepository,
+            SpendingQueryRepository spendingQueryRepository,
+            MessageDeliveryPort messageDeliveryPort,
+            ProposalReportRepository proposalReportRepository,
+            TurnMeters turnMeters,
+            LoggerFactory loggerFactory) {
+        return new EndTurnUseCase(
+                incomingTurnRepository,
+                writtenMessageRepository,
+                expenseRepository,
+                spendingQueryRepository,
+                messageDeliveryPort,
+                proposalReportRepository,
+                turnMeters,
+                Clock.systemUTC(),
+                loggerFactory);
+    }
+
+    @Bean
+    SweepIncomingTurnsPort sweepIncomingTurnsPort(
+            IncomingTurnRepository incomingTurnRepository,
+            ExpenseRepository expenseRepository,
+            SpendingQueryRepository spendingQueryRepository,
+            MessageDeliveryPort messageDeliveryPort,
+            ProposalReportRepository proposalReportRepository,
+            TurnMeters turnMeters,
+            AccessTokenProperties accessTokenProperties,
+            WrittenMessageReaderProperties readerProperties,
+            LoggerFactory loggerFactory) {
+        return new SweepIncomingTurnsUseCase(
+                incomingTurnRepository,
+                expenseRepository,
+                spendingQueryRepository,
+                messageDeliveryPort,
+                proposalReportRepository,
+                turnMeters,
+                Clock.systemUTC(),
+                longestTurnLife(accessTokenProperties, readerProperties),
+                readerProperties.maxQueueWait(),
+                loggerFactory);
     }
 
     @Bean
@@ -282,5 +348,13 @@ public class UseCaseConfiguration {
             LoggerFactory loggerFactory) {
         return new ClearEmptiedReportsUseCase(
                 expenseRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
+    }
+
+    private static Duration longestTurnLife(
+            AccessTokenProperties accessTokenProperties, WrittenMessageReaderProperties readerProperties) {
+        return accessTokenProperties
+                .ttl()
+                .plus(accessTokenProperties.clockSkew())
+                .plus(readerProperties.sweepMargin());
     }
 }

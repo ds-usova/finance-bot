@@ -2,6 +2,7 @@ package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 /** Identifies one handled message by the message that started it, so a stored row names the turn it came from. */
 public record IncomingMessageId(String value) {
@@ -28,6 +29,12 @@ public record IncomingMessageId(String value) {
             throw new InvalidIncomingMessageException("written message id must be at least 1");
         }
         return new IncomingMessageId("web:" + writtenMessageId);
+    }
+
+    public Optional<Long> writtenMessageId() {
+        // stub-intent: the written message's id when the value names one as ofWrittenMessage writes it, `web:`
+        // followed by a positive id; empty for any other value
+        return Optional.empty();
     }
 
     /** Parses a stored or transported value, rejecting an absent, blank or over-long one. */

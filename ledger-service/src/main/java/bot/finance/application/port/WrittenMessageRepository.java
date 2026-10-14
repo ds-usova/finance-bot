@@ -32,21 +32,26 @@ public interface WrittenMessageRepository {
     List<WrittenMessageView> findUnsettledForUser(long userId);
 
     /**
-     * Moves the oldest WAITING text to READING, answering it. An empty result means nothing waits.
+     * @throws PersistenceFailedException if the read fails
+     */
+    Optional<WrittenMessageView> findOldestWaitingFiledSince(Instant filedSince);
+
+    /**
+     * Touches the text's last move while it is WAITING, as the instant of its latest hand-over attempt.
      *
      * @throws PersistenceFailedException if the write fails
      */
-    Optional<WrittenMessageView> claimOldestWaiting(Instant now);
+    void recordAttempt(long messageId, Instant now);
 
     /**
-     * Stamps the moment the text is handed over to be read, answering whether the message was still READING.
+     * Moves the text from WAITING to READING, answering whether it was still WAITING.
      *
      * @throws PersistenceFailedException if the write fails
      */
-    boolean stampHandOver(long messageId, Instant now);
+    boolean markHandedOver(long messageId, Instant now);
 
     /**
-     * Settles the text with its outcome, answering whether the message was still READING.
+     * Settles the text with its outcome, answering whether the text was still WAITING or READING.
      *
      * @throws PersistenceFailedException if the write fails
      */
@@ -56,4 +61,14 @@ public interface WrittenMessageRepository {
      * @throws PersistenceFailedException if the read fails
      */
     List<WrittenMessageView> findReadingUpdatedBefore(Instant cutoff);
+
+    /**
+     * @throws PersistenceFailedException if the read fails
+     */
+    List<WrittenMessageView> findWaitingForSweep(Instant filedBefore, Instant attemptBefore);
+
+    /**
+     * @throws PersistenceFailedException if the read fails
+     */
+    Optional<Instant> oldestWaitingFiledAt();
 }

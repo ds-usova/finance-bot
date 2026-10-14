@@ -2,10 +2,12 @@ package bot.finance.adapter.metrics;
 
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnChannel;
 import bot.finance.application.port.TurnMeters;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
+import java.time.Duration;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,6 +35,18 @@ public class MicrometerTurnMeters implements TurnMeters {
                 .tags(Tags.of("resolution", resolutionTag(resolution)))
                 .register(registry)
                 .increment(count);
+    }
+
+    @Override
+    public void countSwept(TurnChannel channel) {
+        // stub-intent: counts the swept turn on ledger_turns_swept_total, tagged channel="telegram" for an incoming
+        // turn and channel="web" for a written one
+    }
+
+    @Override
+    public void recordOldestQueued(TurnChannel channel, Duration age) {
+        // stub-intent: sets ledger_turn_queue_oldest_seconds, tagged by channel as countSwept tags it, to the age in
+        // seconds, the latest recorded value replacing the one before
     }
 
     private void count(String outcome) {

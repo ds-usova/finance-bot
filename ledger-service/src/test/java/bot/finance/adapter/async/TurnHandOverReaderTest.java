@@ -14,9 +14,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.port.HandOverIncomingTurnPort;
 import bot.finance.application.port.HandleWrittenMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.SweepIncomingTurnsPort;
 import bot.finance.application.port.SweepWrittenMessagesPort;
 import bot.finance.domain.exception.PersistenceFailedException;
 import java.time.Duration;
@@ -33,32 +35,38 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
-class WrittenMessageReaderTest {
+class TurnHandOverReaderTest {
 
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(10);
 
+    private HandOverIncomingTurnPort handOverIncomingTurnPort;
     private HandleWrittenMessagePort handleWrittenMessagePort;
+    private SweepIncomingTurnsPort sweepIncomingTurnsPort;
     private SweepWrittenMessagesPort sweepWrittenMessagesPort;
     private LoggerFactory loggerFactory;
 
     @BeforeEach
     void setUp() {
+        handOverIncomingTurnPort = mock(HandOverIncomingTurnPort.class);
         handleWrittenMessagePort = mock(HandleWrittenMessagePort.class);
+        sweepIncomingTurnsPort = mock(SweepIncomingTurnsPort.class);
         sweepWrittenMessagesPort = mock(SweepWrittenMessagesPort.class);
         loggerFactory = mock(LoggerFactory.class);
-        when(loggerFactory.getLogger(WrittenMessageReader.class)).thenReturn(mock(Logger.class));
+        when(loggerFactory.getLogger(TurnHandOverReader.class)).thenReturn(mock(Logger.class));
     }
 
-    private WrittenMessageReader readerOn(ScheduledExecutorService executor) {
-        return new WrittenMessageReader(
+    private TurnHandOverReader readerOn(ScheduledExecutorService executor) {
+        return new TurnHandOverReader(
                 executor,
+                handOverIncomingTurnPort,
                 handleWrittenMessagePort,
+                sweepIncomingTurnsPort,
                 sweepWrittenMessagesPort,
-                new WrittenMessageReaderProperties(POLL_INTERVAL, Duration.ofMinutes(5)),
+                new WrittenMessageReaderProperties(POLL_INTERVAL, Duration.ofMinutes(5), Duration.ofMinutes(10)),
                 loggerFactory);
     }
 
-    private static Runnable scheduledPassOf(ScheduledExecutorService executor, WrittenMessageReader reader) {
+    private static Runnable scheduledPassOf(ScheduledExecutorService executor, TurnHandOverReader reader) {
         ScheduledFuture<?> future = mock(ScheduledFuture.class);
         doReturn(future).when(executor).scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
         reader.start();
@@ -78,7 +86,7 @@ class WrittenMessageReaderTest {
             doReturn(mock(ScheduledFuture.class))
                     .when(executor)
                     .scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
-            WrittenMessageReader reader = readerOn(executor);
+            TurnHandOverReader reader = readerOn(executor);
 
             reader.start();
 
@@ -147,7 +155,7 @@ class WrittenMessageReaderTest {
             ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
             ScheduledFuture<?> future = mock(ScheduledFuture.class);
             doReturn(future).when(executor).scheduleWithFixedDelay(any(), anyLong(), anyLong(), any());
-            WrittenMessageReader reader = readerOn(executor);
+            TurnHandOverReader reader = readerOn(executor);
             reader.start();
 
             reader.stop();
@@ -187,7 +195,7 @@ class WrittenMessageReaderTest {
         @DisplayName("when the executor runs what it is handed at once - then one pass sweeps and then reads")
         void whenExecutorRunsWhatItIsHandedAtOnce_thenOnePassSweepsAndThenReads() {
             AtomicInteger handed = new AtomicInteger();
-            WrittenMessageReader reader = readerOn(executorHandling(handed, false));
+            TurnHandOverReader reader = readerOn(executorHandling(handed, false));
 
             reader.dispatch();
 
@@ -201,7 +209,7 @@ class WrittenMessageReaderTest {
         @DisplayName("when the executor refuses the work - then nothing propagates and neither port is called")
         void whenExecutorRefusesTheWork_thenNothingPropagatesAndNeitherPortIsCalled() {
             AtomicInteger handed = new AtomicInteger();
-            WrittenMessageReader reader = readerOn(executorHandling(handed, true));
+            TurnHandOverReader reader = readerOn(executorHandling(handed, true));
 
             assertThatCode(reader::dispatch).doesNotThrowAnyException();
 

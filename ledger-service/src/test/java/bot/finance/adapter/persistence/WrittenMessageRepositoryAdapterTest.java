@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -210,42 +211,44 @@ class WrittenMessageRepositoryAdapterTest {
     class ClaimOldestWaiting {
 
         @Test
+        @Disabled("RI03: the claim gives way to the attempt and the hand-over stamp")
         @DisplayName("when two messages wait - then the older one is answered as READING and the other stays WAITING")
         void whenTwoMessagesWait_thenOlderIsClaimed() {
-            long firstUserId = storedUserId("written-claim-first");
-            long secondUserId = storedUserId("written-claim-second");
-            long readingUserId = storedUserId("written-claim-reading");
-            long olderId = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, firstUserId, "older", WrittenMessageStatus.WAITING, null, EARLIER);
-            long newerId = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, secondUserId, "newer", WrittenMessageStatus.WAITING, null, EARLIER);
-            WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, readingUserId, "busy", WrittenMessageStatus.READING, null, EARLIER);
-
-            Optional<WrittenMessageView> claimed = adapter.claimOldestWaiting(LATER);
-
-            assertThat(claimed).hasValueSatisfying(view -> {
-                assertThat(view.id()).isEqualTo(olderId);
-                assertThat(view.status()).isEqualTo(WrittenMessageStatus.READING);
-            });
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, olderId))
-                    .satisfies(row -> {
-                        assertThat(row.status()).isEqualTo("READING");
-                        assertThat(row.updatedAt()).isEqualTo(LATER);
-                    });
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, newerId)
-                            .status())
-                    .isEqualTo("WAITING");
+            // long firstUserId = storedUserId("written-claim-first");
+            // long secondUserId = storedUserId("written-claim-second");
+            // long readingUserId = storedUserId("written-claim-reading");
+            // long olderId = WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, firstUserId, "older", WrittenMessageStatus.WAITING, null, EARLIER);
+            // long newerId = WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, secondUserId, "newer", WrittenMessageStatus.WAITING, null, EARLIER);
+            // WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, readingUserId, "busy", WrittenMessageStatus.READING, null, EARLIER);
+            //
+            // Optional<WrittenMessageView> claimed = adapter.claimOldestWaiting(LATER);
+            //
+            // assertThat(claimed).hasValueSatisfying(view -> {
+            //     assertThat(view.id()).isEqualTo(olderId);
+            //     assertThat(view.status()).isEqualTo(WrittenMessageStatus.READING);
+            // });
+            // assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, olderId))
+            //         .satisfies(row -> {
+            //             assertThat(row.status()).isEqualTo("READING");
+            //             assertThat(row.updatedAt()).isEqualTo(LATER);
+            //         });
+            // assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, newerId)
+            //                 .status())
+            //         .isEqualTo("WAITING");
         }
 
         @Test
+        @Disabled("RI03: the claim gives way to the attempt and the hand-over stamp")
         @DisplayName("when no message waits - then the answer is empty")
         void whenNoMessageWaits_thenAnswerIsEmpty() {
-            long userId = storedUserId("written-claim-none");
-            WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, userId, "busy", WrittenMessageStatus.READING, null, EARLIER);
-
-            assertThat(adapter.claimOldestWaiting(LATER)).isEmpty();
+            // long userId = storedUserId("written-claim-none");
+            // WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, userId, "busy", WrittenMessageStatus.READING, null, EARLIER);
+            //
+            // assertThat(adapter.claimOldestWaiting(LATER)).isEmpty();
         }
     }
 
@@ -254,35 +257,38 @@ class WrittenMessageRepositoryAdapterTest {
     class StampHandOver {
 
         @Test
+        @Disabled("RI03: the stamp gives way to the hand-over mark")
         @DisplayName("when the message is READING - then it answers true and moves updated_at to the instant")
         void whenMessageIsReading_thenAnswersTrueAndStamps() {
-            long userId = storedUserId("written-stamp-reading");
-            long id = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, userId, "text", WrittenMessageStatus.READING, null, EARLIER);
-
-            boolean stamped = adapter.stampHandOver(id, LATER);
-
-            assertThat(stamped).isTrue();
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
-                            .updatedAt())
-                    .isEqualTo(LATER);
+            // long userId = storedUserId("written-stamp-reading");
+            // long id = WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, userId, "text", WrittenMessageStatus.READING, null, EARLIER);
+            //
+            // boolean stamped = adapter.stampHandOver(id, LATER);
+            //
+            // assertThat(stamped).isTrue();
+            // assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
+            //                 .updatedAt())
+            //         .isEqualTo(LATER);
         }
 
         @Test
+        @Disabled("RI03: the stamp gives way to the hand-over mark")
         @DisplayName("when the message is DONE - then it answers false and the row is unchanged")
         void whenMessageIsDone_thenAnswersFalseAndRowUnchanged() {
-            long userId = storedUserId("written-stamp-done");
-            long id = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, userId, "text", WrittenMessageStatus.DONE, ReportOutcome.RECORDED, EARLIER);
-
-            boolean stamped = adapter.stampHandOver(id, LATER);
-
-            assertThat(stamped).isFalse();
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id))
-                    .satisfies(row -> {
-                        assertThat(row.status()).isEqualTo("DONE");
-                        assertThat(row.updatedAt()).isEqualTo(EARLIER);
-                    });
+            // long userId = storedUserId("written-stamp-done");
+            // long id = WrittenMessageRowUtils.storedWrittenMessageId(
+            //         jdbcAggregateTemplate, userId, "text", WrittenMessageStatus.DONE, ReportOutcome.RECORDED,
+            // EARLIER);
+            //
+            // boolean stamped = adapter.stampHandOver(id, LATER);
+            //
+            // assertThat(stamped).isFalse();
+            // assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id))
+            //         .satisfies(row -> {
+            //             assertThat(row.status()).isEqualTo("DONE");
+            //             assertThat(row.updatedAt()).isEqualTo(EARLIER);
+            //         });
         }
     }
 
@@ -420,14 +426,15 @@ class WrittenMessageRepositoryAdapterTest {
         }
 
         @Test
+        @Disabled("RI03: the claim gives way to the attempt and the hand-over stamp")
         @DisplayName("when claimOldestWaiting() hits a database failure - then PersistenceFailedException carries it")
         void whenClaimOldestWaitingHitsDatabaseFailure_thenPersistenceFailedExceptionCarriesIt() {
-            QueryTimeoutException failure = new QueryTimeoutException("statement timed out");
-            when(mockedRepository.claimOldestWaiting(any())).thenThrow(failure);
-
-            assertThatThrownBy(() -> mockedAdapter.claimOldestWaiting(EARLIER))
-                    .isInstanceOf(PersistenceFailedException.class)
-                    .hasCause(failure);
+            // QueryTimeoutException failure = new QueryTimeoutException("statement timed out");
+            // when(mockedRepository.claimOldestWaiting(any())).thenThrow(failure);
+            //
+            // assertThatThrownBy(() -> mockedAdapter.claimOldestWaiting(EARLIER))
+            //         .isInstanceOf(PersistenceFailedException.class)
+            //         .hasCause(failure);
         }
 
         @Test

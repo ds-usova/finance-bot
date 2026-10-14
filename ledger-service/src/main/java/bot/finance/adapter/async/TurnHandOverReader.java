@@ -1,10 +1,12 @@
 package bot.finance.adapter.async;
 
+import bot.finance.application.port.HandOverIncomingTurnPort;
 import bot.finance.application.port.HandleWrittenMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.SweepIncomingTurnsPort;
 import bot.finance.application.port.SweepWrittenMessagesPort;
-import bot.finance.application.port.WrittenMessageReadingDispatchPort;
+import bot.finance.application.port.TurnHandOverDispatchPort;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -13,26 +15,32 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WrittenMessageReader implements SmartLifecycle, WrittenMessageReadingDispatchPort {
+public class TurnHandOverReader implements SmartLifecycle, TurnHandOverDispatchPort {
 
     private final ScheduledExecutorService writtenMessageReaderExecutor;
+    private final HandOverIncomingTurnPort handOverIncomingTurnPort;
     private final HandleWrittenMessagePort handleWrittenMessagePort;
+    private final SweepIncomingTurnsPort sweepIncomingTurnsPort;
     private final SweepWrittenMessagesPort sweepWrittenMessagesPort;
     private final WrittenMessageReaderProperties properties;
     private final Logger log;
     private volatile ScheduledFuture<?> scheduledPass;
 
-    public WrittenMessageReader(
+    public TurnHandOverReader(
             ScheduledExecutorService writtenMessageReaderExecutor,
+            HandOverIncomingTurnPort handOverIncomingTurnPort,
             HandleWrittenMessagePort handleWrittenMessagePort,
+            SweepIncomingTurnsPort sweepIncomingTurnsPort,
             SweepWrittenMessagesPort sweepWrittenMessagesPort,
             WrittenMessageReaderProperties properties,
             LoggerFactory loggerFactory) {
         this.writtenMessageReaderExecutor = writtenMessageReaderExecutor;
+        this.handOverIncomingTurnPort = handOverIncomingTurnPort;
         this.handleWrittenMessagePort = handleWrittenMessagePort;
+        this.sweepIncomingTurnsPort = sweepIncomingTurnsPort;
         this.sweepWrittenMessagesPort = sweepWrittenMessagesPort;
         this.properties = properties;
-        this.log = loggerFactory.getLogger(WrittenMessageReader.class);
+        this.log = loggerFactory.getLogger(TurnHandOverReader.class);
     }
 
     @Override
@@ -65,6 +73,8 @@ public class WrittenMessageReader implements SmartLifecycle, WrittenMessageReadi
     }
 
     private void pass() {
+        // TODO: sweep the Telegram turns before the written ones and look for Telegram turns before the written
+        // texts, each look going on while it answers true
         sweep();
         readUntilNothingWaits();
     }

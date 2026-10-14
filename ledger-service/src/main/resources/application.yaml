@@ -46,7 +46,7 @@ spring:
         ai-connector:
           target: ${AI_CONNECTOR_GRPC_TARGET:static://localhost:1001}
           default:
-            deadline: 60s
+            deadline: ${AI_CONNECTOR_HANDOVER_DEADLINE:10s}
 
 token:
   signing:
@@ -68,6 +68,7 @@ written-message:
   reader:
     poll-interval: ${WRITTEN_MESSAGE_READER_POLL_INTERVAL:10s}
     sweep-margin: ${WRITTEN_MESSAGE_SWEEP_MARGIN:30s}
+    max-queue-wait: ${TURN_QUEUE_MAX_WAIT:10m}
 
 session:
   token:

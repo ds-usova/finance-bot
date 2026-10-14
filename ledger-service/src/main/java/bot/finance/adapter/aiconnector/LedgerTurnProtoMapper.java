@@ -3,11 +3,13 @@ package bot.finance.adapter.aiconnector;
 import bot.finance.adapter.mcp.CreateExpenseProposalToolRequest;
 import bot.finance.adapter.mcp.CreateExpenseProposalToolResponse;
 import bot.finance.adapter.mcp.ExpenseProposalToolMapper;
+import bot.finance.application.dto.TurnEnding;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.SpendingPeriod;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalResponse;
 import bot.finance.ledger.adapter.grpc.v1.RecordSpendingPeriodResponse;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import java.time.format.DateTimeFormatter;
 
 public final class LedgerTurnProtoMapper {
@@ -44,5 +46,11 @@ public final class LedgerTurnProtoMapper {
                 .setFrom(period.from().toString())
                 .setTo(period.to().toString())
                 .build();
+    }
+
+    public static TurnEnding toEnding(TurnEnd end) {
+        // stub-intent: TURN_END_ACTED_ON and TURN_END_UNAVAILABLE map to their own ending; TURN_END_FAILED,
+        // TURN_END_UNSPECIFIED and any value this build does not know map to FAILED
+        return null;
     }
 }

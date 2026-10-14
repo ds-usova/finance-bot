@@ -14,6 +14,7 @@ import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.IncomingMessageId;
@@ -35,6 +36,7 @@ class SweepWrittenMessagesUseCaseTest {
     private static final long USER_ID = 7L;
     private static final Instant NOW = Instant.parse("2026-08-05T10:15:30Z");
     private static final Duration LONGEST_TURN_LIFE = Duration.ofMinutes(3).plusSeconds(30);
+    private static final Duration MAX_QUEUE_WAIT = Duration.ofMinutes(10);
     private static final LocalDate DAY = LocalDate.parse("2026-08-05");
 
     private WrittenMessageRepository writtenMessageRepository;
@@ -49,14 +51,20 @@ class SweepWrittenMessagesUseCaseTest {
         when(loggerFactory.getLogger(SweepWrittenMessagesUseCase.class)).thenReturn(mock(Logger.class));
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         useCase = new SweepWrittenMessagesUseCase(
-                writtenMessageRepository, expenseRepository, clock, LONGEST_TURN_LIFE, loggerFactory);
+                writtenMessageRepository,
+                expenseRepository,
+                mock(TurnMeters.class),
+                clock,
+                LONGEST_TURN_LIFE,
+                MAX_QUEUE_WAIT,
+                loggerFactory);
         when(writtenMessageRepository.findReadingUpdatedBefore(any())).thenReturn(List.of());
         when(writtenMessageRepository.settle(anyLong(), any(), any())).thenReturn(true);
         when(expenseRepository.findDaysByMessageReference(anyLong(), any())).thenReturn(List.of());
     }
 
     private WrittenMessageView staleMessage(long id) {
-        return new WrittenMessageView(id, USER_ID, "coffee 3.40", WrittenMessageStatus.READING, Optional.empty());
+        return new WrittenMessageView(id, USER_ID, "coffee 3.40", WrittenMessageStatus.READING, Optional.empty(), NOW);
     }
 
     private void givenStale(WrittenMessageView... views) {

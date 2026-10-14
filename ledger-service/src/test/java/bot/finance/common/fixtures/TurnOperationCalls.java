@@ -1,8 +1,12 @@
 package bot.finance.common.fixtures;
 
+import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnResponse;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
+import bot.finance.ledger.adapter.grpc.v1.LedgerTurnEndServiceGrpc;
 import bot.finance.ledger.adapter.grpc.v1.LedgerTurnServiceGrpc;
 import bot.finance.ledger.adapter.grpc.v1.RecordSpendingPeriodRequest;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
@@ -40,6 +44,32 @@ public final class TurnOperationCalls {
                 stub = stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
             }
             return call.apply(stub);
+        } finally {
+            channel.shutdownNow();
+            try {
+                channel.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Ends a turn with {@code authorization: Bearer <token>} as metadata, none where the token is null, answering the
+     * response or throwing the {@code StatusRuntimeException}.
+     */
+    public static EndTurnResponse endTurn(int port, String token, TurnEnd end) {
+        ManagedChannel channel = Grpc.newChannelBuilder("localhost:" + port, InsecureChannelCredentials.create())
+                .build();
+        try {
+            LedgerTurnEndServiceGrpc.LedgerTurnEndServiceBlockingStub stub =
+                    LedgerTurnEndServiceGrpc.newBlockingStub(channel);
+            if (token != null) {
+                Metadata headers = new Metadata();
+                headers.put(AUTHORIZATION, "Bearer " + token);
+                stub = stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+            }
+            return stub.endTurn(EndTurnRequest.newBuilder().setEnd(end).build());
         } finally {
             channel.shutdownNow();
             try {

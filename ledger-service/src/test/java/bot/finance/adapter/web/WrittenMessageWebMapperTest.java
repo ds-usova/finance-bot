@@ -12,6 +12,7 @@ import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.WrittenMessageStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,7 @@ class WrittenMessageWebMapperTest {
     private static final String TEXT = "coffee 3.40, taxi home 14";
 
     private static WrittenMessageView view(long id, WrittenMessageStatus status, Optional<ReportOutcome> outcome) {
-        return new WrittenMessageView(id, USER.userId(), TEXT, status, outcome);
+        return new WrittenMessageView(id, USER.userId(), TEXT, status, outcome, Instant.EPOCH);
     }
 
     @Nested

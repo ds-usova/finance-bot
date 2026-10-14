@@ -31,6 +31,7 @@ import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.WrittenMessageStatus;
 import io.restassured.path.json.JsonPath;
 import jakarta.servlet.http.Cookie;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -293,8 +294,8 @@ class MessagesControllerTest {
         void whenTextIsAtTheLimitInCodeUnits_thenAccepted() throws Exception {
             String text = "a".repeat(998) + OUTSIDE_THE_BMP;
             when(fileWrittenMessagePort.file(any()))
-                    .thenReturn(
-                            new WrittenMessageView(42L, USER_ID, text, WrittenMessageStatus.WAITING, Optional.empty()));
+                    .thenReturn(new WrittenMessageView(
+                            42L, USER_ID, text, WrittenMessageStatus.WAITING, Optional.empty(), Instant.EPOCH));
 
             mockMvc.perform(filing(text)).andExpect(status().isAccepted());
 
@@ -359,7 +360,7 @@ class MessagesControllerTest {
     }
 
     private static WrittenMessageView view(long id, WrittenMessageStatus status, ReportOutcome outcome) {
-        return new WrittenMessageView(id, USER_ID, TEXT, status, Optional.ofNullable(outcome));
+        return new WrittenMessageView(id, USER_ID, TEXT, status, Optional.ofNullable(outcome), Instant.EPOCH);
     }
 
     private static String messageOf(MvcResult result) throws Exception {

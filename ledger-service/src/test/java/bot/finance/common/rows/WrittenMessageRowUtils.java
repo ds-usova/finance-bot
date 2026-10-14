@@ -17,6 +17,17 @@ public class WrittenMessageRowUtils {
             WrittenMessageStatus status,
             ReportOutcome outcome,
             Instant updatedAt) {
+        return storedWrittenMessageId(jdbcAggregateTemplate, userId, text, status, outcome, updatedAt, updatedAt);
+    }
+
+    public static long storedWrittenMessageId(
+            JdbcAggregateTemplate jdbcAggregateTemplate,
+            long userId,
+            String text,
+            WrittenMessageStatus status,
+            ReportOutcome outcome,
+            Instant createdAt,
+            Instant updatedAt) {
         return jdbcAggregateTemplate
                 .insert(new WrittenMessageEntity(
                         null,
@@ -24,7 +35,7 @@ public class WrittenMessageRowUtils {
                         text,
                         status.name(),
                         outcome == null ? null : outcome.name(),
-                        updatedAt,
+                        createdAt,
                         updatedAt))
                 .id();
     }

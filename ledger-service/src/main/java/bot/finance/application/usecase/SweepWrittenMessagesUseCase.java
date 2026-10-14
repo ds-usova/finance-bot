@@ -6,6 +6,7 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SweepWrittenMessagesPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.WrittenMessageRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -15,25 +16,33 @@ public class SweepWrittenMessagesUseCase implements SweepWrittenMessagesPort {
 
     private final WrittenMessageRepository writtenMessageRepository;
     private final ExpenseRepository expenseRepository;
+    private final TurnMeters turnMeters;
     private final Clock clock;
     private final Duration longestTurnLife;
+    private final Duration maxQueueWait;
     private final Logger log;
 
     public SweepWrittenMessagesUseCase(
             WrittenMessageRepository writtenMessageRepository,
             ExpenseRepository expenseRepository,
+            TurnMeters turnMeters,
             Clock clock,
             Duration longestTurnLife,
+            Duration maxQueueWait,
             LoggerFactory loggerFactory) {
         this.writtenMessageRepository = writtenMessageRepository;
         this.expenseRepository = expenseRepository;
+        this.turnMeters = turnMeters;
         this.clock = clock;
         this.longestTurnLife = longestTurnLife;
+        this.maxQueueWait = maxQueueWait;
         this.log = loggerFactory.getLogger(SweepWrittenMessagesUseCase.class);
     }
 
     @Override
     public int sweep() {
+        // TODO: also settle the waiting texts queued past the wait, count each swept turn and record the age of the
+        // oldest waiting text
         Instant now = clock.instant();
         int swept = 0;
         for (WrittenMessageView message :

@@ -41,16 +41,18 @@ bot.finance
     │   │                         #   factories — one at the singleton, one at a closed port — with a template
     │   ├── ToxiproxyContainers   # fronts RedisContainers on the same network, for the outage-and-recovery capture test
     │   ├── WireMockSupport       # JVM-wide singleton, the WireMock stub server
-    │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract
+    │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract and
+    │                             #   ending each turn it accepts, once its answer has gone, unless a test withholds the end
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows under a status, and stores one directly
+    │   ├── IncomingTurnRowUtils  # reads back a user's stored turn rows, or one by id, and stores one with every column given
     │   ├── OutboxRowUtils        # reads back a user's outbox rows, counts the table, and stores one row directly
     │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   ├── UserPreferenceRowUtils # stores a preference row directly and reads a user's stored code back
     │   ├── UserRowUtils          # stores a user row and returns its generated id
-    │   └── WrittenMessageRowUtils # stores a written message row under a status, outcome and update time, and reads one back by id
+    │   └── WrittenMessageRowUtils # stores a written message row under a status, outcome and update time, or with its creation and update times apart, and reads one back by id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
     │   ├── CdcConfigurations     # CdcProperties for a test building a capture component itself, by slot or by stream
@@ -66,7 +68,7 @@ bot.finance
     │   ├── SigningKeys           # the keystore configuration the test profile runs with, and the key pair it resolves to
     │   ├── TelegramFixtures      # Bot API JSON bodies
     │   ├── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
-    │   └── TurnOperationCalls    # a blocking LedgerTurnService call to localhost with or without a bearer token, and the two request builders
+    │   └── TurnOperationCalls    # a blocking LedgerTurnService or LedgerTurnEndService call to localhost with or without a bearer token, and the request builders
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
@@ -126,9 +128,10 @@ where its role is honest.
   a bean list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
   repository was enough.
 
-  The ledger's gRPC server, reached by `adapter/aiconnector/LedgerTurnGrpcService`, is entered the same way
+  The ledger's gRPC server, reached by `adapter/aiconnector/LedgerTurnGrpcService` and
+  `adapter/aiconnector/LedgerTurnEndGrpcService`, is entered the same way
   through `@TurnOperationsAdapterTest`: the turn operations and their security interceptor from an explicit bean
-  list, the two inbound ports mocked, the server on a random port that a test reads off
+  list, the three inbound ports mocked, the server on a random port that a test reads off
   `GrpcServerLifecycle.getPort()` and calls through `TurnOperationCalls`. The slices that boot autoconfiguration
   without the turn operations switch the server off with `spring.grpc.server.enabled=false`.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a

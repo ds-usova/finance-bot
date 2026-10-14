@@ -20,6 +20,7 @@ import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.WrittenMessageStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +61,8 @@ class ReadWrittenMessageUseCaseTest {
     }
 
     private WrittenMessageView viewOf(WrittenMessageStatus status, Optional<ReportOutcome> outcome) {
-        WrittenMessageView view = new WrittenMessageView(MESSAGE_ID, STORED_USER_ID, TEXT, status, outcome);
+        WrittenMessageView view =
+                new WrittenMessageView(MESSAGE_ID, STORED_USER_ID, TEXT, status, outcome, Instant.EPOCH);
         when(writtenMessageRepository.findForUser(STORED_USER_ID, MESSAGE_ID)).thenReturn(Optional.of(view));
         return view;
     }

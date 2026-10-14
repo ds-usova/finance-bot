@@ -18,6 +18,7 @@ final class ColumnLimits {
     static final int CURRENCY_CODE = 3;
 
     static final int WRITTEN_TEXT = 1000;
+    static final int TURN_TEXT = 4096;
 
     private ColumnLimits() {}
 

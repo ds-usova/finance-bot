@@ -12,28 +12,6 @@ public interface WrittenMessageEntityRepository extends CrudRepository<WrittenMe
 
     Optional<WrittenMessageEntity> findByIdAndUserId(Long id, Long userId);
 
-    @Query(
-            """
-            UPDATE written_message
-            SET status = 'READING', updated_at = :now
-            WHERE id = (
-                SELECT id FROM written_message
-                WHERE status = 'WAITING'
-                ORDER BY id
-                LIMIT 1
-                FOR UPDATE SKIP LOCKED
-            )
-            RETURNING *
-            """)
-    Optional<WrittenMessageEntity> claimOldestWaiting(@Param("now") Instant now);
-
-    @Modifying
-    @Query(
-            """
-            UPDATE written_message SET updated_at = :now WHERE id = :id AND status = 'READING'
-            """)
-    int stampHandOver(@Param("id") Long id, @Param("now") Instant now);
-
     @Modifying
     @Query(
             """
