@@ -43,9 +43,7 @@ public record MetricSnapshot(Map<String, Double> series) {
         double total = 0;
         for (Map.Entry<String, Double> entry : series.entrySet()) {
             String key = entry.getKey();
-            int brace = key.indexOf('{');
-            String seriesName = brace >= 0 ? key.substring(0, brace) : key;
-            if (seriesName.equals(name) && matches(brace >= 0 ? key.substring(brace) : "", labels)) {
+            if (nameOf(key).equals(name) && matches(labelsOf(key), labels)) {
                 total += entry.getValue();
             }
         }
@@ -55,26 +53,32 @@ public record MetricSnapshot(Map<String, Double> series) {
     public Set<String> labelValues(String name, String label) {
         Set<String> values = new LinkedHashSet<>();
         for (String key : series.keySet()) {
-            int brace = key.indexOf('{');
-            if (brace < 0 || !key.substring(0, brace).equals(name)) {
-                continue;
-            }
-            Matcher matcher = LABEL.matcher(key.substring(brace));
-            while (matcher.find()) {
-                if (matcher.group(1).equals(label)) {
-                    values.add(matcher.group(2));
-                }
+            String value = labelsOf(key).get(label);
+            if (nameOf(key).equals(name) && value != null) {
+                values.add(value);
             }
         }
         return values;
     }
 
-    private static boolean matches(String labelText, Map<String, String> wanted) {
-        Map<String, String> present = new LinkedHashMap<>();
-        Matcher matcher = LABEL.matcher(labelText);
-        while (matcher.find()) {
-            present.put(matcher.group(1), matcher.group(2));
+    private static String nameOf(String key) {
+        int brace = key.indexOf('{');
+        return brace >= 0 ? key.substring(0, brace) : key;
+    }
+
+    private static Map<String, String> labelsOf(String key) {
+        Map<String, String> labels = new LinkedHashMap<>();
+        int brace = key.indexOf('{');
+        if (brace >= 0) {
+            Matcher matcher = LABEL.matcher(key.substring(brace));
+            while (matcher.find()) {
+                labels.put(matcher.group(1), matcher.group(2));
+            }
         }
+        return labels;
+    }
+
+    private static boolean matches(Map<String, String> present, Map<String, String> wanted) {
         return wanted.entrySet().stream()
                 .allMatch(want -> !present.containsKey(want.getKey())
                         || present.get(want.getKey()).equals(want.getValue()));

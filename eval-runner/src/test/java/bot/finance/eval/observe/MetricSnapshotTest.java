@@ -60,8 +60,8 @@ class MetricSnapshotTest {
 
     @Test
     void aSeriesWithoutTheLabelContributesNoValue() {
-        MetricSnapshot snapshot = MetricSnapshot.parse(
-                """
+        MetricSnapshot snapshot =
+                MetricSnapshot.parse("""
                 ai_turns_total{outcome="acted_on"} 3
                 """);
 

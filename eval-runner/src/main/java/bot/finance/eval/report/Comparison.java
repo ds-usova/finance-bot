@@ -36,25 +36,11 @@ public final class Comparison {
                 .append(" | Change |\n|---|---|---|---|\n");
         JsonNode leftMode = before.path("summary").path("extractionMode");
         JsonNode rightMode = after.path("summary").path("extractionMode");
-        out.append("| extraction mode | ")
-                .append(mode(leftMode))
-                .append(" | ")
-                .append(mode(rightMode))
-                .append(" | ")
-                .append(modeChange(leftMode, rightMode))
-                .append(" |\n");
-        for (String[] row : ROWS) {
-            JsonNode left = at(before.path("summary"), row[1]);
-            JsonNode right = at(after.path("summary"), row[1]);
-            out.append("| ")
-                    .append(row[0])
-                    .append(" | ")
-                    .append(format(left))
-                    .append(" | ")
-                    .append(format(right))
-                    .append(" | ")
-                    .append(change(left, right))
-                    .append(" |\n");
+        out.append(row("extraction mode", mode(leftMode), mode(rightMode), modeChange(leftMode, rightMode)));
+        for (String[] measure : ROWS) {
+            JsonNode left = at(before.path("summary"), measure[1]);
+            JsonNode right = at(after.path("summary"), measure[1]);
+            out.append(row(measure[0], format(left), format(right), change(left, right)));
         }
 
         out.append("\n| Case | Passes before | Passes after |\n|---|---|---|\n");
@@ -66,16 +52,14 @@ public final class Comparison {
             JsonNode left = beforeCases.path(id).path("verdictCounts").path("pass");
             JsonNode right = afterCases.path(id).path("verdictCounts").path("pass");
             if (!left.equals(right)) {
-                out.append("| ")
-                        .append(id)
-                        .append(" | ")
-                        .append(format(left))
-                        .append(" | ")
-                        .append(format(right))
-                        .append(" |\n");
+                out.append(row(id, format(left), format(right)));
             }
         }
         return out.toString();
+    }
+
+    private static String row(String... cells) {
+        return "| " + String.join(" | ", cells) + " |\n";
     }
 
     private static JsonNode at(JsonNode node, String path) {

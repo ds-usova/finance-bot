@@ -57,7 +57,7 @@ public final class TargetMetrics {
                             "gen_ai_client_token_usage_total",
                             Map.of("gen_ai_token_type", "output", "gen_ai_operation_name", "chat")),
                     ledgerToolCalls(ledger),
-                    extractionMode(connectorBefore, connectorAfter),
+                    extractionMode(connector),
                     connector.of("ai_classifier_seconds_count", Map.of()),
                     connector.of("ai_classifier_seconds_sum", Map.of()));
         }
@@ -70,15 +70,12 @@ public final class TargetMetrics {
             return ledger.of("grpc_server_seconds_count", Map.of("rpc_service", LEDGER_TURN_SERVICE));
         }
 
-        private String extractionMode(MetricSnapshot before, MetricSnapshot after) {
-            if (before == null || after == null) {
+        private String extractionMode(Growth connector) {
+            if (connector.before() == null || connector.after() == null) {
                 return null;
             }
-            List<String> grown = after.labelValues("ai_turns_total", "mode").stream()
-                    .filter(mode -> {
-                        Map<String, String> labels = Map.of("mode", mode);
-                        return after.sum("ai_turns_total", labels) > before.sum("ai_turns_total", labels);
-                    })
+            List<String> grown = connector.after().labelValues("ai_turns_total", "mode").stream()
+                    .filter(mode -> connector.of("ai_turns_total", Map.of("mode", mode)) > 0)
                     .toList();
             return grown.size() == 1 ? grown.get(0) : null;
         }
