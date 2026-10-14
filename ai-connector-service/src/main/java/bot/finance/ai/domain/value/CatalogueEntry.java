@@ -25,4 +25,10 @@ public record CatalogueEntry(String grouping, List<String> categories) {
         }
         categories = List.copyOf(categories);
     }
+
+    public List<CategoryChoice> choices() {
+        return categories.stream()
+                .map(category -> new CategoryChoice(grouping, category))
+                .toList();
+    }
 }

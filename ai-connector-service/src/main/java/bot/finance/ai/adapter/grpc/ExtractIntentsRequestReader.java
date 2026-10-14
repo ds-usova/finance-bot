@@ -63,9 +63,6 @@ final class ExtractIntentsRequestReader {
     }
 
     private static List<CatalogueEntry> catalogue(ExtractIntentsRequest request) {
-        // TODO: refuse a catalogue with no entry for the catch-all grouping, an entry with no category, a blank
-        // grouping or category name, a grouping or category named twice, and groupings differing from the
-        // category groupings or in another order
         return request.getCatalogueList().stream()
                 .map(entry -> new CatalogueEntry(entry.getGrouping(), entry.getCategoriesList()))
                 .toList();

@@ -159,6 +159,14 @@
   channel from the yaml, added `@DependsOn`), contradicting ST19 and RF08. Re-delegated: the test passes its
   properties as command-line arguments; production keeps the yaml and the named channel, and keeps only the eager
   checks (`UseCaseConfiguration` taking `ExtractionProperties`; the ledger stub taking `LedgerTurnProperties`).
+- **RL22 (GI03):** refactor pass: RL20 settled by reading — the module uses Jackson 2 throughout (e.g.
+  `ChangeStreamEntryReader`), so the mapper stays on Jackson 2's `JsonNode`. RL17's stale reader `TODO` removed.
+  Suite after the pass: 549 tests, 0 skipped, green, architecture test 5/5 (the refactor agent's run).
+- **RL23 (RU02):** the refactor pass found, by reading, an AC17/DN08 gap in this run's own code: with
+  `category_groupings=["Food","Food"]`, `catch_all_grouping="Food"` and catalogue `[{Food:[Cafe]},{Food:[Groceries]}]`,
+  each entry is valid and the same-groupings-same-order check passes, so the call proceeds instead of answering
+  `INVALID_ARGUMENT`. A grouping repeated in the catalogue is refused by AC17 whatever `category_groupings` says.
+  Added to RU02 as a scenario; RU02 and GU02 reopened for it.
 - **RL12 (RI03, RU09):** hypothesis: question keys are `"0"`, `"1"`, … and the returned positions match them —
   settled by the green steps.
 
@@ -168,6 +176,7 @@
 - stabilization · tree c80bf22a310701db18d9eaed1c361b697f6bd16f · total 407 · skipped 0 · green · paths: ai-connector-service
 
 - green · tree dee553e65f84521f301df6dbba0dfd16ede7e6cb · total 549 · skipped 0 · red · paths: ai-connector-service
+- refactor · tree abb9d4361040795129853b0851e7e146576c0356 · total 549 · skipped 0 · green · paths: ai-connector-service
 ## Stubs
 
 Marker: `stub-intent:`

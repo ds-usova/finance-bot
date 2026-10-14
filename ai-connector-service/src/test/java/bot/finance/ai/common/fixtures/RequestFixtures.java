@@ -33,10 +33,7 @@ public final class RequestFixtures {
                 .setCatchAllGrouping(catchAllGrouping)
                 .setCurrentDate(DEFAULT_CURRENT_DATE)
                 .addAllCatalogue(categoryGroupings.stream()
-                        .map(grouping -> GroupingCategories.newBuilder()
-                                .setGrouping(grouping)
-                                .addCategories(grouping)
-                                .build())
+                        .map(grouping -> catalogueEntry(grouping, grouping))
                         .toList())
                 .build();
     }
@@ -71,6 +68,14 @@ public final class RequestFixtures {
     public static ExtractIntentsRequest requestWithCurrentDate(String currentDate) {
         return request(DEFAULT_TEXT, DEFAULT_CATEGORY_GROUPINGS, DEFAULT_CATCH_ALL).toBuilder()
                 .setCurrentDate(currentDate)
+                .build();
+    }
+
+    /** One {@code catalogue} entry: a grouping and its categories, in the order given. */
+    public static GroupingCategories catalogueEntry(String grouping, String... categories) {
+        return GroupingCategories.newBuilder()
+                .setGrouping(grouping)
+                .addAllCategories(List.of(categories))
                 .build();
     }
 }

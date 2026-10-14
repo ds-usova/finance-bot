@@ -1,5 +1,6 @@
 package bot.finance.ai.adapter.metrics;
 
+import static bot.finance.ai.common.PrometheusScrapeUtils.sampleOrZero;
 import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,7 +8,6 @@ import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.common.boot.MetricsAdapterTest;
 import bot.finance.ai.domain.value.ExtractionMode;
 import java.time.Duration;
-import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,31 +27,6 @@ class MicrometerTurnMetersTest {
 
     @LocalManagementPort
     private int managementPort;
-
-    /**
-     * The value of the sample named {@code metric} whose labels include every one of {@code labels}, each written
-     * {@code name="value"}; zero when the scrape holds no such sample.
-     */
-    private static double sampleOrZero(String body, String metric, String... labels) {
-        for (String line : body.split("\n")) {
-            if (!line.startsWith(metric + "{") && !line.startsWith(metric + " ")) {
-                continue;
-            }
-            boolean tagged = line.startsWith(metric + "{");
-            if (!tagged && labels.length > 0) {
-                continue;
-            }
-            if (tagged && labels.length == 0) {
-                continue;
-            }
-            int labelsEnd = line.indexOf('}');
-            String renderedLabels = tagged ? line.substring(0, labelsEnd) : "";
-            if (Arrays.stream(labels).allMatch(renderedLabels::contains)) {
-                return Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1));
-            }
-        }
-        return 0.0;
-    }
 
     @Nested
     @DisplayName("recordTurn()")

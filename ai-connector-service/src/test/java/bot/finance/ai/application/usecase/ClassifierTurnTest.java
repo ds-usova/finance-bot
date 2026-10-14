@@ -174,6 +174,12 @@ class ClassifierTurnTest {
         when(spendingReadOutPort.readOut(any(), any(), any())).thenReturn(new SpendingReadOut(expenses, periods));
     }
 
+    private void twoExpensesRead() {
+        readOutIs(
+                List.of(readOutExpense("taxi", null, "12", "EUR"), readOutExpense("lunch", null, "15", "EUR")),
+                List.of());
+    }
+
     private void classifierAnswers(ExpenseClassification... classifications) {
         when(categoryClassifierPort.classify(any(), any(), any(), any())).thenReturn(List.of(classifications));
     }
@@ -251,9 +257,7 @@ class ClassifierTurnTest {
             @DisplayName("when the read-out holds two expenses - then the classifier is asked once and they are "
                     + "filed in the user's order")
             void whenReadOutHoldsTwoExpenses_thenClassifierAskedOnceAndExpensesFiledInOrder() {
-                readOutIs(
-                        List.of(readOutExpense("taxi", null, "12", "EUR"), readOutExpense("lunch", null, "15", "EUR")),
-                        List.of());
+                twoExpensesRead();
                 classifierAnswers(classification(0, TAXIS, 0.9), classification(1, RESTAURANTS, 0.9));
 
                 turn.run(command(), Optional.empty());
@@ -282,8 +286,7 @@ class ClassifierTurnTest {
             }
 
             @Test
-            @DisplayName(
-                    "when the command carries an assumed currency - then an expense without one is filed " + "in it")
+            @DisplayName("when the command carries an assumed currency - then an expense without one is filed in it")
             void whenCommandCarriesAssumedCurrency_thenExpenseWithoutCurrencyFiledInIt() {
                 readOutIs(List.of(readOutExpense("lunch", null, "15", null)), List.of());
                 classifierAnswers(classification(0, RESTAURANTS, 0.9));
@@ -335,9 +338,7 @@ class ClassifierTurnTest {
             @DisplayName("when the classifier answers several expenses - then each confidence and the call "
                     + "are recorded")
             void whenClassifierAnswersSeveralExpenses_thenEachConfidenceAndTheAnsweredCallRecorded() {
-                readOutIs(
-                        List.of(readOutExpense("taxi", null, "12", "EUR"), readOutExpense("lunch", null, "15", "EUR")),
-                        List.of());
+                twoExpensesRead();
                 when(categoryClassifierPort.classify(any(), any(), any(), any()))
                         .thenAnswer(invocation -> {
                             clock.advance(Duration.ofMillis(250));
@@ -482,12 +483,6 @@ class ClassifierTurnTest {
                 return probabilities;
             }
 
-            private void twoExpensesRead() {
-                readOutIs(
-                        List.of(readOutExpense("taxi", null, "12", "EUR"), readOutExpense("lunch", null, "15", "EUR")),
-                        List.of());
-            }
-
             @Test
             @DisplayName("when the classifier throws - then every expense is filed under the catch-all's first "
                     + "category")
@@ -575,9 +570,7 @@ class ClassifierTurnTest {
             @Test
             @DisplayName("when the ledger refuses the first of two expenses - then the second is still filed")
             void whenLedgerRefusesFirstExpense_thenSecondFiledFirstLoggedAndTurnReturns() {
-                readOutIs(
-                        List.of(readOutExpense("taxi", null, "12", "EUR"), readOutExpense("lunch", null, "15", "EUR")),
-                        List.of());
+                twoExpensesRead();
                 classifierAnswers(classification(0, TAXIS, 0.9), classification(1, RESTAURANTS, 0.9));
                 doThrow(new LedgerCallRefusedException("invalid argument"))
                         .doNothing()

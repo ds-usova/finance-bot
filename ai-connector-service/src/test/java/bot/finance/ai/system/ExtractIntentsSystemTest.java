@@ -1,5 +1,6 @@
 package bot.finance.ai.system;
 
+import static bot.finance.ai.common.PrometheusScrapeUtils.sampleOrZero;
 import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -165,11 +166,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         private double toolsActedOnTurns(String body, String metric) {
-            return body.lines()
-                    .filter(line -> line.startsWith(metric + "{"))
-                    .filter(line -> line.contains("mode=\"tools\"") && line.contains("outcome=\"acted_on\""))
-                    .mapToDouble(line -> Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1)))
-                    .sum();
+            return sampleOrZero(body, metric, "mode=\"tools\"", "outcome=\"acted_on\"");
         }
     }
 

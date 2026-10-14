@@ -1,5 +1,6 @@
 package bot.finance.ai.system;
 
+import static bot.finance.ai.common.PrometheusScrapeUtils.sampleOrZero;
 import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +23,6 @@ import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -41,28 +41,8 @@ class ClassifierTurnSystemTest extends AbstractClassifierSystemTest {
     private static final String TAXIS = "Transportation / Taxis";
 
     private static final List<GroupingCategories> CATALOGUE = List.of(
-            GroupingCategories.newBuilder()
-                    .setGrouping("Dining")
-                    .addCategories("Cafés")
-                    .addCategories("Restaurants")
-                    .build(),
-            GroupingCategories.newBuilder()
-                    .setGrouping("Transportation")
-                    .addCategories("Taxis")
-                    .build());
-
-    private static double sampleOrZero(String body, String metric, String... labels) {
-        for (String line : body.split("\n")) {
-            if (!line.startsWith(metric + "{")) {
-                continue;
-            }
-            String renderedLabels = line.substring(0, line.indexOf('}'));
-            if (Arrays.stream(labels).allMatch(renderedLabels::contains)) {
-                return Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1));
-            }
-        }
-        return 0.0;
-    }
+            RequestFixtures.catalogueEntry("Dining", "Cafés", "Restaurants"),
+            RequestFixtures.catalogueEntry("Transportation", "Taxis"));
 
     @Nested
     @DisplayName("happy path")

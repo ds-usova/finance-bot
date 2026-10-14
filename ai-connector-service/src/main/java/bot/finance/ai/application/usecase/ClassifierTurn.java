@@ -128,10 +128,8 @@ public class ClassifierTurn implements ExtractionTurn {
         if (answer == null || answer.size() != expectedCount) {
             throw new ClassificationFailedException("Classifier did not answer every expense once");
         }
-        List<CategoryChoice> pairs = catalogue.stream()
-                .flatMap(entry ->
-                        entry.categories().stream().map(category -> new CategoryChoice(entry.grouping(), category)))
-                .toList();
+        List<CategoryChoice> pairs =
+                catalogue.stream().flatMap(entry -> entry.choices().stream()).toList();
         ExpenseClassification[] ordered = new ExpenseClassification[expectedCount];
         for (ExpenseClassification classification : answer) {
             Integer position = classification.position();
@@ -160,9 +158,7 @@ public class ClassifierTurn implements ExtractionTurn {
             return classification.choice();
         }
         turnMeters.countLowConfidence();
-        CatalogueEntry catchAll = catchAll(command);
-        return catchAll.categories().stream()
-                .map(category -> new CategoryChoice(catchAll.grouping(), category))
+        return catchAll(command).choices().stream()
                 .max(Comparator.comparingDouble(
                         choice -> classification.probabilities().get(choice)))
                 .orElseThrow();
@@ -178,9 +174,7 @@ public class ClassifierTurn implements ExtractionTurn {
         } else {
             log.warn("Classifier failed; filing under the catch-all");
         }
-        CatalogueEntry catchAll = catchAll(command);
-        CategoryChoice choice =
-                new CategoryChoice(catchAll.grouping(), catchAll.categories().get(0));
+        CategoryChoice choice = catchAll(command).choices().getFirst();
         return Collections.nCopies(count, choice);
     }
 

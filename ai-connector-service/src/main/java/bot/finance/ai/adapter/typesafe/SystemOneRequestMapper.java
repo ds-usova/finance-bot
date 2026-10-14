@@ -73,11 +73,7 @@ final class SystemOneRequestMapper {
 
     private static Map<String, Object> questions(List<ExpenseToFile> expenses, List<CatalogueEntry> catalogue) {
         Map<String, String> criteria = new LinkedHashMap<>();
-        for (CatalogueEntry entry : catalogue) {
-            for (String category : entry.categories()) {
-                criteria.put(entry.grouping() + OPTION_SEPARATOR + category, entry.grouping());
-            }
-        }
+        choicesByOption(catalogue).forEach((option, choice) -> criteria.put(option, choice.grouping()));
         Map<String, Object> questions = new LinkedHashMap<>();
         for (int position = 0; position < expenses.size(); position++) {
             Map<String, Object> question = new LinkedHashMap<>();
@@ -99,9 +95,8 @@ final class SystemOneRequestMapper {
     private static Map<String, CategoryChoice> choicesByOption(List<CatalogueEntry> catalogue) {
         Map<String, CategoryChoice> choices = new LinkedHashMap<>();
         for (CatalogueEntry entry : catalogue) {
-            for (String category : entry.categories()) {
-                choices.put(
-                        entry.grouping() + OPTION_SEPARATOR + category, new CategoryChoice(entry.grouping(), category));
+            for (CategoryChoice choice : entry.choices()) {
+                choices.put(choice.grouping() + OPTION_SEPARATOR + choice.category(), choice);
             }
         }
         return choices;

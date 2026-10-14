@@ -466,6 +466,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       another order
       when: the command is constructed
       then: throws InvalidValueException
+    - (added) given: a catalogue naming one grouping twice, with the command's groupings naming it twice too
+      when: the command is constructed
+      then: throws InvalidValueException
 - [x] RU03 · `ExpenseToFile` · test: `ExpenseToFileTest` · covers: `ExpenseToFile()` · scenarios: AC14
   - `ExpenseToFile()`:
     - given: a null or blank description, a null merchant `Optional`, a null amount or a null currency
