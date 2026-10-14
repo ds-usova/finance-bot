@@ -54,3 +54,30 @@ message RecordSpendingPeriodResponse {
   string from = 1;
   string to = 2;
 }
+
+// Tells the ledger how a turn it handed over ended. Carries the credential the ledger minted for the turn as
+// metadata, `authorization: Bearer <token>`, and ends the turn of the person and the message it names. Taking an
+// end twice, or for a turn already settled, changes nothing. UNAVAILABLE, or no answer in time: the end was not
+// taken; send it again. UNAUTHENTICATED: the credential does not hold; never send it again.
+service LedgerTurnEndService {
+  rpc EndTurn(EndTurnRequest) returns (EndTurnResponse);
+}
+
+// How a turn ended. `TURN_END_UNSPECIFIED`, or a value the ledger does not know, is read as `TURN_END_FAILED`.
+enum TurnEnd {
+  TURN_END_UNSPECIFIED = 0;
+  // The turn finished.
+  TURN_END_ACTED_ON = 1;
+  // The provider, the ledger's tools or the turn operations failed the turn as unavailable, or the turn ran past
+  // its bound.
+  TURN_END_UNAVAILABLE = 2;
+  // Anything else failed the turn.
+  TURN_END_FAILED = 3;
+}
+
+message EndTurnRequest {
+  TurnEnd end = 1;
+}
+
+// Empty: the end was taken.
+message EndTurnResponse {}

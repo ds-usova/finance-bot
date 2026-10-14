@@ -36,5 +36,8 @@ message GroupingCategories {
   repeated string categories = 2;
 }
 
-// Empty: a call that returns has been acted on. A failure is a gRPC status.
+// Empty: the turn was accepted and runs on; how it ended reaches the caller through
+// `bot.finance.ledger.v1.LedgerTurnEndService`. A turn already running for the same person and message is
+// accepted again and not run twice. RESOURCE_EXHAUSTED: as many turns run as the service allows; nothing was
+// accepted. Any other failure is a gRPC status.
 message ExtractIntentsResponse {}
