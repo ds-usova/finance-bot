@@ -49,6 +49,11 @@ class AiExpenseRecordingAdapterTest {
     /** The grouping the lookup scenarios ask about — one of the fixture's own, so no literal is repeated. */
     private static final String LOOKUP_GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
 
+    /** The description the ledger's {@code ListCategoriesMcpTool} gives {@code list_categories}, to the letter. */
+    private static final String LEDGER_LIST_CATEGORIES_DESCRIPTION =
+            "Lists the categories filed under one of the caller's groupings. An expense is filed "
+                    + "under one of these, never under the grouping itself.";
+
     private static final String LUNCH_ARGUMENTS =
             """
             {"category":"Lunch","description":"lunch","amount":"15.00","currencyCode":"EUR"}""";
@@ -108,13 +113,12 @@ class AiExpenseRecordingAdapterTest {
         return CapturedRequestUtils.body(chatRequests.get(0));
     }
 
-    /** A turn where the provider looks a grouping up under {@code call-list-1}, then records, both accepted. */
-    private static void stubLookupThenProposalTurn() {
+    /** A turn where the provider looks {@code name} up under {@code call-list-1}, then records; the ledger accepts. */
+    private static void stubLookupThenProposalTurn(String name) {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
-        McpLedgerStubs.stubListCategoriesAnswering(LOOKUP_GROUPING, List.of("Lunch"));
         WireMockStubs.stubChatCompletionSequence(
                 ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                        "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
+                        "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments(name))),
                 ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                 ChatCompletionFixtures.textResponse("recorded"));
     }
@@ -146,9 +150,34 @@ class AiExpenseRecordingAdapterTest {
         return "";
     }
 
-    /** The {@code list_categories} arguments asking about {@link #LOOKUP_GROUPING}. */
-    private static String lookupArguments() {
-        return "{\"grouping\":\"" + LOOKUP_GROUPING + "\"}";
+    /** The {@code list_categories} arguments asking about {@code name}. */
+    private static String lookupArguments(String name) {
+        return "{\"grouping\":\"" + name + "\"}";
+    }
+
+    /** A catalogue holding {@link #LOOKUP_GROUPING} with the one given category. */
+    private static List<CatalogueEntry> lookupCatalogue(String category) {
+        return List.of(new CatalogueEntry(LOOKUP_GROUPING, List.of(category)));
+    }
+
+    private void recordWithCatalogue(List<CatalogueEntry> catalogue) {
+        CallerTokenTestSupport.withCallerToken(
+                CALLER_TOKEN_1,
+                () -> adapter.record(
+                        TEXT,
+                        catalogue,
+                        CATCH_ALL_GROUPING,
+                        Optional.of(CurrencyCode.of("EUR")),
+                        CURRENT_DATE,
+                        Optional.empty()));
+    }
+
+    /** Every non-empty content the captured requests carried back as the result of the tool call {@code id}. */
+    private static List<String> toolResultContents(String id) {
+        return CapturedRequestUtils.chatCompletionRequests().stream()
+                .map(request -> toolResultContent(request, id))
+                .filter(content -> !content.isEmpty())
+                .toList();
     }
 
     /**
@@ -295,50 +324,76 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider calls two ledger tools in one turn - then both calls reach the ledger "
-                + "under the turn's token")
-        void whenProviderListsCategoriesThenCreatesProposal_thenBothCallsReachLedgerUnderTheTurnsToken() {
-            stubLookupThenProposalTurn();
+        @DisplayName("when the provider looks a grouping up and records - then the lookup's result carries the "
+                + "catalogue's category, the ledger receives no list_categories request and the create call "
+                + "reaches it under the turn's token")
+        void whenProviderLooksGroupingUpThenRecords_thenResultCarriesCategoryAndLedgerReceivesOnlyCreateCall() {
+            stubLookupThenProposalTurn(LOOKUP_GROUPING);
 
-            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+            assertThatCode(() -> recordWithCatalogue(lookupCatalogue("Lunch"))).doesNotThrowAnyException();
 
-            List<LoggedRequest> listCategoriesCalls = CapturedRequestUtils.toolCallRequests("list_categories");
+            assertThat(toolResultContents("call-list-1")).anyMatch(content -> content.contains("Lunch"));
+            assertThat(CapturedRequestUtils.toolCallRequests("list_categories")).isEmpty();
             List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
-            assertThat(listCategoriesCalls).hasSize(1);
             assertThat(createExpenseProposalCalls).hasSize(1);
-            assertThat(listCategoriesCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN_1);
             assertThat(createExpenseProposalCalls.get(0).getHeader("Authorization"))
                     .isEqualTo(CALLER_TOKEN_1);
         }
 
         @Test
-        @DisplayName("when the ledger answers a list_categories call - then its answer reaches the provider as "
-                + "that call's result")
-        void whenLedgerAnswersListCategories_thenAnswerReachesProviderAsThatCallsResult() {
-            stubLookupThenProposalTurn();
+        @DisplayName("when the provider looks up a name the catalogue holds only as a category and records - then "
+                + "the refusal text reaches it as that call's result and the ledger receives no list_categories "
+                + "request")
+        void whenProviderLooksUpCategoryNameThenRecords_thenRefusalReachesProviderAndCreateCallReachesLedger() {
+            stubLookupThenProposalTurn("Lunch");
 
-            recordInEuros(CALLER_TOKEN_1);
+            assertThatCode(() -> recordWithCatalogue(lookupCatalogue("Lunch"))).doesNotThrowAnyException();
 
-            assertThat(CapturedRequestUtils.chatCompletionRequests())
-                    .anyMatch(
-                            request -> toolResultContent(request, "call-list-1").contains("Lunch"));
+            assertThat(toolResultContents("call-list-1"))
+                    .anyMatch(content -> content.contains("Lunch is a category, not a grouping"));
+            assertThat(CapturedRequestUtils.toolCallRequests("list_categories")).isEmpty();
+            assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(1);
         }
 
         @Test
-        @DisplayName("when a list_categories call is refused and the provider records anyway - then the create "
-                + "call reaches the ledger")
-        void whenLedgerRefusesListCategoriesThenProviderCorrectsAndRecords_thenCreateCallReachesLedger() {
+        @DisplayName("when the ledger's stub publishes its own list_categories - then the provider's request "
+                + "offers it with the ledger's real description")
+        void whenLedgerPublishesListCategories_thenProviderIsOfferedTheLedgersRealDescription() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
+
+            JsonNode listCategoriesTool = toolNamed(body.get("tools"), "list_categories");
+            assertThat(listCategoriesTool.path("function").path("description").asText())
+                    .isEqualTo(LEDGER_LIST_CATEGORIES_DESCRIPTION);
+        }
+
+        @Test
+        @DisplayName("when two turns' catalogues give the grouping different categories - then each lookup's "
+                + "result carries only its own turn's categories")
+        void whenTwoTurnsLookTheSameGroupingUp_thenEachResultCarriesOnlyItsOwnTurnsCategories() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesRefused();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
+                            "call-list-1",
+                            ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
+                            lookupArguments(LOOKUP_GROUPING))),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.textResponse("recorded"),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-3",
+                            ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
+                            lookupArguments(LOOKUP_GROUPING))),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-4", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 
-            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+            recordWithCatalogue(lookupCatalogue("Lunch"));
+            recordWithCatalogue(lookupCatalogue("Dinner"));
 
-            assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(1);
+            assertThat(toolResultContents("call-list-1"))
+                    .anyMatch(content -> content.contains("Lunch"))
+                    .noneMatch(content -> content.contains("Dinner"));
+            assertThat(toolResultContents("call-list-3"))
+                    .anyMatch(content -> content.contains("Dinner"))
+                    .noneMatch(content -> content.contains("Lunch"));
         }
 
         @Test

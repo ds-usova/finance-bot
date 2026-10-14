@@ -82,11 +82,12 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when the provider looks up categories and then records - then both calls reach the ledger "
-                + "under the request's token")
-        void whenProviderLooksUpCategoriesThenRecords_thenBothToolCallsReachLedgerUnderToken() {
+        @DisplayName("when the provider looks up a grouping in the request's catalogue and then records - then the "
+                + "ledger receives only the proposal under the token and the lookup counts as answered")
+        void whenProviderLooksUpCataloguedGroupingThenRecords_thenLedgerReceivesOnlyProposalAndLookupCountsAnswered() {
+            String lookups = MeterName.CATEGORY_LOOKUPS.meterName();
+            double before = sampleOrZero(scrape(actuatorPort), lookups, "outcome=\"answered\"");
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesAnswering(GROUPING, List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
                             "call-list-1",
@@ -97,22 +98,21 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
-                    .extractIntents(RequestFixtures.request());
+                    .extractIntents(RequestFixtures.requestWithCatalogue(
+                            RequestFixtures.request().getText(),
+                            List.of(RequestFixtures.catalogueEntry(GROUPING, "Lunch")),
+                            GROUPING));
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
 
-            List<LoggedRequest> listCategoriesCalls = CapturedRequestUtils.toolCallRequests("list_categories");
+            assertThat(CapturedRequestUtils.toolCallRequests("list_categories")).isEmpty();
             List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
-            assertThat(listCategoriesCalls).hasSize(1);
             assertThat(createExpenseProposalCalls).hasSize(1);
-            assertThat(listCategoriesCalls.getFirst().getHeader("Authorization"))
-                    .isEqualTo(CALLER_TOKEN);
             assertThat(createExpenseProposalCalls.getFirst().getHeader("Authorization"))
                     .isEqualTo(CALLER_TOKEN);
-
-            JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
-            assertThat(lookupArguments.get("grouping").asText()).isEqualTo(GROUPING);
+            assertThat(sampleOrZero(scrape(actuatorPort), lookups, "outcome=\"answered\""))
+                    .isEqualTo(before + 1);
         }
 
         @Test

@@ -104,4 +104,25 @@ class MicrometerTurnMetersTest {
             assertThat(sampleOrZero(scrape(managementPort), metric)).isEqualTo(before + 1);
         }
     }
+
+    @Nested
+    @DisplayName("countCategoryLookup()")
+    class CountCategoryLookup {
+
+        @Test
+        @DisplayName("when an answered and a refused lookup are counted - then each outcome grows by one")
+        void whenAnsweredAndRefusedLookupAreCounted_thenEachOutcomeGrowsByOne() {
+            String metric = MeterName.CATEGORY_LOOKUPS.meterName();
+            String before = scrape(managementPort);
+            double answeredBefore = sampleOrZero(before, metric, "outcome=\"answered\"");
+            double refusedBefore = sampleOrZero(before, metric, "outcome=\"refused\"");
+
+            turnMeters.countCategoryLookup(true);
+            turnMeters.countCategoryLookup(false);
+
+            String body = scrape(managementPort);
+            assertThat(sampleOrZero(body, metric, "outcome=\"answered\"")).isEqualTo(answeredBefore + 1);
+            assertThat(sampleOrZero(body, metric, "outcome=\"refused\"")).isEqualTo(refusedBefore + 1);
+        }
+    }
 }
