@@ -12,4 +12,6 @@ public interface TurnMeters {
     void recordConfidence(double confidence);
 
     void countLowConfidence();
+
+    void countCategoryLookup(boolean answered);
 }

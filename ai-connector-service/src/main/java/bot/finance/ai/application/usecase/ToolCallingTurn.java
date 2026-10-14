@@ -24,7 +24,7 @@ public class ToolCallingTurn implements ExtractionTurn {
     public void run(ExtractIntentsCommand command, Optional<List<MessageExample>> examples) {
         expenseRecordingPort.record(
                 command.text(),
-                command.categoryGroupings(),
+                command.catalogue(),
                 command.catchAllGrouping(),
                 command.defaultCurrency(),
                 command.currentDate(),

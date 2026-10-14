@@ -14,6 +14,7 @@ import bot.finance.ai.common.stubs.CapturedRequestUtils;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
@@ -37,7 +38,9 @@ class AiExpenseRecordingAdapterTest {
 
     private static final String SYSTEM_PROMPT_RESOURCE = "prompts/record-expenses.st";
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final List<String> CATEGORY_GROUPINGS = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS;
+    private static final List<CatalogueEntry> CATALOGUE = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.stream()
+            .map(grouping -> new CatalogueEntry(grouping, List.of(grouping)))
+            .toList();
     private static final String CATCH_ALL_GROUPING = RequestFixtures.DEFAULT_CATCH_ALL;
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
@@ -78,8 +81,7 @@ class AiExpenseRecordingAdapterTest {
             String callerToken, Optional<CurrencyCode> assumedCurrency, Optional<List<MessageExample>> examples) {
         CallerTokenTestSupport.withCallerToken(
                 callerToken,
-                () -> adapter.record(
-                        TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, examples));
+                () -> adapter.record(TEXT, CATALOGUE, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, examples));
     }
 
     private void recordInEuros(String callerToken) {
@@ -248,9 +250,9 @@ class AiExpenseRecordingAdapterTest {
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
             assertThat(userMessage)
                     .contains("Today is " + CURRENT_DATE + " (UTC)")
-                    .contains(CATEGORY_GROUPINGS.get(0))
-                    .contains(CATEGORY_GROUPINGS.get(1))
-                    .contains(CATEGORY_GROUPINGS.get(2))
+                    .contains(CATALOGUE.get(0).grouping())
+                    .contains(CATALOGUE.get(1).grouping())
+                    .contains(CATALOGUE.get(2).grouping())
                     .contains(CATCH_ALL_GROUPING)
                     .contains("EUR")
                     .contains(TEXT)
@@ -550,7 +552,7 @@ class AiExpenseRecordingAdapterTest {
 
             assertThatThrownBy(() -> adapter.record(
                             TEXT,
-                            CATEGORY_GROUPINGS,
+                            CATALOGUE,
                             CATCH_ALL_GROUPING,
                             Optional.of(CurrencyCode.of("EUR")),
                             CURRENT_DATE,

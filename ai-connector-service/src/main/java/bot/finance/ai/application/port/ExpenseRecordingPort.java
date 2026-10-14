@@ -1,6 +1,7 @@
 package bot.finance.ai.application.port;
 
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageExample;
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ public interface ExpenseRecordingPort {
      */
     void record(
             String text,
-            List<String> categoryGroupings,
+            List<CatalogueEntry> catalogue,
             String catchAllGrouping,
             Optional<CurrencyCode> assumedCurrency,
             LocalDate currentDate,

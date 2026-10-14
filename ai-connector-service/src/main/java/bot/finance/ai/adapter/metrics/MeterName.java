@@ -9,7 +9,8 @@ public enum MeterName {
     TURNS("ai_turns_total"),
     CLASSIFIER_SECONDS("ai_classifier_seconds"),
     CLASSIFIER_CONFIDENCE("ai_classifier_confidence"),
-    CLASSIFIER_LOW_CONFIDENCE("ai_classifier_low_confidence_total");
+    CLASSIFIER_LOW_CONFIDENCE("ai_classifier_low_confidence_total"),
+    CATEGORY_LOOKUPS("ai_category_lookups_total");
 
     private final String meterName;
 

@@ -153,7 +153,7 @@ class ExtractIntentsUseCaseTest {
             verify(expenseRecordingPort)
                     .record(
                             eq(TEXT),
-                            eq(categoryGroupings),
+                            eq(command.catalogue()),
                             eq("Other"),
                             eq(Optional.empty()),
                             eq(CURRENT_DATE),

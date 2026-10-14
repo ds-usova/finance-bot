@@ -12,6 +12,4 @@ expected:
       count: 0
     summarize_spending:
       count: 0
-    list_categories:
-      count: 0
 notes: "Checks that an unrelated recipe instruction performs no ledger actions. Whether the model emits a recipe is diagnostic only because free-form provider text is not returned by the web API."

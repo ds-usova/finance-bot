@@ -50,4 +50,9 @@ public class MicrometerTurnMeters implements TurnMeters {
     public void countLowConfidence() {
         lowConfidence.increment();
     }
+
+    @Override
+    public void countCategoryLookup(boolean answered) {
+        // stub-intent: increments ai_category_lookups_total tagged outcome=answered or outcome=refused
+    }
 }

@@ -10,6 +10,7 @@ import bot.finance.ai.adapter.ledger.LedgerMcpConfiguration;
 import bot.finance.ai.adapter.ledger.LedgerToolFailureProcessor;
 import bot.finance.ai.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.ai.adapter.scheduling.MemoryPropertiesConfiguration;
+import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.common.containers.WireMockSupport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -26,6 +27,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Boots {@link AiExpenseRecordingAdapter}, {@link AiSpendingReadOutAdapter}, {@link ExampleSectionRenderer}, {@link AiMessageEmbeddingAdapter},
@@ -61,4 +63,5 @@ import org.springframework.test.context.ActiveProfiles;
     McpToolCallbackAutoConfiguration.class
 })
 @Import(WireMockUrlConfiguration.class)
+@MockitoBean(types = TurnMeters.class)
 public @interface AiAdapterTest {}
