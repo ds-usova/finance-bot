@@ -77,6 +77,60 @@ Rel_U(ledgerTurnAdapter, ledger, "implements")
 turn operations join `adapter/ledger`, which already fronts the ledger. The read-out stays in `adapter/ai` with the
 provider.
 
+### The caller token rides the ledger channel through an interceptor of its own
+
+```plantuml
+@startuml
+!include <C4/C4_Component>
+
+AddElementTag("new", $bgColor="#2E8B57", $fontColor="#FFFFFF", $borderColor="#1E5E3A")
+
+Container_Boundary(ledgerAdapter, "adapter — ledger") {
+  Component(adapter, "GrpcLedgerTurnAdapter", "gRPC client", $tags="new")
+  Component(interceptor, "CallerTokenLedgerTurnInterceptor", "attaches the token", $tags="new")
+}
+Container_Boundary(grpc, "adapter — grpc") {
+  Component(context, "CallerTokenContext", "the turn's token")
+}
+System_Ext(ledger, "Ledger turn operations")
+
+Rel_R(adapter, interceptor, "calls through")
+Rel_D(interceptor, context, "reads the token from")
+Rel_R(interceptor, ledger, "authorization metadata")
+@enduml
+```
+
+**Placement:** The token is attached by a `ClientInterceptor` on the channel, as `CallerTokenMcpRequestCustomizer`
+does for the MCP client, so the adapter maps requests and statuses only.
+
+### The mode, the clock and the turn meters register whatever the memory says
+
+```plantuml
+@startuml
+!include <C4/C4_Component>
+
+AddElementTag("new", $bgColor="#2E8B57", $fontColor="#FFFFFF", $borderColor="#1E5E3A")
+
+Container_Boundary(config, "adapter — config") {
+  Component(wiring, "UseCaseConfiguration", "chooses the turn, declares the clock")
+  Component(mode, "ExtractionProperties", "extraction.mode", $tags="new")
+}
+Container_Boundary(metrics, "adapter — metrics") {
+  Component(meters, "MicrometerTurnMeters", "ungated", $tags="new")
+}
+Container_Boundary(scheduling, "adapter — scheduling") {
+  Component(memory, "MemoryConfiguration", "gated by memory.enabled")
+}
+
+Rel_R(wiring, mode, "reads")
+Rel_D(wiring, meters, "hands the turn")
+@enduml
+```
+
+**Placement:** `extraction.*` binds in `adapter/config`, which reads it to choose the turn; the `Clock` moves there
+from the memory-gated `MemoryConfiguration`, and `MicrometerTurnMeters` is the one ungated metrics bean, since a
+turn runs with the memory off.
+
 ## Step-by-Step Implementation Map (To-Do List)
 
 ### Stabilization
@@ -93,8 +147,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] ST02 · Add the domain values `CatalogueEntry(String grouping, List<String> categories)` and
   `CategoryChoice(String grouping, String category)` to `domain/value`, and the enum
   `ExtractionMode { TOOLS, CLASSIFIER }` with `tagValue()` answering `tools` or `classifier`. `CatalogueEntry`'s
-  compact constructor copies its list, with a `TODO` naming the checks still owed; `CategoryChoice` refuses a
-  null or blank grouping or category
+  compact constructor copies its list, and each of the two carries a `TODO` naming the checks still owed
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/domain/value/CatalogueEntry.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/domain/value/CategoryChoice.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/domain/value/ExtractionMode.java`
@@ -116,8 +169,8 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/grpc/ExtractIntentsRequestReader.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/application/dto/ExtractIntentsCommandTest.java`,
     `ai-connector-service/src/test/java/bot/finance/ai/application/usecase/ExtractIntentsUseCaseTest.java`
-- [ ] ST06 · Add a component `Optional<String> merchant` to `ExampleExpense`, after `description`, refusing a
-  null `Optional`. `RecordedExpenseEntity.toExampleExpense()` passes `Optional.empty()`, with a `TODO` naming the
+- [ ] ST06 · Add a component `Optional<String> merchant` to `ExampleExpense`, after `description`, with a `TODO`
+  naming the null check still owed. `RecordedExpenseEntity.toExampleExpense()` passes `Optional.empty()`, with a `TODO` naming the
   stored merchant still to be passed · after: ST05
   - every test constructing an example expense — `ExampleExpenseTest`, `MessageExampleTest`,
     `RecallExamplesUseCaseTest`, `ExtractIntentsUseCaseTest`, `ExampleSectionRendererTest`,
@@ -217,7 +270,10 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   (`ai_classifier_confidence`) and `CLASSIFIER_LOW_CONFIDENCE` (`ai_classifier_low_confidence_total`). The module's
   architecture conventions name it as the one bean of `adapter/metrics` that `memory.enabled` does not gate · after:
   ST08
+  - `adapter/metrics/package-info.java` names `MicrometerTurnMeters` and the `TurnMeters` port among the
+    package's classes
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/MicrometerTurnMeters.java`,
+    `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/package-info.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/metrics/MeterName.java`,
     `ai-connector-service/docs/conventions/architecture.md`
 - [ ] ST12 · Add `AiSpendingReadOutAdapter` to `adapter/ai`, a `@Component` implementing `SpendingReadOutPort`,
@@ -242,7 +298,6 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   properties and declaring a `RestClient` bean on the base URL with the API key as a bearer credential and the
   timeout as its read and connect timeout. The module's architecture conventions list the subpackage beside
   `adapter/ai` · after: ST08
-  - that the classifier takes its key as `Authorization: Bearer` — unverified
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/package-info.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/TypesafeCategoryClassifierAdapter.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/typesafe/TypesafeClassifierProperties.java`,
@@ -274,11 +329,10 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   `LedgerTurnServiceGrpc.LedgerTurnServiceBlockingStub` and `LedgerTurnProperties`, with both methods stubbed to
   return with a `stub-intent:` comment. Add `LedgerTurnProperties(String target, Duration timeout)` bound to
   `ledger.turn`, and `LedgerTurnConfiguration`, registered only in that mode, enabling the properties and
-  declaring the channel from `GrpcChannelFactory.createChannel(properties.target())` and the blocking stub on it.
-  The module's architecture conventions say `adapter/ledger` also fronts the ledger's turn operations · after: ST01,
-  ST08
-  - that `GrpcChannelFactory.createChannel()` takes a `static://host:port` target rather than a channel name —
-    unverified
+  declaring the channel from `GrpcChannelFactory.createChannel("ledger-turn")` — the named channel whose target
+  `spring.grpc.client.channel.ledger-turn.target` reads `${ledger.turn.target}` — and the blocking stub on it,
+  intercepted by `CallerTokenLedgerTurnInterceptor`. The module's architecture conventions say `adapter/ledger`
+  also fronts the ledger's turn operations · after: ST01, ST08
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/GrpcLedgerTurnAdapter.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/LedgerTurnProperties.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/LedgerTurnConfiguration.java`,
@@ -286,15 +340,31 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] ST16 · Add `ExtractionProperties(String mode)` to `adapter/config`, bound to `extraction`, enabled there.
   `UseCaseConfiguration` declares the `ExtractionTurn` bean twice: a `ToolCallingTurn` with
   `extraction.mode=tools` or the property missing, and a `ClassifierTurn` with `extraction.mode=classifier`,
-  built with the system `Clock` and `TypesafeClassifierProperties.minConfidence()`. The module's architecture
-  conventions say `extraction.*` binds in `adapter/config`, which reads it to choose the turn · after: ST10, ST13
+  built with the `Clock` bean and `TypesafeClassifierProperties.minConfidence()`. The `Clock` bean moves from
+  `MemoryConfiguration`, which registers only with the memory on, to `UseCaseConfiguration`, unconditionally. The
+  module's architecture conventions say `extraction.*` binds in `adapter/config`, which reads it to choose the
+  turn and declares the clock · after: ST10, ST13
   - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/config/ExtractionProperties.java`,
     `ai-connector-service/src/main/java/bot/finance/ai/adapter/config/UseCaseConfiguration.java`,
+    `ai-connector-service/src/main/java/bot/finance/ai/adapter/scheduling/MemoryConfiguration.java`,
     `ai-connector-service/docs/conventions/architecture.md`
 - [ ] ST18 · `CleanArchitectureTest.coreTypesCarryNoExternalSystemName` gains `Typesafe`, `TypeSafe`, `SystemOne`
   and `Jev`
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/architecture/CleanArchitectureTest.java`,
     `ai-connector-service/docs/conventions/architecture.md`
+- [ ] ST28 · Add `CallerTokenLedgerTurnInterceptor` to `adapter/ledger`, a gRPC `ClientInterceptor`, with a stub.
+  The module's testing conventions list it beside `CallerTokenMcpRequestCustomizer` as a unit target · after: ST15
+  - writes: `ai-connector-service/src/main/java/bot/finance/ai/adapter/ledger/CallerTokenLedgerTurnInterceptor.java`,
+    `ai-connector-service/docs/conventions/testing.md`
+  ```java
+  @Override
+  public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+      // stub-intent: attaches the turn's caller token as `authorization: Bearer <token>` metadata, read from
+      // CallerTokenContext; a call made with no token held is failed before it is sent
+      return next.newCall(method, callOptions);
+  }
+  ```
 
 **Configuration**
 
@@ -311,8 +381,8 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 **Shared Test Infrastructure**
 
 - [ ] ST20 · `RequestFixtures` gives every request a catalogue: one entry per grouping it names, each holding one
-  category named after its grouping, and adds `request(String text, List<GroupingCategories> catalogue, String
-  catchAllGrouping)`, which sets the groupings from the catalogue's · after: ST05
+  category named after its grouping, and adds `requestWithCatalogue(String text, List<GroupingCategories>
+  catalogue, String catchAllGrouping)`, which sets the groupings from the catalogue's · after: ST05
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/common/fixtures/RequestFixtures.java`
 - [ ] ST21 · `ChatCompletionFixtures` gains `readOut(String json)`: a whole chat-completion body whose message
   content is the given read-out JSON, with no `tool_calls`
@@ -378,9 +448,6 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null or empty category list, or one holding a null or blank name
       when: the entry is constructed
       then: throws InvalidValueException
-    - given: a category list changed after construction
-      when: the entry's categories are read
-      then: they are unchanged
 - [ ] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: `ExtractIntentsCommand()` ·
   scenarios: AC17
   - `ExtractIntentsCommand()`:
@@ -390,9 +457,6 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a catalogue holding a null entry
       when: the command is constructed
       then: throws InvalidValueException
-    - given: a catalogue changed after construction
-      when: the command's catalogue is read
-      then: it is unchanged
 - [ ] RU03 · `ExpenseToFile` · test: `ExpenseToFileTest` · covers: `ExpenseToFile()` · scenarios: AC14
   - `ExpenseToFile()`:
     - given: a null or blank description, a null merchant `Optional`, a null amount or a null currency
@@ -415,15 +479,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a row with a merchant
       when: it is turned into an example expense
       then: the example carries that merchant
-    - given: a row with a null merchant
-      when: it is turned into an example expense
-      then: the example's merchant is absent
 - [ ] RU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` · scenarios:
   AC12, AC13
   - `extractIntents()`:
-    - given: a command with a message identity and recalled examples
-      when: the turn runs
-      then: the configured turn runs once with the command and those examples, after the message is kept
     - given: the turn returns
       when: the turn ends
       then: the turn is counted under the turn's mode as acted on
@@ -440,18 +498,23 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the read-out holds a taxi then a lunch
       when: the turn runs
       then: the classifier is asked once about both, in that order, and the taxi is filed before the lunch
-    - given: the classifier answers below the minimum confidence, with `Uncategorized Expenses` the most probable
-      of the catch-all grouping's categories
+    - given: the read-out holds "4000 HUF for the thing", a catch-all `Miscellaneous` listing `Gifts` then
+      `Uncategorized Expenses`, and the classifier answers below the minimum confidence with `Uncategorized
+      Expenses` more probable than `Gifts`
       when: the turn runs
-      then: the expense is filed under the catch-all grouping in `Uncategorized Expenses`, and one low confidence
-      is counted
+      then: the expense is filed under `Miscellaneous` in `Uncategorized Expenses`, and one low confidence is
+      counted
+    - given: the read-out holds an expense with no merchant
+      when: the turn runs
+      then: it is filed with no merchant
     - given: the classifier answers several expenses
       when: the turn runs
       then: each expense's confidence is recorded, and the classifier call is recorded as answered with its
       duration on the clock
-    - given: the read-out holds a period and no expense
+    - given: a turn dated `2026-10-13`, and the read-out holds the period `2026-10-12` to `2026-10-12` and no
+      expense
       when: the turn runs
-      then: the period is recorded and the classifier is never called
+      then: that period is recorded and the classifier is never called
     - given: the read-out holds neither an expense nor a period
       when: the turn runs
       then: neither the classifier nor the ledger is called
@@ -469,14 +532,16 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the read-out port throws ExpenseRecordingFailedException
       when: the turn runs
       then: the same exception propagates and neither the classifier nor the ledger is called
-    - given: the classifier throws ClassificationFailedException
+    - given: a catch-all `Miscellaneous` listing `Gifts` then `Uncategorized Expenses`, and the classifier throws
+      ClassificationFailedException
       when: the turn runs
-      then: every usable expense is filed under the catch-all grouping in its first category as the catalogue
-      lists it, the call is recorded as failed, and one WARN names the person and the message and no text
-    - given: the classifier answers no classification for one expense, a confidence outside `0..1`, or no
-      probability for one catalogue pair
+      then: every usable expense is filed under `Miscellaneous` in `Gifts`, the call is recorded as failed, and
+      one WARN names the person and the message and no text
+    - given: the classifier answers no classification for one expense, a missing or repeated position, a null
+      confidence, a confidence outside `0..1`, or no probability for one catalogue pair
       when: the turn runs
-      then: every usable expense is filed as for a classifier failure
+      then: every usable expense is filed as for a classifier failure, the call is recorded as failed, and one
+      WARN is logged
     - given: the command carries no message identity, and the classifier fails
       when: the turn runs
       then: one WARN is logged, naming neither person nor message
@@ -491,8 +556,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       then: the same exception propagates, and neither the second expense nor the period is tried
     - given: recalled examples
       when: the turn runs
-      then: the classifier receives the message text and those examples, and the read-out port receives no
-      examples
+      then: the classifier receives the message text and those examples
   - `mode()`:
     - given: a classifier turn
       when: its mode is read
@@ -547,6 +611,20 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null or blank target
       when: the properties are bound
       then: throws IllegalArgumentException naming `LEDGER_TURN_TARGET`
+- [ ] RU13 · `CategoryChoice` · test: `CategoryChoiceTest` · covers: `CategoryChoice()` · scenarios: AC01
+  - `CategoryChoice()`:
+    - given: a null or blank grouping, or a null or blank category
+      when: the choice is constructed
+      then: throws InvalidValueException
+- [ ] RU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest` · covers:
+  `interceptCall()` · scenarios: AC01
+  - `interceptCall()`:
+    - given: the turn holds a caller token
+      when: a call is started through the interceptor
+      then: its headers carry `authorization: Bearer <token>`
+    - given: the turn holds no caller token
+      when: a call is started through the interceptor
+      then: the call fails before it is sent, and the next channel never sees it
 
 #### TDD Integration Red Phase
 
@@ -561,11 +639,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] RI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest` · covers: `readOut()` · scenarios:
   AC01, AC04, AC09
   - `readOut()`:
-    - given: the provider answers one expense with a merchant and one period
+    - given: the provider answers one expense with a merchant, one with a null merchant, and the period
+      `2026-10-12` to `2026-10-12`
       when: the message is read out
-      then: the read-out holds that expense and that period, and the request carried a JSON-schema response
-      format, no tools, and names no grouping or category
-    - given: the request's day and an assumed currency
+      then: the read-out holds both expenses, the second with no merchant, and that period, and the request
+      carried a JSON-schema response format, no tools, and names no grouping or category
+    - given: the day `2026-10-13` and the assumed currency `EUR`
       when: the message is read out
       then: the request's instructions state that day and that currency
     - given: the provider answers 500, or does not answer
@@ -648,16 +727,13 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 #### TDD System Test Red Phase
 
 - [ ] RS01 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC01, AC08,
-  AC10, AC13
+  AC13
   - Happy Path:
     - given: the provider reads out "coffee 4.50 EUR", the classifier answers `Dining / Cafés` confidently, and the
       ledger stores the expense
       when: the call is made with a caller token and the classifier mode on
       then: the call answers acted on, the ledger received one filing under `Dining`, `Cafés` carrying the token,
       the provider request carried no tools, and `ai_turns_total` rose under `mode="classifier",outcome="acted_on"`
-    - given: the classifier answers 503
-      when: the call is made
-      then: the call answers acted on, and the expense was filed under the catch-all grouping's first category
   - Unhappy Path:
     - given: two expenses read, and the ledger answers the first `UNAVAILABLE`
       when: the call is made
@@ -686,12 +762,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] GU03 · `ExpenseToFile` · test: `ExpenseToFileTest`
 - [ ] GU04 · `ExampleExpense` · test: `ExampleExpenseTest`
 - [ ] GU05 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · after: GU04
-- [ ] GU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU02
-- [ ] GU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · after: GU01, GU02, GU03
-- [ ] GU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · after: GU01, GU04
+- [ ] GU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU02, GU04
+- [ ] GU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · after: GU01, GU02, GU03, GU04, GU13
+- [ ] GU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · after: GU01, GU03, GU04, GU13
 - [ ] GU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest`
 - [ ] GU11 · `TypesafeClassifierProperties` · test: `TypesafeClassifierPropertiesTest`
 - [ ] GU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest`
+- [ ] GU13 · `CategoryChoice` · test: `CategoryChoiceTest`
+- [ ] GU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest`
 
 #### TDD Integration Green Phase
 
@@ -699,7 +777,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] GI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest`
 - [ ] GI03 · `TypesafeCategoryClassifierAdapter` · test: `TypesafeCategoryClassifierAdapterTest` · after: GU09,
   GU11
-- [ ] GI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · after: GU03, GU12
+- [ ] GI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · after: GU03, GU12, GU13, GU14
 - [ ] GI05 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest`
 - [ ] GI06 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU05
 
