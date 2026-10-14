@@ -135,14 +135,6 @@ never changes once given.
   catalogue never enters its prompt
 - **Why** one network round trip per grouping asked about, for an answer the request already holds (task 51, DN01)
 
-### BT09 · `eval-runner` — measure a classifier turn
-
-- **Kind** deferred change · **Priority** normal · **Size** M
-- **Raised by** task 52, 2026-10-13 · [origin](52-the-connector-files-with-a-classifier/design-log.md)
-- **What** the runner and its cases measure a turn run with `EXTRACTION_MODE` at `classifier`: a case's expected
-  calls hold for a turn that never asks for one grouping's categories, and a run records which mode it ran
-- **Why** a classifier turn makes no `list_categories` call, which a case expects (task 52, DN04)
-
 ### BT10 · `ledger-service`, `ai-connector-service` — the turn becomes asynchronous
 
 - **Kind** deferred change · **Priority** normal · **Size** L
