@@ -445,7 +445,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `CatalogueEntry` · test: `CatalogueEntryTest` · covers: `CatalogueEntry()` · scenarios: AC17
+- [x] RU01 · `CatalogueEntry` · test: `CatalogueEntryTest` · covers: `CatalogueEntry()` · scenarios: AC17
   - `CatalogueEntry()`:
     - given: a null or blank grouping
       when: the entry is constructed
@@ -453,7 +453,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null or empty category list, or one holding a null or blank name, or a name twice
       when: the entry is constructed
       then: throws InvalidValueException
-- [ ] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: `ExtractIntentsCommand()` ·
+- [x] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: `ExtractIntentsCommand()` ·
   scenarios: AC17
   - `ExtractIntentsCommand()`:
     - given: a catalogue with no entry for the catch-all grouping
@@ -466,7 +466,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       another order
       when: the command is constructed
       then: throws InvalidValueException
-- [ ] RU03 · `ExpenseToFile` · test: `ExpenseToFileTest` · covers: `ExpenseToFile()` · scenarios: AC14
+- [x] RU03 · `ExpenseToFile` · test: `ExpenseToFileTest` · covers: `ExpenseToFile()` · scenarios: AC14
   - `ExpenseToFile()`:
     - given: a null or blank description, a null merchant `Optional`, a null amount or a null currency
       when: the expense is constructed
@@ -477,18 +477,18 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a merchant present but blank
       when: the expense is constructed
       then: its merchant reads absent
-- [ ] RU04 · `ExampleExpense` · test: `ExampleExpenseTest` · covers: `ExampleExpense()` · scenarios: AC11
+- [x] RU04 · `ExampleExpense` · test: `ExampleExpenseTest` · covers: `ExampleExpense()` · scenarios: AC11
   - `ExampleExpense()`:
     - given: a null merchant `Optional`
       when: the example expense is constructed
       then: throws InvalidValueException
-- [ ] RU05 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · covers: `toExampleExpense()` · scenarios:
+- [x] RU05 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · covers: `toExampleExpense()` · scenarios:
   AC11
   - `toExampleExpense()`:
     - given: a row with a merchant
       when: it is turned into an example expense
       then: the example carries that merchant
-- [ ] RU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` · scenarios:
+- [x] RU06 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` · scenarios:
   AC12, AC13
   - `extractIntents()`:
     - given: the turn returns
@@ -497,7 +497,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the turn throws ExpenseRecordingFailedException
       when: the turn ends
       then: the turn is counted under its mode as unavailable, and the same exception propagates
-- [ ] RU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · covers: `run()`, `mode()` · scenarios: AC01, AC02,
+- [x] RU08 · `ClassifierTurn` · test: `ClassifierTurnTest` · covers: `run()`, `mode()` · scenarios: AC01, AC02,
   AC03, AC04, AC05, AC06, AC07, AC08, AC09, AC10, AC11, AC13, AC14, AC15
   - `run()`:
     - given: the read-out holds `coffee`, `4.50`, `EUR`, and the classifier answers `Dining / Cafés` at the minimum
@@ -551,6 +551,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       when: the turn runs
       then: every usable expense is filed as for a classifier failure, the call is recorded as failed, and one
       WARN is logged
+    - (added) given: the classifier answers a position outside the expenses asked about
+      when: the turn runs
+      then: every usable expense is filed as for a classifier failure, and the call is recorded as failed
     - given: the command carries no message identity, and the classifier fails
       when: the turn runs
       then: one WARN is logged, naming neither person nor message
@@ -570,7 +573,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a classifier turn
       when: its mode is read
       then: it is the classifier mode
-- [ ] RU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · covers: `toRequest()`, `fromAnswer()` ·
+- [x] RU09 · `SystemOneRequestMapper` · test: `SystemOneRequestMapperTest` · covers: `toRequest()`, `fromAnswer()` ·
   scenarios: AC01, AC02, AC10, AC11
   - `toRequest()`:
     - given: a catalogue holding `Dining` with `Cafés` and `Restaurants`, and `Transportation` with `Taxis/Uber`
@@ -593,7 +596,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: an answer naming an option no catalogue pair holds
       when: it is read back
       then: throws ClassificationFailedException
-- [ ] RU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest` · covers: `ExtractionProperties()` ·
+- [x] RU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest` · covers: `ExtractionProperties()` ·
   scenarios: AC16
   - `ExtractionProperties()`:
     - given: a mode that is neither `tools` nor `classifier` — `rules`, empty, `CLASSIFIER`
@@ -602,7 +605,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null mode
       when: the properties are bound
       then: the mode is the tool-calling mode
-- [ ] RU11 · `TypesafeClassifierProperties` · test: `TypesafeClassifierPropertiesTest` · covers:
+- [x] RU11 · `TypesafeClassifierProperties` · test: `TypesafeClassifierPropertiesTest` · covers:
   `TypesafeClassifierProperties()` · scenarios: AC16
   - `TypesafeClassifierProperties()`:
     - given: a null or blank key
@@ -620,7 +623,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a timeout of zero or less
       when: the properties are bound
       then: throws IllegalArgumentException naming `CLASSIFIER_TIMEOUT`
-- [ ] RU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest` · covers: `LedgerTurnProperties()` ·
+- [x] RU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest` · covers: `LedgerTurnProperties()` ·
   scenarios: AC16
   - `LedgerTurnProperties()`:
     - given: a null or blank target
@@ -629,12 +632,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a timeout of zero or less
       when: the properties are bound
       then: throws IllegalArgumentException naming `LEDGER_TURN_TIMEOUT`
-- [ ] RU13 · `CategoryChoice` · test: `CategoryChoiceTest` · covers: `CategoryChoice()` · scenarios: AC01
+- [x] RU13 · `CategoryChoice` · test: `CategoryChoiceTest` · covers: `CategoryChoice()` · scenarios: AC01
   - `CategoryChoice()`:
     - given: a null or blank grouping, or a null or blank category
       when: the choice is constructed
       then: throws InvalidValueException
-- [ ] RU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest` · covers:
+- [x] RU14 · `CallerTokenLedgerTurnInterceptor` · test: `CallerTokenLedgerTurnInterceptorTest` · covers:
   `interceptCall()` · scenarios: AC01
   - `interceptCall()`:
     - given: the turn holds a caller token
@@ -646,7 +649,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort` · scenarios: AC17
   - Happy Path:
     - given: a request carrying a catalogue of two groupings
@@ -656,7 +659,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     blank grouping or a blank category name; a grouping named twice; a category named twice in one entry;
     groupings differing from `category_groupings` or in another order; each `INVALID_ARGUMENT`, the port never
     called
-- [ ] RI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest` · covers: `readOut()` · scenarios:
+- [x] RI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest` · covers: `readOut()` · scenarios:
   AC01, AC04, AC09
   - `readOut()`:
     - given: the provider answers one expense with a merchant, one with a null merchant, and the period
@@ -673,7 +676,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the provider answers content outside the read-out shape, or a period day that is not `YYYY-MM-DD`
       when: the message is read out
       then: throws ExpenseRecordingFailedException
-- [ ] RI03 · `TypesafeCategoryClassifierAdapter` · test: `TypesafeCategoryClassifierAdapterTest` · covers:
+- [x] RI03 · `TypesafeCategoryClassifierAdapter` · test: `TypesafeCategoryClassifierAdapterTest` · covers:
   `classify()` · scenarios: AC01, AC02, AC10
   - `classify()`:
     - given: the classifier answers both questions
@@ -689,7 +692,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the classifier answers an unparseable body
       when: an expense is classified
       then: throws ClassificationFailedException
-- [ ] RI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · covers: `fileExpense()`,
+- [x] RI04 · `GrpcLedgerTurnAdapter` · test: `GrpcLedgerTurnAdapterTest` · covers: `fileExpense()`,
   `recordPeriod()` · scenarios: AC01, AC07, AC08, AC15
   - `fileExpense()`:
     - given: the ledger stores the expense, and the turn holds a caller token
@@ -718,7 +721,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the ledger answers `INVALID_ARGUMENT`
       when: a period is recorded
       then: throws LedgerCallRefusedException
-- [ ] RI05 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest` · covers: `recordTurn()`,
+- [x] RI05 · `MicrometerTurnMeters` · test: `MicrometerTurnMetersTest` · covers: `recordTurn()`,
   `recordClassifierCall()`, `recordConfidence()`, `countLowConfidence()` · scenarios: AC03, AC13
   - `recordTurn()`:
     - given: a classifier turn acted on, and a tool-calling turn unavailable
@@ -737,7 +740,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a low confidence
       when: it is counted
       then: `ai_classifier_low_confidence_total` rises by one
-- [ ] RI06 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `findExamples()` ·
+- [x] RI06 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `findExamples()` ·
   scenarios: AC11
   - `findExamples()`:
     - given: a neighbour message with one decided expense carrying a merchant and one carrying none
@@ -746,7 +749,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC01, AC08,
+- [x] RS01 · `ClassifierTurnSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC01, AC08,
   AC13
   - Happy Path:
     - given: the provider reads out "coffee 4.50 EUR", the classifier answers `Dining / Cafés` confidently, and the
@@ -758,7 +761,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: two expenses read, and the ledger answers the first `UNAVAILABLE`
       when: the call is made
       then: the call fails `UNAVAILABLE`, and the ledger received no second filing
-- [ ] RS02 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()` · scenarios: AC16
+- [x] RS02 · `ExtractionModeStartupSystemTest` · covers: `AiConnectorServiceApplication.main()` · scenarios: AC16
   - Unhappy Path:
     - given: `EXTRACTION_MODE` at `rules`
       when: the application starts
@@ -766,7 +769,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: `EXTRACTION_MODE` at `classifier` and no `LEDGER_TURN_TARGET`
       when: the application starts
       then: it fails to start, naming `LEDGER_TURN_TARGET`
-- [ ] RS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC12, AC13
+- [x] RS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents` · scenarios: AC12, AC13
   - Happy Path:
     - given: the mode unset, and the provider answering a tool-calling turn
       when: the call is made

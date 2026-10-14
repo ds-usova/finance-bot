@@ -9,6 +9,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
@@ -27,6 +28,7 @@ import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
+import bot.finance.ai.domain.value.ExtractionMode;
 import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
@@ -46,6 +48,8 @@ class ExtractIntentsUseCaseTest {
     private ExpenseRecordingPort expenseRecordingPort;
     private MessageStorePort messageStorePort;
     private RecallExamplesPort recallExamplesPort;
+    private TurnMeters turnMeters;
+    private LoggerFactory loggerFactory;
     private Logger log;
     private ExtractIntentsUseCase useCase;
 
@@ -57,12 +61,14 @@ class ExtractIntentsUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
-        useCase = new ExtractIntentsUseCase(
-                new ToolCallingTurn(expenseRecordingPort),
-                mock(TurnMeters.class),
-                messageStorePort,
-                recallExamplesPort,
-                loggerFactory);
+        turnMeters = mock(TurnMeters.class);
+        this.loggerFactory = loggerFactory;
+        useCase = useCaseAround(new ToolCallingTurn(expenseRecordingPort));
+    }
+
+    private ExtractIntentsUseCase useCaseAround(ExtractionTurn extractionTurn) {
+        return new ExtractIntentsUseCase(
+                extractionTurn, turnMeters, messageStorePort, recallExamplesPort, loggerFactory);
     }
 
     private static List<CatalogueEntry> catalogueOf(List<String> groupings) {
@@ -303,6 +309,36 @@ class ExtractIntentsUseCaseTest {
 
             verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
             assertThat(loggedInfoLines()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("when the turn returns - then the turn is counted under its mode as acted on")
+        void whenTurnReturns_thenTurnCountedUnderItsModeAsActedOn() {
+            ExtractionTurn turn = mock(ExtractionTurn.class);
+            when(turn.mode()).thenReturn(ExtractionMode.CLASSIFIER);
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"), "Food", CURRENT_DATE);
+
+            useCaseAround(turn).extractIntents(command);
+
+            verify(turnMeters).recordTurn(ExtractionMode.CLASSIFIER, true);
+            verifyNoMoreInteractions(turnMeters);
+        }
+
+        @Test
+        @DisplayName("when the turn throws ExpenseRecordingFailedException - then the turn is counted as "
+                + "unavailable and the exception propagates")
+        void whenTurnThrowsExpenseRecordingFailedException_thenCountedUnavailableAndExceptionPropagates() {
+            ExtractionTurn turn = mock(ExtractionTurn.class);
+            when(turn.mode()).thenReturn(ExtractionMode.CLASSIFIER);
+            ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("ledger unreachable");
+            doThrow(failure).when(turn).run(any(), any());
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"), "Food", CURRENT_DATE);
+
+            assertThatThrownBy(() -> useCaseAround(turn).extractIntents(command))
+                    .isSameAs(failure);
+
+            verify(turnMeters).recordTurn(ExtractionMode.CLASSIFIER, false);
+            verifyNoMoreInteractions(turnMeters);
         }
 
         @Test

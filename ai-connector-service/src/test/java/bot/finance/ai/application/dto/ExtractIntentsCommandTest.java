@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -173,6 +174,38 @@ class ExtractIntentsCommandTest {
             mutable.add("Other");
 
             assertThat(command.categoryGroupings()).containsExactly("Food", "Travel");
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidCatalogues")
+        @DisplayName("when the catalogue does not match the category groupings one entry each, in order - then "
+                + "throws InvalidValueException")
+        void whenCatalogueDoesNotMatchGroupings_thenThrowsInvalidValueException(
+                String name, List<CatalogueEntry> catalogue) {
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT,
+                            CATEGORY_GROUPINGS,
+                            CATCH_ALL_GROUPING,
+                            Optional.empty(),
+                            CURRENT_DATE,
+                            Optional.empty(),
+                            catalogue))
+                    .isInstanceOf(InvalidValueException.class);
+        }
+
+        private static Stream<Arguments> invalidCatalogues() {
+            return Stream.of(
+                    Arguments.of("no entry for the catch-all grouping", catalogueOf(List.of("Food", "Travel"))),
+                    Arguments.of(
+                            "a null entry",
+                            Arrays.asList(
+                                    new CatalogueEntry("Food", List.of("Food")),
+                                    null,
+                                    new CatalogueEntry("Other", List.of("Other")))),
+                    Arguments.of("a grouping named twice", catalogueOf(List.of("Food", "Travel", "Travel", "Other"))),
+                    Arguments.of(
+                            "a grouping the command lacks", catalogueOf(List.of("Food", "Travel", "Other", "Pets"))),
+                    Arguments.of("another order", catalogueOf(List.of("Other", "Food", "Travel"))));
         }
 
         private static Stream<List<String>> categoryGroupingsWithInvalidElement() {

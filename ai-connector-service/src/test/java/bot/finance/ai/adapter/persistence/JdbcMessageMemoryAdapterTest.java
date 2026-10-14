@@ -466,6 +466,41 @@ class JdbcMessageMemoryAdapterTest {
         }
 
         @Test
+        @DisplayName("when a neighbour holds one expense with a merchant and one without - then the examples carry "
+                + "that merchant and none")
+        void whenNeighbourHoldsExpenseWithMerchantAndOneWithout_thenExamplesCarryThatMerchantAndNone() {
+            long userId = 9516L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long neighbour = insertMessageWithVector(
+                    userId, "examples-merchant", "two expenses", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            RecordedExpenseRowUtils.insertApplied(
+                    jdbcTemplate,
+                    neighbour,
+                    userId,
+                    301L,
+                    "lunch",
+                    "Deli Co",
+                    "15.00",
+                    "EUR",
+                    1L,
+                    "Cat",
+                    2L,
+                    "Grp",
+                    "ACCEPTED",
+                    1_700_000_000_000L,
+                    0L);
+            insertDecided(neighbour, userId, 302L, "coffee", "3.50", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).expenses())
+                    .extracting(ExampleExpense::description, ExampleExpense::merchant)
+                    .containsExactly(tuple("lunch", Optional.of("Deli Co")), tuple("coffee", Optional.empty()));
+        }
+
+        @Test
         @DisplayName("when a neighbour holds no vector - then it is not among the examples")
         void whenNeighbourHoldsNoVector_thenNotAmongExamples() {
             long userId = 9513L;

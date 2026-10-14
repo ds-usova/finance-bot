@@ -107,6 +107,33 @@
   state, questions: {<id>: {type: "choice", instructions, criteria: {<option>: <description|null>}}}}`; answer
   `{model, answers: {<id>: {type: "choice", choice, confidence, probabilities: {<option>: p}}}, usage}`.
   `SystemOneFixtures` re-delegated to build the documented envelope.
+- **RL04 (RU08):** expected pass: `ClassifierTurnTest.Mode.whenModeRead_thenItIsClassifierMode` — ST10's stub
+  already answers the classifier mode.
+- **RL05 (RU11):** expected pass: `TypesafeClassifierPropertiesTest.Binding.whenMinConfidenceIsExactlyZeroOrOne_thenPropertiesBind`
+  — the record binds without checks until the green step; the test asserts that 0 and 1 are not refused.
+- **RL06 (RI01):** expected pass: `IntentExtractionGrpcServiceTest` happy path
+  `whenRequestCarriesCatalogueOfTwoGroupings_thenCommandHoldsEntriesInOrderWithCategories` — ST05 already maps
+  each request entry into the command, so the plan's happy-path scenario was met by stabilization (plan defect of
+  the RF03 kind; kept as a regression guard).
+- **RL07 (RI02):** left: the timeout half of "the provider does not answer" — the read-out has no timeout setting
+  of its own; written as a connection reset instead.
+- **RL08 (RU08):** hypothesis: a classifier answer's position is the 0-based index into the usable expenses sent,
+  not into the whole read-out — settled by the green step against the-two-calls.md.
+- **RL09 (RU08):** hypothesis: the log assertions (reason keywords `description`/`amount`/`currency`, refusals
+  matched by the expense description or period day, the no-identity WARN lacking `null`) match the turn's wording —
+  settled by the green step.
+- **RL10 (RU01):** hypothesis: the null category list fails red with an NPE from `List.copyOf` rather than on the
+  exception type — settled by the green step.
+- **RL11 (RI04):** hypothesis: the 900 ms bound in the inbound-deadline test may be flaky on a slow machine —
+  settled by the green runs.
+- **RL13 (RU08):** expected pass: `ClassifierTurnTest.Run.NothingToClassify.whenNothingIsRead_thenNeitherClassifierNorLedgerCalled`
+  — asserts absence (no classifier or ledger call), which the empty stub meets.
+- **RL14 (RU14):** a first wave compile failure in `CallerTokenLedgerTurnInterceptorTest` (Mockito generics on
+  `newCall`) was re-delegated once and fixed; the no-token test now also verifies `next.newCall` is never invoked.
+- **RL15 (RS03, RS01):** hypothesis: a retried `UNAVAILABLE` filing would break RS01's one-call count, and RS02's
+  messages may name the property keys rather than the variables — settled by the system green steps.
+- **RL12 (RI03, RU09):** hypothesis: question keys are `"0"`, `"1"`, … and the returned positions match them —
+  settled by the green steps.
 
 ## Suite Runs
 

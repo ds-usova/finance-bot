@@ -62,6 +62,20 @@ class ExampleExpenseTest {
             assertThat(expense.groupingName()).isEmpty();
         }
 
+        @Test
+        @DisplayName("when the merchant Optional is null - then throws InvalidValueException")
+        void whenMerchantOptionalIsNull_thenThrowsInvalidValueException() {
+            assertThatThrownBy(() -> new ExampleExpense(
+                            "lunch",
+                            null,
+                            "15.00",
+                            EUR,
+                            Optional.of("Restaurants"),
+                            Optional.of("Dining"),
+                            ExampleOutcome.ACCEPTED))
+                    .isInstanceOf(InvalidValueException.class);
+        }
+
         static Stream<Arguments> invalidFieldScenarios() {
             ExampleExpense valid = validExpense();
             return Stream.of(

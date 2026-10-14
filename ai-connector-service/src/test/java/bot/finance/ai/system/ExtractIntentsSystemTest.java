@@ -1,14 +1,20 @@
 package bot.finance.ai.system;
 
+import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.metrics.MeterName;
 import bot.finance.ai.common.boot.AbstractSystemTest;
+import bot.finance.ai.common.containers.WireMockSupport;
 import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.ClassifierStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -135,6 +141,35 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(summarizeSpendingCalls.getFirst());
             assertThat(arguments.get("from").asText()).isEqualTo(from);
             assertThat(arguments.get("to").asText()).isEqualTo(to);
+        }
+
+        @Test
+        @DisplayName("when the mode is unset - then the classifier receives no request and the turn counts under "
+                + "tools and acted_on")
+        void whenModeUnset_thenClassifierReceivesNoRequestAndToolsTurnCounts() {
+            String turns = MeterName.TURNS.meterName();
+            double before = toolsActedOnTurns(scrape(actuatorPort), turns);
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+
+            assertThat(WireMockSupport.SERVER.findAll(
+                            postRequestedFor(urlPathEqualTo(ClassifierStubs.SYSTEM_ONE_PATH))))
+                    .isEmpty();
+            assertThat(toolsActedOnTurns(scrape(actuatorPort), turns)).isEqualTo(before + 1);
+        }
+
+        private double toolsActedOnTurns(String body, String metric) {
+            return body.lines()
+                    .filter(line -> line.startsWith(metric + "{"))
+                    .filter(line -> line.contains("mode=\"tools\"") && line.contains("outcome=\"acted_on\""))
+                    .mapToDouble(line -> Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1)))
+                    .sum();
         }
     }
 

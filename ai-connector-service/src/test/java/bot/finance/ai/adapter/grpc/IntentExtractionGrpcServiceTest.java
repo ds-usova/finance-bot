@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.adapter.security.CallerTokenVerifier;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
@@ -18,6 +19,7 @@ import bot.finance.ai.common.boot.GrpcAdapterTest;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.MessageIdentity;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -103,6 +105,33 @@ class IntentExtractionGrpcServiceTest {
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().currentDate()).isEqualTo(LocalDate.parse(currentDate));
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+        }
+
+        @Test
+        @DisplayName("when the request carries a catalogue of two groupings - then the command holds both entries "
+                + "in order with their categories")
+        void whenRequestCarriesCatalogueOfTwoGroupings_thenCommandHoldsEntriesInOrderWithCategories() {
+            ExtractIntentsRequest request = RequestFixtures.requestWithCatalogue(
+                    TEXT,
+                    List.of(
+                            GroupingCategories.newBuilder()
+                                    .setGrouping("Food")
+                                    .addAllCategories(List.of("Cafe", "Groceries"))
+                                    .build(),
+                            GroupingCategories.newBuilder()
+                                    .setGrouping("Other")
+                                    .addAllCategories(List.of("Gifts"))
+                                    .build()),
+                    "Other");
+
+            authenticatedStub().extractIntents(request);
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().catalogue())
+                    .containsExactly(
+                            new CatalogueEntry("Food", List.of("Cafe", "Groceries")),
+                            new CatalogueEntry("Other", List.of("Gifts")));
         }
 
         @Test
@@ -224,7 +253,68 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.requestWithCurrentDate("27/07/2026")),
                     Arguments.of(
                             "current_date not written YYYY-MM-DD (invalid calendar date)",
-                            RequestFixtures.requestWithCurrentDate("2026-13-01")));
+                            RequestFixtures.requestWithCurrentDate("2026-13-01")),
+                    Arguments.of(
+                            "catalogue has no entry for the catch-all grouping",
+                            catalogueRequest(List.of("Food", "Other"), "Other", List.of(entry("Food", "Cafe")))),
+                    Arguments.of(
+                            "catalogue entry has no category",
+                            catalogueRequest(
+                                    List.of("Food", "Other"), "Other", List.of(entry("Food", "Cafe"), entry("Other")))),
+                    Arguments.of(
+                            "catalogue entry has a blank grouping",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(entry("Food", "Cafe"), entry("Other", "Gifts"), entry(" ", "Misc")))),
+                    Arguments.of(
+                            "catalogue entry has a blank category name",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(entry("Food", "Cafe", " "), entry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue names a grouping twice",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(
+                                            entry("Food", "Cafe"),
+                                            entry("Food", "Groceries"),
+                                            entry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue entry names a category twice",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(entry("Food", "Cafe", "Cafe"), entry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue groupings differ from category_groupings",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(entry("Food", "Cafe"), entry("Other", "Gifts"), entry("Travel", "Taxi")))),
+                    Arguments.of(
+                            "catalogue groupings are in another order than category_groupings",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(entry("Other", "Gifts"), entry("Food", "Cafe")))));
+        }
+
+        private static ExtractIntentsRequest catalogueRequest(
+                List<String> categoryGroupings, String catchAllGrouping, List<GroupingCategories> catalogue) {
+            return RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping).toBuilder()
+                    .clearCatalogue()
+                    .addAllCatalogue(catalogue)
+                    .build();
+        }
+
+        private static GroupingCategories entry(String grouping, String... categories) {
+            return GroupingCategories.newBuilder()
+                    .setGrouping(grouping)
+                    .addAllCategories(List.of(categories))
+                    .build();
         }
     }
 }
