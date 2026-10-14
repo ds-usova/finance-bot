@@ -25,8 +25,10 @@ REST -> DB : store waiting message
 Worker -> DB : claim message
 Worker -> Connector : text, groupings, currency, identity
 Connector -> Provider : prompt and tool definitions
-Provider -> MCP : list_categories / create_expense_proposal
-MCP -> DB : read categories / store proposal
+Provider -> Connector : list_categories
+Connector --> Provider : categories from the request
+Provider -> MCP : create_expense_proposal
+MCP -> DB : store proposal
 Provider --> Connector : final answer
 Connector --> Worker : turn complete
 Worker -> DB : settle message outcome
