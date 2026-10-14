@@ -51,8 +51,9 @@ class AiExpenseRecordingAdapterTest {
 
     /** The description the ledger's {@code ListCategoriesMcpTool} gives {@code list_categories}, to the letter. */
     private static final String LEDGER_LIST_CATEGORIES_DESCRIPTION =
-            "Lists the categories filed under one of the caller's groupings. An expense is filed "
-                    + "under one of these, never under the grouping itself.";
+            """
+            Lists the categories filed under one of the caller's groupings. An expense is filed under one of these, \
+            never under the grouping itself.""";
 
     private static final String LUNCH_ARGUMENTS =
             """
@@ -84,9 +85,17 @@ class AiExpenseRecordingAdapterTest {
 
     private void record(
             String callerToken, Optional<CurrencyCode> assumedCurrency, Optional<List<MessageExample>> examples) {
+        record(callerToken, CATALOGUE, assumedCurrency, examples);
+    }
+
+    private void record(
+            String callerToken,
+            List<CatalogueEntry> catalogue,
+            Optional<CurrencyCode> assumedCurrency,
+            Optional<List<MessageExample>> examples) {
         CallerTokenTestSupport.withCallerToken(
                 callerToken,
-                () -> adapter.record(TEXT, CATALOGUE, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, examples));
+                () -> adapter.record(TEXT, catalogue, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, examples));
     }
 
     private void recordInEuros(String callerToken) {
@@ -117,8 +126,7 @@ class AiExpenseRecordingAdapterTest {
     private static void stubLookupThenProposalTurn(String name) {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
         WireMockStubs.stubChatCompletionSequence(
-                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                        "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments(name))),
+                lookupResponse("call-list-1", name),
                 ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                 ChatCompletionFixtures.textResponse("recorded"));
     }
@@ -150,9 +158,10 @@ class AiExpenseRecordingAdapterTest {
         return "";
     }
 
-    /** The {@code list_categories} arguments asking about {@code name}. */
-    private static String lookupArguments(String name) {
-        return "{\"grouping\":\"" + name + "\"}";
+    /** A provider response calling {@code list_categories} under {@code toolCallId}, asking about {@code name}. */
+    private static String lookupResponse(String toolCallId, String name) {
+        return ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                toolCallId, ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, "{\"grouping\":\"" + name + "\"}"));
     }
 
     /** A catalogue holding {@link #LOOKUP_GROUPING} with the one given category. */
@@ -161,15 +170,7 @@ class AiExpenseRecordingAdapterTest {
     }
 
     private void recordWithCatalogue(List<CatalogueEntry> catalogue) {
-        CallerTokenTestSupport.withCallerToken(
-                CALLER_TOKEN_1,
-                () -> adapter.record(
-                        TEXT,
-                        catalogue,
-                        CATCH_ALL_GROUPING,
-                        Optional.of(CurrencyCode.of("EUR")),
-                        CURRENT_DATE,
-                        Optional.empty()));
+        record(CALLER_TOKEN_1, catalogue, Optional.of(CurrencyCode.of("EUR")), Optional.empty());
     }
 
     /** Every non-empty content the captured requests carried back as the result of the tool call {@code id}. */
@@ -370,16 +371,10 @@ class AiExpenseRecordingAdapterTest {
         void whenTwoTurnsLookTheSameGroupingUp_thenEachResultCarriesOnlyItsOwnTurnsCategories() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-1",
-                            ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
-                            lookupArguments(LOOKUP_GROUPING))),
+                    lookupResponse("call-list-1", LOOKUP_GROUPING),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"),
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-3",
-                            ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
-                            lookupArguments(LOOKUP_GROUPING))),
+                    lookupResponse("call-list-3", LOOKUP_GROUPING),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-4", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 

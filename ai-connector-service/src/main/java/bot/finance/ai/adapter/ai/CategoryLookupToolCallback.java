@@ -13,8 +13,10 @@ import org.springframework.ai.tool.execution.ToolExecutionException;
 public class CategoryLookupToolCallback implements ToolCallback {
 
     private static final String NAME = "list_categories";
-    private static final String DESCRIPTION = "Lists the categories filed under one of the caller's groupings. An "
-            + "expense is filed under one of these, never under the grouping itself.";
+    private static final String DESCRIPTION =
+            """
+            Lists the categories filed under one of the caller's groupings. An expense is filed under one of these, \
+            never under the grouping itself.""";
     private static final String INPUT_SCHEMA =
             """
             {
@@ -60,17 +62,20 @@ public class CategoryLookupToolCallback implements ToolCallback {
     }
 
     private String answer(String grouping) {
-        for (CatalogueEntry entry : catalogue) {
-            if (entry.grouping().equals(grouping)) {
-                return write(new Answer(grouping, entry.categories()));
-            }
-        }
+        return catalogue.stream()
+                .filter(entry -> entry.grouping().equals(grouping))
+                .findFirst()
+                .map(entry -> write(new Answer(grouping, entry.categories())))
+                .orElseThrow(() -> refusal(grouping));
+    }
+
+    private RuntimeException refusal(String name) {
         boolean isCategory =
-                catalogue.stream().anyMatch(entry -> entry.categories().contains(grouping));
+                catalogue.stream().anyMatch(entry -> entry.categories().contains(name));
         if (isCategory) {
-            throw new RuntimeException(grouping + " is a category, not a grouping");
+            return new RuntimeException(name + " is a category, not a grouping");
         }
-        throw new RuntimeException("no grouping named " + grouping + " is stored for this user");
+        return new RuntimeException("no grouping named " + name + " is stored for this user");
     }
 
     private static String groupingOf(String toolInput) {
