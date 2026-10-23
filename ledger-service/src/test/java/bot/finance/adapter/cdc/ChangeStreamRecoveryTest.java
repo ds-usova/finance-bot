@@ -19,6 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
@@ -36,6 +37,7 @@ import org.springframework.test.context.TestPropertySource;
  * collaborators say are {@link ChangeStreamRecoveryOutcomeTest}'s.
  */
 @CdcAdapterTest
+@Order(1)
 @TestPropertySource(
         properties = {"cdc.slot-name=change_stream_recovery_test", "cdc.stream-key=change-stream-recovery-test.cdc"})
 class ChangeStreamRecoveryTest {
