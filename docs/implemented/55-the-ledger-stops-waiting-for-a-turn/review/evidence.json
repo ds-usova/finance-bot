@@ -1,0 +1,14 @@
+{
+  "plan": "docs/implemented/55-the-ledger-stops-waiting-for-a-turn/ledger-service/plan.md",
+  "commit": "ed6d032e",
+  "branch": "eval",
+  "workingTree": "clean",
+  "generated": "2026-10-14T21:39:39Z",
+  "verdict": "NOT VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 629, "passed": 629, "failed": 0, "skipped": 0, "instructions": "98.5%", "branches": "94.1%", "minimum": "85%", "format": "clean"},
+    {"module": "eval-runner", "verdict": "PASS", "tests": 42, "passed": 42, "failed": 0, "skipped": 0, "instructions": "n/a", "branches": "n/a", "minimum": "n/a", "format": "clean"},
+    {"module": "ledger-service", "verdict": "FAIL", "tests": 1611, "passed": 1548, "failed": 63, "skipped": 0, "instructions": "96.9%", "branches": "93.8%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 357, "passed": 357, "failed": 0, "skipped": 0, "instructions": "98.3%", "branches": "92.5%", "minimum": "80%", "format": "clean"}
+  ]
+}
