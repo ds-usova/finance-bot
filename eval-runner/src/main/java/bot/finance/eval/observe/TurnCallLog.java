@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 public final class TurnCallLog {
 
     private static final Pattern LINE = Pattern.compile(
-            "turn_call operation=(\\S+) via=\\S+ outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
+            "turn_call operation=(\\S+) via=(\\S+) outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
     private static final JsonMapper JSON = new JsonMapper();
 
     private final Path file;
@@ -52,12 +52,13 @@ public final class TurnCallLog {
         List<TurnCall> calls = new ArrayList<>();
         for (String line : text.split("\\R")) {
             Matcher matcher = LINE.matcher(line.strip());
-            if (matcher.find() && matcher.group(3).equals(incomingMessageId)) {
+            if (matcher.find() && matcher.group(4).equals(incomingMessageId)) {
                 calls.add(new TurnCall(
                         matcher.group(1),
-                        matcher.group(2).equals("ok"),
-                        matcher.group(3),
-                        JSON.readTree(matcher.group(4))));
+                        matcher.group(2),
+                        matcher.group(3).equals("ok"),
+                        matcher.group(4),
+                        JSON.readTree(matcher.group(5))));
             }
         }
         return calls;

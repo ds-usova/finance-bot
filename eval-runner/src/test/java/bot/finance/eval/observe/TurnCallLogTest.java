@@ -60,6 +60,7 @@ class TurnCallLogTest {
         List<TurnCall> calls = log.callsSince(mark, "web:17");
 
         assertThat(calls).extracting(TurnCall::operation).containsExactly("create_expense_proposal");
+        assertThat(calls).extracting(TurnCall::via).containsExactly("grpc");
         assertThat(calls).extracting(TurnCall::accepted).containsExactly(true);
         assertThat(calls.getFirst().arguments().size()).isEqualTo(1);
     }

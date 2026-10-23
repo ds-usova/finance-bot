@@ -23,7 +23,7 @@ class OracleTest {
     }
 
     private static TurnCall call(String tool, boolean accepted, String arguments) {
-        return new TurnCall(tool, accepted, "web:1", YAML.readTree(arguments));
+        return new TurnCall(tool, "mcp", accepted, "web:1", YAML.readTree(arguments));
     }
 
     @Test

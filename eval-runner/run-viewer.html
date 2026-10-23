@@ -1,3 +1,5 @@
+<!doctype html>
+<meta charset="utf-8">
 <title>Eval Run Viewer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
@@ -507,12 +509,13 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
         const bad = wrong.some(([f]) => f === k);
         return `<span class="muted">${esc(k)}</span> <span class="${bad ? "fail" : ""}">${esc(valueText(v))}</span>`;
       }).join("<br>") + (call.accepted ? "" : `<br><span class="fail">rejected by the ledger</span>`);
-      add(status, `Model called <span class="mono">${esc(call.tool)}</span>`, `<span class="mono">${expected}</span>`, `<span class="mono">${actual}</span>`);
+      const over = call.via ? ` over ${call.via === "grpc" ? "gRPC" : call.via === "mcp" ? "MCP" : esc(call.via)}` : "";
+      add(status, `Ledger received <span class="mono">${esc(call.tool)}</span>${over}`, `<span class="mono">${expected}</span>`, `<span class="mono">${actual}</span>`);
     }
     for (const tool of Object.keys(expectedTools)) {
       if (calls && !calls.some((x) => x.tool === tool)) {
         const missed = take((x) => x.path.startsWith(`mcpCalls.${tool}.arguments.`));
-        if (missed.length) add("bad", `Model called <span class="mono">${esc(tool)}</span>`, `<span class="mono">${flatten(expectedTools[tool].arguments).map(([f, cc]) => `${esc(f)} ${esc(constraintText(cc))}`).join("<br>")}</span>`, `<span class="fail">never called</span>`);
+        if (missed.length) add("bad", `Ledger received <span class="mono">${esc(tool)}</span>`, `<span class="mono">${flatten(expectedTools[tool].arguments).map(([f, cc]) => `${esc(f)} ${esc(constraintText(cc))}`).join("<br>")}</span>`, `<span class="fail">never called</span>`);
       }
       const countLabel = { count: "calls", maximumCount: "calls, at most", acceptedCount: "accepted calls", minimumAcceptedCount: "accepted calls, at least" };
       for (const x of take((x) => new RegExp(`^mcpCalls\\.${tool}\\.(count|maximumCount|acceptedCount|minimumAcceptedCount)$`).test(x.path))) {
