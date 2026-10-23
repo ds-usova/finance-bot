@@ -98,8 +98,8 @@ Applies across all layers.
 
 ### Adapter — MCP
 
-- An MCP tool catches the domain exceptions it can raise itself, mapping each to a tool response, and ends with a
-  `catch (RuntimeException)`. The web advice does not reach it.
+- An MCP tool catches `RuntimeException` once and maps it to a tool response through `ToolRefusal`, which the
+  turn operations in `adapter/aiconnector` share. The web advice does not reach either.
 
 ### Adapter — Persistence
 

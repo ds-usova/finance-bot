@@ -30,6 +30,7 @@ public record RecordedExpenseEntity(
     public ExampleExpense toExampleExpense() {
         return new ExampleExpense(
                 description,
+                Optional.ofNullable(merchant),
                 amount,
                 CurrencyCode.of(currencyCode),
                 Optional.ofNullable(categoryName),

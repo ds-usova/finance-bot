@@ -12,6 +12,7 @@ import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.rows.RecordedExpenseRowUtils;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,17 +35,11 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     private static final String CATEGORY_NAME = "Restaurants";
     private static final String NEW_TEXT = "spent 15 euros on lunch";
 
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst());
-    }
-
     private static void stubOneTurn() {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
         WireMockStubs.stubChatCompletionSequence(
-                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                ChatCompletionFixtures.toolCallResponse(
+                        ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                 ChatCompletionFixtures.textResponse("recorded"));
     }
 
@@ -104,6 +99,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(IncomingMessageRowUtils.vector(jdbcTemplate, userId, newIncomingMessageId))
                     .isNotEmpty();
 
@@ -145,6 +141,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(IncomingMessageRowUtils.vector(jdbcTemplate, userId, newIncomingMessageId))
                     .isEmpty();
             assertThat(IncomingMessageRowUtils.embeddingAttempts(jdbcTemplate, userId, newIncomingMessageId))

@@ -1,0 +1,14 @@
+id: "10-005-unrelated-history"
+covers: "learned-history.unrelated"
+message: "I paid 4000 HUF for cloud storage."
+fixture: "catalogue-v1"
+steps: "../steps/10-005-unrelated-history.yaml"
+learning:
+  - {"id":"vet","message":"Emergency surgery for my dog at the veterinary clinic cost 75000 HUF.","proposalCount":1,"classification":{"grouping":"Housing","category":"Property Tax"},"decision":"approve"}
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"category":{"noneOf":["Uncategorized Expenses","Property Tax"]}}
+notes: "An approved atypical classification of veterinary surgery must not transfer to cloud storage. Whether the learning example is recalled and its similarity are diagnostic only."

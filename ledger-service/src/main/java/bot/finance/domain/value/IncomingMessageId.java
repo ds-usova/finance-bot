@@ -2,11 +2,14 @@ package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 /** Identifies one handled message by the message that started it, so a stored row names the turn it came from. */
 public record IncomingMessageId(String value) {
 
     public static final int MAX_BYTES = 56;
+
+    private static final String WEB_PREFIX = "web:";
 
     public IncomingMessageId {
         if (value == null || value.isBlank()) {
@@ -27,7 +30,19 @@ public record IncomingMessageId(String value) {
         if (writtenMessageId < 1) {
             throw new InvalidIncomingMessageException("written message id must be at least 1");
         }
-        return new IncomingMessageId("web:" + writtenMessageId);
+        return new IncomingMessageId(WEB_PREFIX + writtenMessageId);
+    }
+
+    public Optional<Long> writtenMessageId() {
+        if (!value.startsWith(WEB_PREFIX)) {
+            return Optional.empty();
+        }
+        try {
+            long id = Long.parseLong(value.substring(WEB_PREFIX.length()));
+            return id < 1 ? Optional.empty() : Optional.of(id);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /** Parses a stored or transported value, rejecting an absent, blank or over-long one. */

@@ -2,6 +2,7 @@ package bot.finance.ai.system;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.common.boot.AbstractMemorySystemTest;
@@ -11,10 +12,12 @@ import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -26,19 +29,12 @@ import org.junit.jupiter.api.Test;
 class RegisterMessageSystemTest extends AbstractMemorySystemTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
 
     private static void stubOneTurn() {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
         WireMockStubs.stubChatCompletionSequence(
-                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                ChatCompletionFixtures.toolCallResponse(
+                        ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                 ChatCompletionFixtures.textResponse("recorded"));
     }
 
@@ -59,6 +55,7 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(1);
             assertThat(CapturedRequestUtils.toolCallRequests().getFirst().getHeader("Authorization"))
                     .isEqualTo(token);
@@ -76,14 +73,19 @@ class RegisterMessageSystemTest extends AbstractMemorySystemTest {
             stubOneTurn();
             AuthorizedStubs.withCallerToken(intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
                     .extractIntents(RequestFixtures.request(TEXT));
+            LedgerTurnStubs.awaitEnds(1);
 
             stubOneTurn();
-            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
-                            intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
-                    .extractIntents(RequestFixtures.request(TEXT));
-            log.info("response: {}", response);
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+                ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
+                                intentExtractionStub, CallerTokens.bearer(userId, incomingMessageId))
+                        .extractIntents(RequestFixtures.request(TEXT));
+                log.info("response: {}", response);
 
-            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+                assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+                assertThat(LedgerTurnStubs.recordedEnds()).hasSizeGreaterThanOrEqualTo(2);
+            });
+
             assertThat(IncomingMessageRowUtils.count(jdbcTemplate, userId, incomingMessageId))
                     .isEqualTo(1);
         }

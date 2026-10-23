@@ -1,0 +1,12 @@
+id: "3-004-assumed-default-currency"
+covers: "currency.assumed-default-huf"
+message: "I paid 850 for coffee"
+fixture: "catalogue-v1"
+steps: "../steps/3-004-assumed-default-currency.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"currency":{"equals":"HUF"}}}
+notes: "Checks only currency.assumed-default-huf."

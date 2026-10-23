@@ -54,6 +54,7 @@ class CleanArchitectureTest {
                     "com.google.protobuf..",
                     "bot.finance.ai..",
                     "bot.finance.api..",
+                    "bot.finance.ledger..",
                     "io.modelcontextprotocol..",
                     "io.debezium..",
                     "org.apache.kafka..",

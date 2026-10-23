@@ -1,0 +1,12 @@
+id: "6-004-ambiguous-description"
+covers: "description.ambiguous"
+message: "I paid 2000 HUF for some stuff."
+fixture: "catalogue-v1"
+steps: "../steps/6-004-ambiguous-description.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"description":{"present":true}}
+notes: "Do not require exact wording when the user supplies only a vague description."

@@ -1,0 +1,10 @@
+id: "9-006-incomplete-statement"
+covers: "wording.incomplete"
+message: "I paid for"
+fixture: "catalogue-v1"
+steps: "../steps/9-006-incomplete-statement.yaml"
+expected:
+  messageOutcome: "NOTHING_IDENTIFIED"
+  proposals:
+    count: 0
+notes: "Checks only wording.incomplete."

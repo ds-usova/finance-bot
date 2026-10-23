@@ -10,6 +10,7 @@ import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import io.restassured.response.Response;
@@ -30,15 +31,6 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
 @Import(ChangeStreamUnavailableSystemTest.UnreachableRedisConfiguration.class)
 class ChangeStreamUnavailableSystemTest extends AbstractMemorySystemTest {
 
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
-
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -54,7 +46,7 @@ class ChangeStreamUnavailableSystemTest extends AbstractMemorySystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, token)
@@ -62,6 +54,7 @@ class ChangeStreamUnavailableSystemTest extends AbstractMemorySystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
             assertThat(IncomingMessageRowUtils.count(jdbcTemplate, userId, incomingMessageId))
                     .isEqualTo(1);
             assertThat(IncomingMessageRowUtils.text(jdbcTemplate, userId, incomingMessageId))

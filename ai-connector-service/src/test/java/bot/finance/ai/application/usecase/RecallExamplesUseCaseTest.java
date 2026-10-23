@@ -81,6 +81,7 @@ class RecallExamplesUseCaseTest {
     private static MessageExample exampleFixture() {
         ExampleExpense expense = new ExampleExpense(
                 "lunch",
+                Optional.empty(),
                 "15.00",
                 CurrencyCode.of("EUR"),
                 Optional.of("Restaurants"),

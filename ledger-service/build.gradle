@@ -102,6 +102,7 @@ dependencies {
     implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
 
     implementation "org.springframework.boot:spring-boot-starter-grpc-client"
+    implementation "org.springframework.boot:spring-boot-starter-grpc-server"
     implementation "io.grpc:grpc-services"
 
     testImplementation "io.grpc:grpc-testing"
@@ -169,6 +170,7 @@ def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
         fileTree(dir: it, exclude: [
             "bot/finance/ai/adapter/grpc/v1/**",
+            "bot/finance/ledger/adapter/grpc/v1/**",
             "bot/finance/api/**",
             "org/openapitools/**",
             "**/*Application.class"

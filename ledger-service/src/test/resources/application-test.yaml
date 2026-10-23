@@ -1,4 +1,7 @@
 spring:
+  grpc:
+    server:
+      port: 0
   datasource:
     hikari:
       # The production pool holds five idle connections per application. A test JVM keeps every distinct Spring

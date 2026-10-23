@@ -1,11 +1,14 @@
 package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public record ExtractIntentsCommand(
         String text,
@@ -13,7 +16,8 @@ public record ExtractIntentsCommand(
         String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
         LocalDate currentDate,
-        Optional<MessageIdentity> messageIdentity) {
+        Optional<MessageIdentity> messageIdentity,
+        List<CatalogueEntry> catalogue) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
@@ -42,7 +46,22 @@ public record ExtractIntentsCommand(
         if (messageIdentity == null) {
             throw new InvalidValueException("Message identity Optional must not be null");
         }
+        if (catalogue == null) {
+            throw new InvalidValueException("Catalogue must not be null");
+        }
+        if (catalogue.stream().anyMatch(Objects::isNull)) {
+            throw new InvalidValueException("Catalogue must not contain a null entry");
+        }
+        List<String> catalogueGroupings =
+                catalogue.stream().map(CatalogueEntry::grouping).toList();
+        if (catalogueGroupings.size() != Set.copyOf(catalogueGroupings).size()) {
+            throw new InvalidValueException("Catalogue must not name a grouping twice");
+        }
+        if (!catalogueGroupings.equals(categoryGroupings)) {
+            throw new InvalidValueException("Catalogue must hold one entry per category grouping, in order");
+        }
 
         categoryGroupings = List.copyOf(categoryGroupings);
+        catalogue = List.copyOf(catalogue);
     }
 }

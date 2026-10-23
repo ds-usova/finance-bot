@@ -1,16 +1,12 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ToolCallMeters;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidGroupingException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import java.util.List;
@@ -26,15 +22,18 @@ public class ListCategoriesMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
+    private final TurnCallLog turnCallLog;
 
     public ListCategoriesMcpTool(
             ListCategoriesPort listCategoriesPort,
             JsonMapper jsonMapper,
             ToolCallMeters toolCallMeters,
+            TurnCallLog turnCallLog,
             LoggerFactory loggerFactory) {
         this.listCategoriesPort = listCategoriesPort;
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
+        this.turnCallLog = turnCallLog;
         this.log = loggerFactory.getLogger(ListCategoriesMcpTool.class);
     }
 
@@ -44,6 +43,16 @@ public class ListCategoriesMcpTool {
                     + "under one of these, never under the grouping itself.")
     public CallToolResult listCategories(
             @McpToolParam(description = "the grouping's name, exactly as it was offered") String grouping) {
+        CallToolResult result = list(grouping);
+        turnCallLog.write(
+                "list_categories",
+                TurnCallLog.Via.MCP,
+                !Boolean.TRUE.equals(result.isError()),
+                TurnCallLog.arguments("grouping", grouping));
+        return result;
+    }
+
+    private CallToolResult list(String grouping) {
         log.debug("Received list_categories call: {}", grouping);
 
         try {
@@ -57,26 +66,17 @@ public class ListCategoriesMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidCategoryException | InvalidGroupingException e) {
-            return rejected(e, e.getMessage());
-        } catch (InvalidUserException e) {
-            return rejected(e, "invalid request: " + e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return rejected(e, "the user is unknown");
-        } catch (PersistenceFailedException e) {
-            return rejected(e, "the categories could not be read");
         } catch (RuntimeException e) {
-            return rejected(e, "the categories could not be listed", "unexpected");
+            return rejected(e, ToolRefusal.ofCategoryListing(e));
         }
     }
 
-    private CallToolResult rejected(RuntimeException e, String message) {
-        return rejected(e, message, e.getClass().getSimpleName());
-    }
-
-    private CallToolResult rejected(RuntimeException e, String message, String reason) {
+    private CallToolResult rejected(RuntimeException e, ToolRefusal refusal) {
         log.warn("rejected list_categories call: {} {}", e.getClass().getSimpleName(), e.getMessage());
-        toolCallMeters.countRejected("list_categories", reason);
-        return CallToolResult.builder().isError(true).addTextContent(message).build();
+        toolCallMeters.countRejected("list_categories", refusal.meterReason(e));
+        return CallToolResult.builder()
+                .isError(true)
+                .addTextContent(refusal.message())
+                .build();
     }
 }

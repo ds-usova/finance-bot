@@ -65,30 +65,60 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     }
 
     @Override
-    public Optional<WrittenMessageView> claimOldestWaiting(Instant now) {
+    public Optional<WrittenMessageView> findOldestWaitingFiledSince(Instant filedSince) {
         try {
             return writtenMessageEntityRepository
-                    .claimOldestWaiting(now.truncatedTo(ChronoUnit.MICROS))
+                    .findOldestWaitingFiledSince(micros(filedSince))
                     .map(WrittenMessageEntity::toView);
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to claim the oldest waiting written message", e);
+            throw new PersistenceFailedException("failed to find the oldest waiting written message", e);
         }
     }
 
     @Override
-    public boolean stampHandOver(long messageId, Instant now) {
+    public void recordAttempt(long messageId, Instant now) {
         try {
-            return writtenMessageEntityRepository.stampHandOver(messageId, now.truncatedTo(ChronoUnit.MICROS)) > 0;
+            writtenMessageEntityRepository.recordAttempt(messageId, micros(now));
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to stamp the hand-over of written message " + messageId, e);
+            throw new PersistenceFailedException("failed to record an attempt on written message " + messageId, e);
+        }
+    }
+
+    @Override
+    public boolean markHandedOver(long messageId, Instant now) {
+        try {
+            return writtenMessageEntityRepository.markHandedOver(messageId, micros(now)) > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to mark written message " + messageId + " handed over", e);
+        }
+    }
+
+    @Override
+    public List<WrittenMessageView> findWaitingForSweep(Instant filedBefore, Instant attemptBefore) {
+        try {
+            return writtenMessageEntityRepository
+                    .findWaitingForSweep(micros(filedBefore), micros(attemptBefore))
+                    .stream()
+                    .map(WrittenMessageEntity::toView)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find waiting written messages for the sweep", e);
+        }
+    }
+
+    @Override
+    public Optional<Instant> oldestWaitingFiledAt() {
+        try {
+            return writtenMessageEntityRepository.findOldestWaiting().map(WrittenMessageEntity::createdAt);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to read the oldest waiting filing instant", e);
         }
     }
 
     @Override
     public boolean settle(long messageId, ReportOutcome outcome, Instant now) {
         try {
-            return writtenMessageEntityRepository.settle(messageId, outcome.name(), now.truncatedTo(ChronoUnit.MICROS))
-                    > 0;
+            return writtenMessageEntityRepository.settle(messageId, outcome.name(), micros(now)) > 0;
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to settle written message " + messageId, e);
         }
@@ -97,9 +127,7 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public List<WrittenMessageView> findReadingUpdatedBefore(Instant cutoff) {
         try {
-            return writtenMessageEntityRepository
-                    .findReadingUpdatedBefore(cutoff.truncatedTo(ChronoUnit.MICROS))
-                    .stream()
+            return writtenMessageEntityRepository.findReadingUpdatedBefore(micros(cutoff)).stream()
                     .map(WrittenMessageEntity::toView)
                     .toList();
         } catch (RuntimeException e) {
@@ -125,7 +153,11 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
                 mapped.text(),
                 mapped.status(),
                 mapped.outcome(),
-                mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
-                mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
+                micros(mapped.createdAt()),
+                micros(mapped.updatedAt()));
+    }
+
+    private static Instant micros(Instant instant) {
+        return instant.truncatedTo(ChronoUnit.MICROS);
     }
 }

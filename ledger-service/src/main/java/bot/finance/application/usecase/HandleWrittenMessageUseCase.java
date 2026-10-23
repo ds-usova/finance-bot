@@ -1,7 +1,8 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnEnding;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
@@ -14,12 +15,12 @@ import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.value.IncomingMessageId;
-import bot.finance.domain.value.SpendingPeriod;
+import bot.finance.domain.value.CurrencyCode;
 import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.Duration;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,12 +28,13 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
     private final WrittenMessageRepository writtenMessageRepository;
     private final GroupingRepository groupingRepository;
-    private final ExpenseRepository expenseRepository;
-    private final SpendingQueryRepository spendingQueryRepository;
-    private final TurnMeters turnMeters;
+    private final UserPreferenceRepository userPreferenceRepository;
+    private final IntentExtractionPort intentExtractionPort;
     private final Clock clock;
+    private final Duration maxQueueWait;
     private final Logger log;
     private final ExtractionTurn extractionTurn;
+    private final WrittenTurnOutcome writtenTurnOutcome;
 
     public HandleWrittenMessageUseCase(
             WrittenMessageRepository writtenMessageRepository,
@@ -43,90 +45,69 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
             SpendingQueryRepository spendingQueryRepository,
             TurnMeters turnMeters,
             Clock clock,
+            Duration maxQueueWait,
             LoggerFactory loggerFactory) {
         this.writtenMessageRepository = writtenMessageRepository;
         this.groupingRepository = groupingRepository;
-        this.expenseRepository = expenseRepository;
-        this.spendingQueryRepository = spendingQueryRepository;
-        this.turnMeters = turnMeters;
+        this.userPreferenceRepository = userPreferenceRepository;
+        this.intentExtractionPort = intentExtractionPort;
         this.clock = clock;
+        this.maxQueueWait = maxQueueWait;
         this.log = loggerFactory.getLogger(HandleWrittenMessageUseCase.class);
-        this.extractionTurn =
-                new ExtractionTurn(userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
+        this.extractionTurn = new ExtractionTurn(spendingQueryRepository, log);
+        this.writtenTurnOutcome = new WrittenTurnOutcome(
+                writtenMessageRepository, expenseRepository, spendingQueryRepository, turnMeters, clock, log);
     }
 
     @Override
     public boolean handleNext() {
-        Optional<WrittenMessageView> claimed = writtenMessageRepository.claimOldestWaiting(Instant.now(clock));
-        if (claimed.isEmpty()) {
+        Optional<WrittenMessageView> waiting = writtenMessageRepository.findOldestWaitingFiledSince(
+                clock.instant().minus(maxQueueWait));
+        if (waiting.isEmpty()) {
             return false;
         }
-        WrittenMessageView message = claimed.get();
-        IncomingMessageId reference = message.incomingMessageId();
-        log.info("claimed written message {} of user {}", reference, message.userId());
 
-        Optional<IntentExtractionRequest> request = prepare(message, reference);
-        if (request.isEmpty()) {
-            settle(message, reference, ReportOutcome.FAILED);
-            return true;
-        }
+        WrittenMessageView message = waiting.get();
+        IntentExtractionRequest request;
         try {
-            if (!writtenMessageRepository.stampHandOver(message.id(), Instant.now(clock))) {
-                log.info("written message {} was settled before its hand-over", reference);
-                return true;
-            }
-        } catch (PersistenceFailedException e) {
-            log.warn("failed to stamp the hand-over of written message {}: {}", reference, e.getMessage());
-            settle(message, reference, ReportOutcome.FAILED);
+            request = prepare(message);
+        } catch (CatchAllGroupingMissingException e) {
+            log.warn("written message {} has no catch-all grouping: {}", message.id(), e.getMessage());
+            writtenTurnOutcome.settle(message, TurnEnding.FAILED);
             return true;
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to prepare written message {}: {}", message.id(), e.getMessage());
+            return false;
         }
 
-        boolean extractionFailed = extractionTurn.extractionFailed(request.get());
-        List<LocalDate> days = expenseRepository.findDaysByMessageReference(message.userId(), reference);
-        List<SpendingPeriod> periods =
-                spendingQueryRepository.findPeriodsByMessageReference(message.userId(), reference);
-        ReportOutcome outcome = outcomeFor(extractionFailed, !days.isEmpty(), !periods.isEmpty());
-        if (extractionFailed) {
-            log.error("intent extraction failed for written message {}, outcome {}", reference, outcome);
+        writtenMessageRepository.recordAttempt(message.id(), clock.instant());
+        try {
+            intentExtractionPort.extract(request);
+        } catch (IntentExtractionRefusedException e) {
+            log.warn("hand-over of written message {} was refused: {}", message.id(), e.getMessage());
+            writtenTurnOutcome.settle(message, TurnEnding.FAILED);
+            return true;
+        } catch (RuntimeException e) {
+            log.warn("hand-over of written message {} failed: {}", message.id(), e.getMessage());
+            return false;
         }
-        if (!periods.isEmpty()) {
-            extractionTurn.discardPeriods(message.userId(), reference);
-        }
-        settle(message, reference, outcome);
+
+        writtenMessageRepository.markHandedOver(message.id(), clock.instant());
         return true;
     }
 
-    private Optional<IntentExtractionRequest> prepare(WrittenMessageView message, IncomingMessageId reference) {
-        try {
-            List<String> categoryGroupings = groupingRepository.findNamesWithCategories(message.userId());
-            String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
-            return Optional.of(extractionTurn.request(
-                    message.text(),
-                    categoryGroupings,
-                    catchAll,
-                    extractionTurn.readDefaultCurrency(message.userId()),
-                    message.userId(),
-                    reference));
-        } catch (PersistenceFailedException | CatchAllGroupingMissingException e) {
-            log.warn("failed to prepare written message {}: {}", reference, e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private void settle(WrittenMessageView message, IncomingMessageId reference, ReportOutcome outcome) {
-        if (writtenMessageRepository.settle(message.id(), outcome, Instant.now(clock))) {
-            turnMeters.countTurn(outcome);
-            log.info("settled written message {} of user {} as {}", reference, message.userId(), outcome);
-        }
-    }
-
-    private ReportOutcome outcomeFor(boolean extractionFailed, boolean hasDays, boolean hasPeriods) {
-        if (extractionFailed) {
-            return hasDays ? ReportOutcome.PARTIAL : ReportOutcome.FAILED;
-        }
-        if (hasDays) {
-            return ReportOutcome.RECORDED;
-        }
-        return hasPeriods ? ReportOutcome.ANSWERED : ReportOutcome.NOTHING_IDENTIFIED;
+    private IntentExtractionRequest prepare(WrittenMessageView message) {
+        List<CatalogueEntry> catalogue = groupingRepository.findCatalogue(message.userId());
+        Optional<CurrencyCode> defaultCurrency = userPreferenceRepository.findDefaultCurrency(message.userId());
+        String catchAll = extractionTurn.catchAllAmong(
+                catalogue.stream().map(CatalogueEntry::grouping).toList());
+        return extractionTurn.request(
+                message.text(),
+                catalogue,
+                catchAll,
+                defaultCurrency,
+                message.userId(),
+                message.incomingMessageId(),
+                message.filedAt().atZone(ZoneOffset.UTC).toLocalDate());
     }
 }

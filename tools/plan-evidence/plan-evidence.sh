@@ -76,8 +76,8 @@ plan_rel="${plan_abs#"$repo_root/"}"
 
 # The evidence belongs to the task, not to one of its plans. A task spanning several modules holds a
 # plan each under <n>-<task>/<module>/, and all of them are covered by one measurement of the whole
-# tree. The design file one level up is what tells that layout from a single-plan task.
-if [ -f "$plan_dir/../design.md" ]; then
+# tree. The design file or spec one level up is what tells that layout from a single-plan task.
+if [ -f "$plan_dir/../design.md" ] || [ -f "$plan_dir/../spec.md" ]; then
     task_dir="$(cd "$plan_dir/.." && pwd)"
 else
     task_dir="$plan_dir"
@@ -185,7 +185,14 @@ for module in "${modules[@]}"; do
     echo "Measuring $module..." >&2
     run_output="$work_dir/$module.out"
     mkdir -p "$(dirname "$run_output")"
-    "$script_dir/../agent-test/agent-test.sh" --module "$module" --coverage --brief \
+    # A Gradle module that sets no coverageMinimum applies no coverage plugin, so a coverage run finds
+    # no task and runs no test; its suite is run plainly instead.
+    run_mode="--coverage"
+    if [ "$(module_kind "$module")" = "gradle" ] \
+        && ! grep -q '^coverageMinimum=' "$repo_root/$module/gradle.properties" 2>/dev/null; then
+        run_mode="--all"
+    fi
+    "$script_dir/../agent-test/agent-test.sh" --module "$module" "$run_mode" --brief \
         --wait "$wait_seconds" > "$run_output" 2>&1
     run_exit=$?
 

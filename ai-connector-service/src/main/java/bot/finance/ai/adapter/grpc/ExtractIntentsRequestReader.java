@@ -3,11 +3,13 @@ package bot.finance.ai.adapter.grpc;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -56,7 +58,14 @@ final class ExtractIntentsRequestReader {
                 request.getCatchAllGrouping(),
                 defaultCurrency,
                 currentDate,
-                messageIdentity);
+                messageIdentity,
+                catalogue(request));
+    }
+
+    private static List<CatalogueEntry> catalogue(ExtractIntentsRequest request) {
+        return request.getCatalogueList().stream()
+                .map(entry -> new CatalogueEntry(entry.getGrouping(), entry.getCategoriesList()))
+                .toList();
     }
 
     private static LocalDate currentDate(ExtractIntentsRequest request) {

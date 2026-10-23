@@ -2,6 +2,7 @@ package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.ai.AiExpenseRecordingAdapter;
 import bot.finance.ai.adapter.ai.AiMessageEmbeddingAdapter;
+import bot.finance.ai.adapter.ai.AiSpendingReadOutAdapter;
 import bot.finance.ai.adapter.ai.ChatClientConfiguration;
 import bot.finance.ai.adapter.ai.ExampleSectionRenderer;
 import bot.finance.ai.adapter.ledger.CallerTokenMcpRequestCustomizer;
@@ -9,6 +10,7 @@ import bot.finance.ai.adapter.ledger.LedgerMcpConfiguration;
 import bot.finance.ai.adapter.ledger.LedgerToolFailureProcessor;
 import bot.finance.ai.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.ai.adapter.scheduling.MemoryPropertiesConfiguration;
+import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.common.containers.WireMockSupport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -25,9 +27,10 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * Boots {@link AiExpenseRecordingAdapter}, {@link ExampleSectionRenderer}, {@link AiMessageEmbeddingAdapter},
+ * Boots {@link AiExpenseRecordingAdapter}, {@link AiSpendingReadOutAdapter}, {@link ExampleSectionRenderer}, {@link AiMessageEmbeddingAdapter},
  * {@link MemoryPropertiesConfiguration}, {@link ChatClientConfiguration}, {@link LedgerMcpConfiguration},
  * {@link CallerTokenMcpRequestCustomizer}, {@link LedgerToolFailureProcessor} and Spring AI's OpenAI chat and
  * embedding, MCP client, streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no
@@ -40,6 +43,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(
         classes = {
             AiExpenseRecordingAdapter.class,
+            AiSpendingReadOutAdapter.class,
             ExampleSectionRenderer.class,
             AiMessageEmbeddingAdapter.class,
             MemoryPropertiesConfiguration.class,
@@ -59,4 +63,5 @@ import org.springframework.test.context.ActiveProfiles;
     McpToolCallbackAutoConfiguration.class
 })
 @Import(WireMockUrlConfiguration.class)
+@MockitoBean(types = TurnMeters.class)
 public @interface AiAdapterTest {}

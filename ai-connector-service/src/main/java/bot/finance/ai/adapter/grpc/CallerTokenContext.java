@@ -8,6 +8,7 @@ public final class CallerTokenContext {
 
     static final Context.Key<String> CALLER_TOKEN = Context.key("callerToken");
     static final Context.Key<MessageIdentity> MESSAGE_IDENTITY = Context.key("messageIdentity");
+    static final Context.Key<MessageIdentity> TURN_KEY = Context.key("turnKey");
 
     private CallerTokenContext() {}
 
@@ -17,5 +18,9 @@ public final class CallerTokenContext {
 
     public static Optional<MessageIdentity> messageIdentity() {
         return Optional.ofNullable(MESSAGE_IDENTITY.get());
+    }
+
+    public static Optional<MessageIdentity> turnKey() {
+        return Optional.ofNullable(TURN_KEY.get());
     }
 }

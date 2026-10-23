@@ -27,6 +27,7 @@ Person(webUser, "Web User", "Signs in and views their ledger in a browser")
 System(financeBot, "Finance Bot", "Transcribes voice messages and extracts structured expense data")
 System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio files and the sign-in widget")
 System_Ext(aiProvider, "AI Provider", "LLM used to extract structured expense data from a transcript")
+System_Ext(classifier, "Category Classifier", "TypeSafe System One; picks each expense's category")
 
 Rel_R(user, telegram, "Sends voice message", "Telegram app")
 Rel_L(telegram, user, "Delivers confirmation reply", "Telegram app")
@@ -38,6 +39,7 @@ Rel_L(financeBot, telegram, "Receives updates, downloads audio", "Telegram Bot A
 Rel_L(financeBot, telegram, "Sends confirmation reply", "Telegram Bot API")
 
 Rel_R(financeBot, aiProvider, "Requests expense extraction from transcript", "HTTPS/REST")
+Rel_D(financeBot, classifier, "Asks each expense's category, in the classifier mode", "HTTPS/REST")
 
 SHOW_LEGEND()
 @enduml
@@ -58,6 +60,7 @@ Person(webUser, "Web User", "Signs in and views their ledger in a browser")
 Person(admin, "Admin", "Watches the service dashboards")
 System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio files and the sign-in widget")
 System_Ext(aiProvider, "AI Provider", "LLM used for expense extraction")
+System_Ext(classifier, "Category Classifier", "TypeSafe System One")
 
 System_Boundary(financeBot, "Finance Bot") {
   Container(webApp, "Web App", "TypeScript, React, nginx", "Telegram sign-in; browses the ledger")
@@ -85,7 +88,9 @@ Rel_D(ledger, transcriber, "Audio", "REST")
 Rel_L(transcriber, ledger, "Transcript", "REST")
 Rel_R(ledger, aiConnector, "Message + token", "gRPC")
 Rel_L(aiConnector, ledger, "Tool calls, key set", "MCP, HTTP")
+Rel_L(aiConnector, ledger, "Turn filings, classifier mode", "gRPC")
 Rel_R(aiConnector, aiProvider, "Extraction", "HTTPS")
+Rel_R(aiConnector, classifier, "Category per expense, classifier mode", "HTTPS")
 Rel_D(aiConnector, connectorDb, "Messages", "JDBC")
 Rel_D(ledger, ledgerDb, "Users, expenses", "JDBC")
 Rel_L(ledgerDb, ledger, "Row changes", "logical replication")

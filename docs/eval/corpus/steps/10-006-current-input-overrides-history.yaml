@@ -1,0 +1,17 @@
+caseId: "10-006-current-input-overrides-history"
+steps:
+  - {"action":"verify-fixture"}
+  - {"action":"file-learning-message","learningId":"coffee"}
+  - {"action":"wait-for-terminal-outcome","message":"coffee"}
+  - {"action":"verify-learning-proposals","learningId":"coffee"}
+  - {"action":"set-learning-classification","learningId":"coffee"}
+  - {"action":"resolve-learning-proposals","learningId":"coffee"}
+  - {"action":"wait-for-memory-readiness","learningId":"coffee"}
+  - {"action":"file-target-message"}
+  - {"action":"wait-for-terminal-outcome","message":"target"}
+  - {"action":"inspect-application-state"}
+  - {"action":"collect-recall-evidence"}
+finally:
+  - {"action":"collect-evidence"}
+  - {"action":"cleanup-case-data"}
+  - {"action":"verify-fixture-restored"}

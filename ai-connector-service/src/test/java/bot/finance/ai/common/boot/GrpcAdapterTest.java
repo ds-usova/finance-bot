@@ -28,7 +28,8 @@ import org.springframework.test.context.TestPropertySource;
         properties = {
             "spring.grpc.server.servlet.enabled=false",
             "spring.grpc.server.factory.enabled=false",
-            "spring.grpc.client.channelfactory.enabled=false"
+            "spring.grpc.client.channelfactory.enabled=false",
+            "ledger.turn.target=static://localhost:1"
         })
 @Import(InProcessGrpcTransportConfiguration.class)
 @ImportGrpcClients(types = IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub.class)

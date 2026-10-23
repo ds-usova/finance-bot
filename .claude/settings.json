@@ -16,6 +16,7 @@
       "Bash(tools/repad-tables/repad-tables.sh:*)",
       "Bash(./tools/repad-tables/repad-tables.sh:*)",
       "Bash(bash tools/repad-tables/repad-tables.sh:*)",
+      "Bash(eval-runner/eval.sh:*)",
       "Bash(./gradlew:*)",
       "Bash(ledger-service/gradlew:*)",
       "Bash(ai-connector-service/gradlew:*)",
@@ -23,6 +24,9 @@
       "Bash(./ai-connector-service/gradlew:*)",
       "Bash(bash ledger-service/gradlew:*)",
       "Bash(bash ai-connector-service/gradlew:*)",
+      "Bash(eval-runner/gradlew:*)",
+      "Bash(./eval-runner/gradlew:*)",
+      "Bash(bash eval-runner/gradlew:*)",
       "Bash(git add:*)",
       "Bash(git diff:*)",
       "Bash(git commit:*)",
@@ -61,7 +65,8 @@
       "WebFetch(domain:plugins.gradle.org)",
       "WebFetch(domain:spring.io)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.typesafe.ai)"
     ],
     "ask": [
       "Bash(python:*)",

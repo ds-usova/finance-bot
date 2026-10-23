@@ -1,16 +1,12 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.ToolCallMeters;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidSpendingPeriodException;
-import bot.finance.domain.exception.InvalidSpendingQueryException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
@@ -27,15 +23,18 @@ public class SummarizeSpendingMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
+    private final TurnCallLog turnCallLog;
 
     public SummarizeSpendingMcpTool(
             SummarizeSpendingPort summarizeSpendingPort,
             JsonMapper jsonMapper,
             ToolCallMeters toolCallMeters,
+            TurnCallLog turnCallLog,
             LoggerFactory loggerFactory) {
         this.summarizeSpendingPort = summarizeSpendingPort;
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
+        this.turnCallLog = turnCallLog;
         this.log = loggerFactory.getLogger(SummarizeSpendingMcpTool.class);
     }
 
@@ -47,6 +46,16 @@ public class SummarizeSpendingMcpTool {
     public CallToolResult summarizeSpending(
             @McpToolParam(description = "the first day of the period, inclusive, as YYYY-MM-DD") String from,
             @McpToolParam(description = "the last day of the period, inclusive, as YYYY-MM-DD") String to) {
+        CallToolResult result = summarize(from, to);
+        turnCallLog.write(
+                "summarize_spending",
+                TurnCallLog.Via.MCP,
+                !Boolean.TRUE.equals(result.isError()),
+                TurnCallLog.arguments("from", from, "to", to));
+        return result;
+    }
+
+    private CallToolResult summarize(String from, String to) {
         log.debug("Received summarize_spending call: {} {}", from, to);
 
         try {
@@ -63,26 +72,17 @@ public class SummarizeSpendingMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidSpendingPeriodException e) {
-            return rejected(e, e.getMessage());
-        } catch (InvalidSpendingQueryException | InvalidUserException e) {
-            return rejected(e, "invalid request: " + e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return rejected(e, "the user is unknown");
-        } catch (PersistenceFailedException e) {
-            return rejected(e, "the summary could not be recorded");
         } catch (RuntimeException e) {
-            return rejected(e, "the spending could not be summarized", "unexpected");
+            return rejected(e, ToolRefusal.ofSpendingSummary(e));
         }
     }
 
-    private CallToolResult rejected(RuntimeException e, String message) {
-        return rejected(e, message, e.getClass().getSimpleName());
-    }
-
-    private CallToolResult rejected(RuntimeException e, String message, String reason) {
+    private CallToolResult rejected(RuntimeException e, ToolRefusal refusal) {
         log.warn("rejected summarize_spending call: {} {}", e.getClass().getSimpleName(), e.getMessage());
-        toolCallMeters.countRejected("summarize_spending", reason);
-        return CallToolResult.builder().isError(true).addTextContent(message).build();
+        toolCallMeters.countRejected("summarize_spending", refusal.meterReason(e));
+        return CallToolResult.builder()
+                .isError(true)
+                .addTextContent(refusal.message())
+                .build();
     }
 }

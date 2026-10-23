@@ -1,5 +1,7 @@
 package bot.finance.ai.common.fixtures;
 
+import com.fasterxml.jackson.databind.node.TextNode;
+
 /**
  * Builders for whole OpenAI chat-completion response bodies. {@link WireMockStubs} serves what they build
  * verbatim, with no further wrapping.
@@ -52,6 +54,14 @@ public final class ChatCompletionFixtures {
                 }
                 """
                 .formatted(id, functionName, quote(argumentsJson));
+    }
+
+    /** {@code create_expense_proposal} arguments for a 15.00 EUR lunch at Deli Co, under the first default grouping. */
+    public static String lunchProposalArguments() {
+        return """
+                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
+                "currencyCode":"EUR","merchant":"Deli Co"}"""
+                .formatted(RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst());
     }
 
     /**
@@ -113,6 +123,36 @@ public final class ChatCompletionFixtures {
                   }
                 }"""
                 .formatted(content);
+    }
+
+    /**
+     * A chat-completion response whose {@code message} content is the given read-out JSON, as a string, with no
+     * tool call — how the model answers a call that carries a response format and no tools.
+     */
+    public static String readOut(String json) {
+        return """
+                {
+                  "id": "chatcmpl-fixture",
+                  "object": "chat.completion",
+                  "created": 1700000000,
+                  "model": "gpt-4o-mini",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": %s
+                      },
+                      "finish_reason": "stop"
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 20,
+                    "total_tokens": 120
+                  }
+                }"""
+                .formatted(TextNode.valueOf(json).toString());
     }
 
     private static String quote(String json) {

@@ -157,6 +157,14 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                     .as("extraction request current_date")
                     .isEqualTo(LocalDate.now(Clock.systemUTC()));
 
+            // then: one report goes back into the chat, threaded onto the message it answers
+            await("a sendMessage reply is recorded for the answered turn")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
+                            .as("sendMessage requests recorded for token %s", TOKEN)
+                            .isNotEmpty());
+
             // then: the model's summarize_spending call reached /mcp and was accepted for the seeded period
             List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
             assertThat(mcpAnswers)
@@ -166,14 +174,6 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                     .as("the summarize_spending answer echoes the accepted period")
                     .contains(PERIOD_FROM)
                     .contains(PERIOD_TO);
-
-            // then: one report goes back into the chat, threaded onto the message it answers
-            await("a sendMessage reply is recorded for the answered turn")
-                    .atMost(POLL_TIMEOUT)
-                    .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
-                            .as("sendMessage requests recorded for token %s", TOKEN)
-                            .isNotEmpty());
 
             List<LoggedRequest> sent = recordedSendMessagesFor(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);

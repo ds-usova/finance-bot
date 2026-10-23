@@ -1,0 +1,601 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Eval Run Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* Layout: a test report. One summary line, a table of cases with the failure reason in the row, and everything
+   else one click deeper: a case opens under its row, its secondary views sit behind tabs, run details at the end. */
+:root {
+  --bg: #fbfbf9;
+  --fg: #1f2020;
+  --muted: #6c6e6b;
+  --faint: #a1a39f;
+  --rule: #e4e5e1;
+  --hover: #f3f3f0;
+  --open: #f6f6f3;
+  --pass: #1a7f37;
+  --fail: #c4302b;
+  --error: #a76300;
+  --mark-fail: #fbe3e1;
+  --mark-pass: #dff1e4;
+  --link: #1f5fbf;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161716; --fg: #e3e4e1; --muted: #9a9c98; --faint: #6c6e6b; --rule: #2c2e2c; --hover: #1e201e;
+    --open: #1b1c1b; --pass: #5cc27a; --fail: #f07b72; --error: #e0a548; --mark-fail: #4a2321;
+    --mark-pass: #1c3a25; --link: #7fb0f5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161716; --fg: #e3e4e1; --muted: #9a9c98; --faint: #6c6e6b; --rule: #2c2e2c; --hover: #1e201e;
+  --open: #1b1c1b; --pass: #5cc27a; --fail: #f07b72; --error: #e0a548; --mark-fail: #4a2321;
+  --mark-pass: #1c3a25; --link: #7fb0f5; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 13.5px/1.45 var(--sans); margin: 0; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 64px; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.pass { color: var(--pass); }
+.fail, .flaky { color: var(--fail); }
+.none { color: var(--faint); }
+.error { color: var(--error); }
+.linkish { background: none; border: 0; padding: 0; color: var(--link); cursor: pointer; }
+.linkish:hover { text-decoration: underline; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.bar .title { font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.controls label { color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+select, .search { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 6px; max-width: 100%; }
+.button { border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; padding: 3px 10px; cursor: pointer; }
+.button:hover { background: var(--hover); }
+#file { display: none; }
+[hidden] { display: none !important; }
+.notice { margin-top: 12px; color: var(--fail); }
+
+.summary { padding-block: 14px 10px; display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: flex-end; justify-content: space-between; }
+.summary-text { display: grid; gap: 2px; min-width: 0; }
+.summary .id { color: var(--muted); }
+.summary .headline { font-size: 15px; }
+.summary .headline strong { font-weight: 600; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; padding-block: 8px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.tab { background: none; border: 0; padding: 2px 0; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+.tab:hover { color: var(--fg); }
+.tab[aria-pressed="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+.search { width: 220px; }
+.blocked { color: var(--error); padding-block: 4px; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--muted); white-space: nowrap; position: sticky; top: 0; background: var(--bg); }
+th.r, td.r { text-align: right; }
+.cases > tbody > tr.row { cursor: pointer; }
+.cases > tbody > tr.row:hover { background: var(--hover); }
+.cases > tbody > tr.row.is-open { background: var(--open); }
+.cases > tbody > tr.row.is-open td { border-bottom-color: transparent; }
+td.glyph { width: 1.5em; padding-right: 0; font-weight: 700; }
+td.case { white-space: nowrap; }
+td.covers { color: var(--muted); }
+td.reps { white-space: nowrap; letter-spacing: 2px; }
+td.reason { min-width: 22rem; }
+.reason-line { display: grid; grid-template-columns: max-content max-content minmax(0, 1fr); gap: 0 8px; }
+.reason-line .path { grid-row: span 2; color: var(--muted); }
+.reason-line .k { color: var(--faint); }
+.more { color: var(--faint); }
+tr.passed-toggle td { color: var(--muted); }
+tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
+.change { font-size: 12px; font-weight: 600; }
+
+.detail-grid { display: grid; gap: 16px; }
+h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
+.case-notes { margin: 0; font-size: 14.5px; max-width: 80ch; }
+q { font-size: 14px; }
+.attempt { display: grid; gap: 6px; min-width: 0; }
+table.steps th, table.steps td { padding: 5px 14px 5px 0; }
+table.steps thead th { position: static; background: none; }
+table.steps td:first-child { width: 1.6em; padding-left: 6px; font-weight: 700; }
+table.steps td:nth-child(2) { width: 34%; }
+table.steps td:nth-child(3), table.steps td:nth-child(4) { width: 30%; overflow-wrap: anywhere; }
+table.steps tr.section th { color: var(--fg); font-weight: 600; padding-top: 14px; border-bottom: 1px solid var(--fg); }
+table.steps tr.section.start th { color: var(--link); border-bottom-color: var(--link); }
+table.steps tr.start td { background: color-mix(in srgb, var(--link) 9%, transparent); }
+table.steps tr.bad td { background: var(--mark-fail); }
+.want { color: var(--pass); }
+.got { color: var(--fail); }
+.want mark { background: var(--mark-pass); color: inherit; border-radius: 2px; }
+.got mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
+.figures { display: flex; flex-wrap: wrap; gap: 8px 40px; }
+.figures > div { display: grid; justify-items: end; text-align: right; }
+.figure { font-size: 30px; font-weight: 600; line-height: 1.1; }
+.raw-toggle summary { cursor: pointer; color: var(--muted); }
+.raw-toggle pre { margin-top: 6px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+pre.raw { margin: 0; padding: 10px; background: var(--bg); border: 1px solid var(--rule); overflow: auto; max-height: 480px; font-size: 12px; }
+.empty { color: var(--muted); padding-block: 6px; }
+
+details.run-details { margin-top: 28px; border-top: 1px solid var(--rule); padding-top: 10px; }
+details.run-details > summary { cursor: pointer; font-weight: 600; }
+.details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px 32px; padding-top: 14px; }
+.details-grid > div { min-width: 0; }
+
+.drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 80%, transparent); border: 2px dashed var(--muted); display: grid; place-items: center; font-size: 18px; z-index: 10; pointer-events: none; }
+</style>
+
+<div class="wrap">
+  <div class="bar">
+    <span class="title">Eval run viewer</span>
+    <div class="controls">
+      <label id="run-control" hidden>Run <select id="run-select"></select></label>
+      <label id="compare-control" hidden>Compare with <select id="compare-select"></select></label>
+      <button type="button" id="open" class="button">Open run files…</button>
+      <input type="file" id="file" accept=".json,application/json" multiple>
+    </div>
+  </div>
+  <div id="notice" class="notice" hidden></div>
+  <div id="view"></div>
+</div>
+<div id="drop" class="drop" hidden>Drop run files to open them</div>
+
+<script type="application/json" id="sample">
+{"schemaVersion":1,"runId":"trial-20261013-190533","status":"complete","startedAt":"2026-10-13T19:05:33.151767Z","finishedAt":"2026-10-13T19:05:59.490811900Z","config":{"label":"trial","repetitions":1,"casePrefixes":["2-002","8-003","10-003"],"budgetEnforced":false,"corpusDir":"docs\\eval\\corpus","ledgerUrl":"http://localhost:1000","ledgerMetricsUrl":"http://localhost:1010/actuator/prometheus","connectorMetricsUrl":"http://localhost:1011/actuator/prometheus","aiDbUrl":"jdbc:postgresql://localhost:5432/finance_ai","ledgerLog":"build\\eval\\ledger.log","terminalTimeoutSeconds":180,"readinessTimeoutSeconds":120},
+"summary":{"attempts":3,"discardedRolloverAttempts":0,"blockedCases":{},"quality":{"verdictCounts":{"pass":1,"fail":2,"error":0},"passRate":0.3333333333333333,"errorRate":0.0,"precision":{"n":2,"mean":0.5},"recall":{"n":2,"mean":0.5},"f1":{"n":2,"mean":0.5},"falsePositiveRate":0.0,"outcomeConfusion":{"ANSWERED":{"ANSWERED":1},"RECORDED":{"RECORDED":2}},"passRateByCovers":{"expense-count.one":1.0,"learned-history.discarded":0.0,"spending-period.last-week":0.0}},
+"performance":{"runMs":26338,"targetTurnMs":{"n":3,"median":4008.0,"p90":9835.0,"mean":5540.333333333333},"providerChatCalls":{"n":3,"median":3.0,"p90":3.0,"mean":2.6666666666666665},"providerChatSeconds":{"n":3,"median":2.7800098030000004,"p90":4.650240908,"mean":3.2844495833333336},"inputTokens":{"n":3,"median":2827.0,"p90":2909.0,"mean":2511.3333333333335},"outputTokens":{"n":3,"median":72.0,"p90":91.0,"mean":71.66666666666667},"ledgerToolCalls":{"n":3,"median":2.0,"p90":2.0,"mean":1.6666666666666667}},
+"cases":{"2-002-one-expense":{"verdicts":["pass"],"verdictCounts":{"pass":1,"fail":0,"error":0},"precision":1.0,"recall":1.0,"f1":1.0,"targetTurnMs":{"n":1,"median":9835.0,"p90":9835.0,"mean":9835.0}},"8-003-period-last-week":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":null,"recall":null,"f1":null,"targetTurnMs":{"n":1,"median":2778.0,"p90":2778.0,"mean":2778.0}},"10-003-discarded-history":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":0.0,"recall":0.0,"f1":0.0,"targetTurnMs":{"n":1,"median":4008.0,"p90":4008.0,"mean":4008.0}}}},
+"attempts":[
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:8","arguments":{"grouping":"Transportation"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:8","arguments":{"category":"Public Transport","grouping":"Transportation","description":"bus ticket","merchant":null,"amount":"500","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":21,"amount":"500.00","currency":"HUF","merchant":null,"description":"bus ticket","categoryId":133,"category":"Public Transport","grouping":"Transportation"}]},"attempt":1,"attemptStatus":"completed","caseId":"2-002-one-expense","caseText":{"message":"I paid 500 HUF for a bus ticket.","notes":"Checks only expense-count.one.","learning":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}}},"checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"}],"covers":"expense-count.one","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:45.335152200Z","matching":{"actual":1,"expected":1,"matched":1,"pairs":null},"measurements":{"learning":{},"targetTurnMs":9835,"usage":{"providerChatCalls":3.0,"providerChatSeconds":4.650240908,"providerEmbeddingCalls":1.0,"inputTokens":2827.0,"outputTokens":72.0,"ledgerToolCalls":2.0}},"messageIds":{"target":8},"qualityMetrics":{"f1":1.0,"precision":1.0,"recall":1.0},"repetition":1,"startedAt":"2026-10-13T19:05:33.467648Z","verdict":"pass","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"summarize_spending","accepted":true,"incomingMessageId":"web:9","arguments":{"from":"2026-10-04","to":"2026-10-10"}}],"outcome":"ANSWERED","proposals":[]},"attempt":1,"attemptStatus":"completed","caseId":"8-003-period-last-week","caseText":{"message":"How much did I spend last week?","notes":"Checks only spending-period.last-week.","learning":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"previous-week-monday"},"to":{"equals":"previous-week-sunday"}}}}}},"checks":[{"path":"messageOutcome","expected":"ANSWERED","actual":"ANSWERED","status":"pass"},{"path":"proposals.count","expected":0,"actual":0,"status":"pass"},{"path":"mcpCalls.summarize_spending.acceptedCount","expected":1,"actual":1,"status":"pass"},{"path":"mcpCalls.summarize_spending.arguments.from","expected":{"equals":"2026-10-05"},"actual":["2026-10-04"],"status":"fail"},{"path":"mcpCalls.summarize_spending.arguments.to","expected":{"equals":"2026-10-11"},"actual":["2026-10-10"],"status":"fail"}],"covers":"spending-period.last-week","errors":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"2026-10-05"},"to":{"equals":"2026-10-11"}}}}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:49.350288Z","matching":{"actual":0,"expected":0,"matched":0,"pairs":null},"measurements":{"learning":{},"targetTurnMs":2778,"usage":{"providerChatCalls":2.0,"providerChatSeconds":2.423098039,"providerEmbeddingCalls":1.0,"inputTokens":1798.0,"outputTokens":52.0,"ledgerToolCalls":1.0}},"messageIds":{"target":9},"qualityMetrics":{"f1":null,"precision":null,"recall":null},"repetition":1,"startedAt":"2026-10-13T19:05:45.388772500Z","verdict":"fail","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:11","arguments":{"grouping":"Miscellaneous"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:11","arguments":{"category":"Uncategorized Expenses","grouping":"Miscellaneous","description":"coffee","merchant":"Corner Shop","amount":"850","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":23,"amount":"850.00","currency":"HUF","merchant":"Corner Shop","description":"coffee","categoryId":388,"category":"Uncategorized Expenses","grouping":"Miscellaneous"}]},"attempt":1,"attemptStatus":"completed","caseId":"10-003-discarded-history","caseText":{"message":"I paid 850 HUF for coffee at Corner Shop.","notes":"Discarding generic classification must not teach a positive preference for it.","learning":[{"id":"coffee","message":"I paid 850 HUF for coffee at Corner Shop.","proposalCount":1,"grouping":"Miscellaneous","category":"Uncategorized Expenses","decision":"discard"}],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}}},"checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"},{"path":"proposals.items[0]","expected":{"category":{"noneOf":["Uncategorized Expenses"]}},"actual":null,"status":"fail"}],"covers":"learned-history.discarded","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:59.487291600Z","matching":{"actual":1,"expected":1,"matched":0,"pairs":{}},"measurements":{"learning":{"coffee":{"availabilityMs":639,"turnMs":4208}},"targetTurnMs":4008,"usage":{"providerChatCalls":3.0,"providerChatSeconds":2.7800098030000004,"providerEmbeddingCalls":1.0,"inputTokens":2909.0,"outputTokens":91.0,"ledgerToolCalls":2.0}},"messageIds":{"coffee":10,"target":11},"qualityMetrics":{"f1":0.0,"precision":0.0,"recall":0.0},"repetition":1,"startedAt":"2026-10-13T19:05:49.353289Z","verdict":"fail","warnings":[]}
+]}
+</script>
+
+<script>
+(() => {
+  const state = { runs: [], current: 0, baseline: -1, filter: "failing", query: "", showPassed: false, open: new Map() };
+  const $ = (id) => document.getElementById(id);
+
+  // ---- formatting -------------------------------------------------------------------------------------------
+
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+  const fmt = (v, d = 0) => isNum(v) ? v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) : "–";
+  const secs = (msValue) => isNum(msValue) ? fmt(msValue / 1000, 1) : "–";
+  const pct = (v) => isNum(v) ? `${Math.round(v * 100)}%` : "–";
+  const instant = (iso) => iso ? Date.parse(String(iso).replace(/(\.\d{3})\d+/, "$1")) : NaN;
+  const mean = (vs) => { const v = vs.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const median = (vs) => { const v = vs.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+  const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+  const idKey = (id) => (String(id).match(/^(\d+)-(\d+)/) || [0, 1e9, 1e9]).slice(1).map(Number);
+  const byId = (a, b) => { const [x1, y1] = idKey(a), [x2, y2] = idKey(b); return x1 - x2 || y1 - y2 || String(a).localeCompare(String(b)); };
+  const glyph = { pass: "✓", fail: "✗", error: "!", flaky: "✗", none: "·" };
+
+  /** A value as a person reads it: a bare string, a list joined by commas, "nothing" for null or empty. */
+  function valueText(v) {
+    if (v === null || v === undefined) return "nothing";
+    if (Array.isArray(v)) return v.length === 0 ? "nothing" : v.length === 1 ? valueText(v[0]) : v.map(valueText).join(", ");
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
+  /** A case constraint in words: equals, oneOf, noneOf, present, absent, ignored. */
+  function constraintText(c) {
+    if (c === null || typeof c !== "object" || Array.isArray(c)) return valueText(c);
+    if (c.ignored) return "anything";
+    if ("absent" in c) return c.absent ? "absent" : "present";
+    if ("present" in c) return c.present ? "present" : "empty";
+    if ("equals" in c) return valueText(c.equals);
+    if ("oneOf" in c) return `one of ${c.oneOf.map(valueText).join(", ")}`;
+    if ("noneOf" in c) return c.noneOf.length === 1 ? `anything but ${valueText(c.noneOf[0])}` : `none of ${c.noneOf.map(valueText).join(", ")}`;
+    return JSON.stringify(c);
+  }
+
+  const CONSTRAINT_KEYS = ["equals", "oneOf", "noneOf", "present", "absent", "ignored"];
+  function flatten(node, prefix = "", into = []) {
+    if (node && typeof node === "object" && !Array.isArray(node)) {
+      if (Object.keys(node).some((k) => CONSTRAINT_KEYS.includes(k))) { into.push([prefix, node]); return into; }
+      for (const [k, v] of Object.entries(node)) flatten(v, prefix ? `${prefix}.${k}` : k, into);
+    }
+    return into;
+  }
+  function holds(c, actual) {
+    const a = actual === null || actual === undefined ? null : String(actual);
+    if (c.ignored) return true;
+    if ("absent" in c) return !!c.absent === (a === null);
+    if ("present" in c) return !!c.present === (a !== null && a.trim() !== "");
+    if ("equals" in c) return String(c.equals) === a;
+    if ("oneOf" in c) return c.oneOf.map(String).includes(a);
+    if ("noneOf" in c) return !c.noneOf.map(String).includes(a);
+    return true;
+  }
+  const at = (obj, path) => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+
+  const shortPath = (p) => p.replace(/^mcpCalls\./, "").replace(/\.arguments\./, ".").replace(/^messageOutcome$/, "outcome");
+
+  /**
+   * What a failed check wanted and what it got, in words. An unmatched expected proposal names the field of the
+   * unmatched proposals that broke it, since the check itself records only that no proposal matched.
+   */
+  function explain(check, attempt) {
+    if (check.status === "not-evaluated") return { path: shortPath(check.path), want: constraintText(check.expected), got: "not read" };
+    const item = check.path.match(/^proposals\.items\[(\d+)\]$/);
+    if (item) {
+      const paired = new Set(Object.values(attempt.matching?.pairs || {}).map(String));
+      const unmatched = (attempt.actual?.proposals || []).filter((p) => !paired.has(String(p.id)));
+      for (const [field, c] of flatten(check.expected)) {
+        const values = unmatched.map((p) => at(p, field));
+        if (!values.length || values.some((v) => !holds(c, v))) {
+          return { path: `proposal ${Number(item[1]) + 1}: ${field}`, want: constraintText(c), got: values.length ? valueText(values) : "no proposal left to match" };
+        }
+      }
+      return { path: `proposal ${Number(item[1]) + 1}`, want: flatten(check.expected).map(([f, c]) => `${f} ${constraintText(c)}`).join("; "), got: "no matching proposal" };
+    }
+    return { path: shortPath(check.path), want: constraintText(check.expected), got: valueText(check.actual) };
+  }
+
+  /** The two values, with what differs after their common start marked. */
+  function diffPair(want, got) {
+    let i = 0;
+    while (i < want.length && i < got.length && want[i] === got[i]) i++;
+    const marked = (s) => i === 0 || i >= s.length ? esc(s) : `${esc(s.slice(0, i))}<mark>${esc(s.slice(i))}</mark>`;
+    const same = want === got;
+    return { want: same ? esc(want) : marked(want), got: same ? esc(got) : marked(got) };
+  }
+
+  // ---- model ------------------------------------------------------------------------------------------------
+
+  const failingChecks = (a) => (a.checks || []).filter((c) => c.status !== "pass");
+  const counted = (attempts) => attempts.filter((a) => a.attemptStatus !== "discarded-date-rollover");
+
+  function casesOf(run) {
+    const map = new Map();
+    for (const id of Object.keys(run.summary?.cases || {})) map.set(id, { id, attempts: [] });
+    for (const a of run.attempts) {
+      if (!map.has(a.caseId)) map.set(a.caseId, { id: a.caseId, attempts: [] });
+      map.get(a.caseId).attempts.push(a);
+    }
+    const cases = [...map.values()].map((c) => {
+      const used = counted(c.attempts);
+      const n = (v) => used.filter((a) => a.verdict === v).length;
+      const pass = n("pass"), fail = n("fail"), error = n("error");
+      const status = error ? "error" : pass && fail ? "flaky" : fail ? "fail" : pass ? "pass" : "none";
+      const focus = used.find((a) => a.verdict === "error") || used.find((a) => a.verdict === "fail") || used[0] || c.attempts[0];
+      const usage = (k) => mean(used.map((a) => a.measurements?.usage?.[k]));
+      return {
+        ...c, used, pass, fail, error, total: used.length, status, focus,
+        covers: c.attempts.find((a) => a.covers)?.covers || "",
+        turn: median(used.map((a) => a.measurements?.targetTurnMs)),
+        tokens: usage("inputTokens") === null ? null : usage("inputTokens") + (usage("outputTokens") || 0),
+      };
+    });
+    return new Map(cases.map((c) => [c.id, c]));
+  }
+
+  /** How a case moved against the baseline run: by its pass share, or new where the baseline lacks it. */
+  function change(now, before) {
+    if (!before) return now ? "new" : "";
+    if (!now) return "removed";
+    const a = before.total ? before.pass / before.total : 0, b = now.total ? now.pass / now.total : 0;
+    return b < a ? "regressed" : b > a ? "fixed" : "";
+  }
+
+  // ---- loading ----------------------------------------------------------------------------------------------
+
+  function addRun(name, data, example = false) {
+    if (!data || !Array.isArray(data.attempts) || typeof data.summary !== "object") throw new Error(`${name} is not a run file: it has no "attempts" or "summary".`);
+    const keep = state.runs.filter((r) => !r.example && r.data.runId !== data.runId);
+    const previous = state.runs[state.current];
+    state.runs = [...keep, { name, data, example }];
+    state.current = state.runs.length - 1;
+    if (previous && !previous.example) state.baseline = state.runs.indexOf(previous);
+    if (state.baseline >= state.runs.length || state.baseline === state.current) state.baseline = -1;
+  }
+
+  async function openFiles(files) {
+    const problems = [];
+    for (const f of files.sort((a, b) => a.lastModified - b.lastModified)) {
+      try { addRun(f.name, JSON.parse(await f.text())); }
+      catch (e) { problems.push(e instanceof SyntaxError ? `${f.name} is not valid JSON.` : e.message); }
+    }
+    const n = $("notice"); n.textContent = problems.join(" "); n.hidden = !problems.length;
+    state.open.clear();
+    render();
+  }
+
+  // ---- rendering --------------------------------------------------------------------------------------------
+
+  function render() {
+    renderControls();
+    const run = state.runs[state.current];
+    if (!run) { $("view").innerHTML = `<p class="empty">Open a run file from <span class="mono">build/eval/</span>.</p>`; return; }
+    const cases = casesOf(run.data);
+    const base = state.baseline >= 0 ? casesOf(state.runs[state.baseline].data) : null;
+    $("view").innerHTML = summary(run, cases, base) + filters(cases, base) + `<div class="table-wrap"><table class="cases" id="cases"></table></div>` + runDetails(run.data);
+    $("search").addEventListener("input", (e) => { state.query = e.target.value; renderTable(cases, base); });
+    document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => { state.filter = b.dataset.filter; render(); }));
+    renderTable(cases, base);
+  }
+
+  function renderControls() {
+    const runSel = $("run-select"), cmpSel = $("compare-select");
+    const label = (r) => `${r.data.runId || r.name}${r.example ? " (example)" : ""}`;
+    $("run-control").hidden = state.runs.length < 2;
+    $("compare-control").hidden = state.runs.length < 2;
+    runSel.innerHTML = state.runs.map((r, i) => `<option value="${i}" ${i === state.current ? "selected" : ""}>${esc(label(r))}</option>`).join("");
+    cmpSel.innerHTML = `<option value="-1">nothing</option>` + state.runs.map((r, i) => i === state.current ? "" : `<option value="${i}" ${i === state.baseline ? "selected" : ""}>${esc(label(r))}</option>`).join("");
+  }
+
+  function summary(run, cases, base) {
+    const d = run.data, p = d.summary?.performance || {}, c = d.config || {};
+    const all = [...cases.values()];
+    const failed = all.filter((x) => x.status === "fail" || x.status === "flaky").length;
+    const errored = all.filter((x) => x.status === "error").length;
+    const passed = all.filter((x) => x.status === "pass").length;
+    const parts = [
+      failed ? `<strong class="fail">${failed} failed</strong>` : "0 failed",
+      errored ? `<strong class="error">${plural(errored, "error")}</strong>` : null,
+      `${passed} passed`,
+    ].filter(Boolean).join(", ");
+    let versus = "";
+    if (base) {
+      const changes = [...new Set([...cases.keys(), ...base.keys()])].map((id) => change(cases.get(id), base.get(id)));
+      const r = changes.filter((x) => x === "regressed").length, f = changes.filter((x) => x === "fixed").length;
+      const bq = state.runs[state.baseline].data.summary?.quality || {};
+      versus = `<div>Against <span class="mono">${esc(state.runs[state.baseline].data.runId)}</span>: pass rate ${pct(d.summary?.quality?.passRate)}, was ${pct(bq.passRate)}; ` +
+        `<span class="${r ? "fail" : ""}">${r} regressed</span>, <span class="${f ? "pass" : ""}">${f} fixed</span>.</div>`;
+    }
+    const status = d.status === "complete" ? "" : ` <strong class="error">${esc(d.status || "unknown status")}: the run did not finish</strong>`;
+    const perCase = mean(d.attempts.map((a) => instant(a.finishedAt) - instant(a.startedAt)));
+    const vc = d.summary?.quality?.verdictCounts || {}, judged = (vc.pass || 0) + (vc.fail || 0) + (vc.error || 0);
+    const rate = d.summary?.quality?.passRate;
+    return `<div class="summary">
+      <div class="summary-text">
+        <div class="id"><span class="mono">${esc(d.runId || run.name)}</span>${run.example ? " · the trial run, shown as an example until you open a file" : ""}${status}</div>
+        <div class="headline">${plural(all.length, "case")} × ${plural(c.repetitions ?? 1, "repetition")}: ${parts}.</div>
+        ${versus}
+      </div>
+      <div class="figures">
+        <div><span class="figure num">${secs(p.runMs)} s</span><span class="muted">total time</span></div>
+        <div><span class="figure num">${secs(perCase)} s</span><span class="muted">average per case</span></div>
+        <div><span class="figure num ${rate === 1 ? "pass" : "fail"}">${pct(rate)}</span><span class="muted">passed, ${fmt(vc.pass || 0)} of ${fmt(judged)}</span></div>
+      </div>
+    </div>`;
+  }
+
+  function filters(cases, base) {
+    const all = [...cases.values()];
+    const n = (f) => all.filter((c) => matches(c, f, base)).length;
+    const list = [["all", "All"], ["failing", "Failing"], ["error", "Errors"], ["pass", "Passed"]];
+    if (base) list.push(["changed", "Changed"]);
+    if (!base && state.filter === "changed") state.filter = "failing";
+    const blocked = Object.entries(state.runs[state.current].data.summary?.blockedCases || {});
+    return `<div class="filters">
+      <div class="tabs" role="group" aria-label="Which cases">${list.map(([k, l]) => `<button type="button" class="tab" data-filter="${k}" aria-pressed="${state.filter === k}">${l} <span class="num">${n(k)}</span></button>`).join("")}</div>
+      <input id="search" class="search" type="search" placeholder="Filter by case or behaviour" value="${esc(state.query)}" aria-label="Filter cases">
+    </div>
+    ${blocked.length ? `<div class="blocked">${plural(blocked.length, "case")} not run: ${blocked.map(([id, why]) => `<span class="mono">${esc(id)}</span> (${esc(why)})`).join(", ")}.</div>` : ""}`;
+  }
+
+  function matches(c, filter, base) {
+    switch (filter) {
+      case "failing": return c.status === "fail" || c.status === "flaky";
+      case "error": return c.status === "error";
+      case "pass": return c.status === "pass";
+      case "changed": return !!base && change(c, base.get(c.id)) !== "";
+      default: return true;
+    }
+  }
+
+  function renderTable(cases, base) {
+    const q = state.query.trim().toLowerCase();
+    const visible = (c) => !q || c.id.toLowerCase().includes(q) || c.covers.toLowerCase().includes(q);
+    const rank = { error: 0, fail: 1, flaky: 2, none: 3, pass: 4 };
+    const all = [...cases.values()].filter(visible).sort((a, b) => rank[a.status] - rank[b.status] || byId(a.id, b.id));
+    const shown = all.filter((c) => matches(c, state.filter, base));
+    const passedRest = state.filter === "failing" ? all.filter((c) => c.status === "pass") : [];
+    const cols = base ? 9 : 7;
+    const head = `<thead><tr><th></th><th>Case</th><th>Behaviour</th><th>Runs</th>${base ? "<th>Before</th><th></th>" : ""}<th>Why it failed</th><th class="r">Turn s</th><th class="r">Tokens</th></tr></thead>`;
+    let body = shown.map((c) => row(c, base, cols)).join("");
+    if (!shown.length) body += `<tr><td colspan="${cols}" class="empty">${state.filter === "failing" ? "Nothing failed." : "No case here."}</td></tr>`;
+    if (passedRest.length) {
+      body += `<tr class="passed-toggle"><td colspan="${cols}"><button type="button" class="linkish" id="toggle-passed">${state.showPassed ? "▾" : "▸"} ${plural(passedRest.length, "passed case")}</button></td></tr>`;
+      if (state.showPassed) body += passedRest.map((c) => row(c, base, cols)).join("");
+    }
+    const table = $("cases");
+    table.innerHTML = head + `<tbody>${body}</tbody>`;
+    $("toggle-passed")?.addEventListener("click", () => { state.showPassed = !state.showPassed; renderTable(cases, base); });
+    table.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => {
+      const id = tr.dataset.case;
+      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, true);
+      renderTable(cases, base);
+    }));
+  }
+
+  function row(c, base, cols) {
+    const open = state.open.has(c.id);
+    const reps = c.attempts.map((a) => `<span class="${esc(a.verdict || "")}" title="repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}: ${esc(a.verdict || a.attemptStatus)}">${glyph[a.verdict] || glyph.none}</span>`).join("");
+    let compare = "";
+    if (base) {
+      const b = base.get(c.id), ch = change(c, b);
+      const before = b ? b.attempts.map((a) => `<span class="${esc(a.verdict || "")}">${glyph[a.verdict] || glyph.none}</span>`).join("") : `<span class="muted">–</span>`;
+      compare = `<td class="reps">${before}</td><td class="change ${ch === "regressed" ? "fail" : ch === "fixed" ? "pass" : "muted"}">${ch}</td>`;
+    }
+    return `<tr class="row${open ? " is-open" : ""}" data-case="${esc(c.id)}" aria-expanded="${open}">
+      <td class="glyph ${c.status}">${glyph[c.status]}</td>
+      <td class="case mono">${esc(c.id)}</td>
+      <td class="covers mono">${esc(c.covers)}</td>
+      <td class="reps">${reps}</td>
+      ${compare}
+      <td class="reason">${reasonCell(c)}</td>
+      <td class="r num">${secs(c.turn)}</td>
+      <td class="r num">${fmt(c.tokens)}</td>
+    </tr>${open ? `<tr class="detail" data-case="${esc(c.id)}"><td colspan="${cols}">${detail(c)}</td></tr>` : ""}`;
+  }
+
+  function reasonCell(c) {
+    if (c.status === "pass" || !c.focus) return "";
+    const a = c.focus;
+    if (a.errors?.length) return `<span class="error">${esc(a.errors[0].stage)}: ${esc(a.errors[0].message ?? "")}</span>`;
+    const f = failingChecks(a);
+    if (!f.length) return `<span class="muted">${esc(a.attemptStatus || "no checks")}</span>`;
+    const e = explain(f[0], a), d = diffPair(e.want, e.got);
+    const more = f.length > 1 ? ` <span class="more">+${f.length - 1} more</span>` : "";
+    return `<div class="reason-line mono"><span class="path">${esc(e.path)}</span><span class="k">want</span><span class="want">${d.want}</span><span class="k">got</span><span class="got">${d.got}${more}</span></div>`;
+  }
+
+  // ---- one case ---------------------------------------------------------------------------------------------
+
+  /** The case's description, then one table per attempt that reads top to bottom in the order things happened. */
+  function detail(c) {
+    const text = c.attempts.find((a) => a.caseText)?.caseText;
+    const about = text
+      ? (text.notes ? `<p class="case-notes">${esc(text.notes)}</p>` : "")
+      : `<p class="muted">This run file has no case text. Runs written by the current runner include it.</p>`;
+    const many = c.attempts.length > 1;
+    return `<div class="detail-grid">${about}${c.attempts.map((a) => attemptTable(a, many)).join("")}</div>`;
+  }
+
+  function attemptTable(a, many) {
+    const rows = [];
+    const section = (title, cls = "") => rows.push(`<tr class="section ${cls}"><th colspan="4">${title}</th></tr>`);
+    const add = (status, step, expected = "", actual = "") => rows.push(
+      `<tr class="${status === "bad" ? "bad" : status === "start" ? "start" : ""}"><td class="mark ${status === "bad" ? "fail" : "pass"}">${status === "bad" ? "✗" : status === "ok" ? "✓" : ""}</td><td>${step}</td><td>${expected}</td><td>${actual}</td></tr>`);
+    const checkStatus = (check) => !check ? "" : check.status === "pass" ? "ok" : "bad";
+    const checks = a.checks || [];
+    const used = new Set();
+    const take = (pred) => checks.filter((x) => !used.has(x) && pred(x)).map((x) => (used.add(x), x));
+    const text = a.caseText;
+
+    section("Before the case");
+    add("", "Signed in as a new person with no history; default currency HUF; nothing pending");
+    for (const l of text?.learning || []) {
+      const m = a.measurements?.learning?.[l.id] || {};
+      add("", `Sent <q>${esc(l.message)}</q>`, esc(plural(l.proposalCount, "proposal")), isNum(m.turnMs) ? `answered in ${secs(m.turnMs)} s` : "");
+      add("", "Set the proposal's category", `${esc(l.category)} <span class="muted">in ${esc(l.grouping)}</span>`);
+      add("", l.decision === "approve" ? "Accepted the proposal" : l.decision === "discard" ? "Discarded the proposal" : `Decided: ${esc(l.decision)}`);
+      add("", "Waited for the connector to remember it", "", isNum(m.availabilityMs) ? `after ${secs(m.availabilityMs)} s` : "");
+    }
+
+    section("The case", "start");
+    add("start", `Sent <span class="mono">POST /api/v1/messages</span> with <q>${text ? esc(text.message) : "(text not in this run file)"}</q>`, "", a.messageIds?.target != null ? `message ${esc(a.messageIds.target)}` : "");
+
+    section("What happened, in order");
+    const calls = a.actual?.mcpCalls;
+    const expectedTools = a.expected?.mcpCalls || {};
+    if (calls == null) add("", "Tool calls", "", `<span class="muted">not recorded: the run had no ledger log</span>`);
+    for (const call of calls || []) {
+      const constraints = flatten(expectedTools[call.tool]?.arguments || {});
+      const argChecks = checks.filter((x) => x.path.startsWith(`mcpCalls.${call.tool}.arguments.`));
+      argChecks.forEach((x) => used.add(x));
+      const wrong = constraints.filter(([f, cc]) => !holds(cc, call.arguments?.[f]));
+      const status = !call.accepted ? "bad" : constraints.length ? (wrong.length ? "bad" : "ok") : "";
+      const expected = constraints.map(([f, cc]) => {
+        const raw = text?.expected && at(text.expected, `mcpCalls.${call.tool}.arguments.${f}`);
+        const written = raw && typeof raw === "object" && constraintText(raw) !== constraintText(cc) ? ` <span class="muted">(${esc(constraintText(raw))})</span>` : "";
+        return `<span class="muted">${esc(f)}</span> ${esc(constraintText(cc))}${written}`;
+      }).join("<br>");
+      const actual = Object.entries(call.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => {
+        const bad = wrong.some(([f]) => f === k);
+        return `<span class="muted">${esc(k)}</span> <span class="${bad ? "fail" : ""}">${esc(valueText(v))}</span>`;
+      }).join("<br>") + (call.accepted ? "" : `<br><span class="fail">rejected by the ledger</span>`);
+      const over = call.via ? ` over ${call.via === "grpc" ? "gRPC" : call.via === "mcp" ? "MCP" : esc(call.via)}` : "";
+      add(status, `Ledger received <span class="mono">${esc(call.tool)}</span>${over}`, `<span class="mono">${expected}</span>`, `<span class="mono">${actual}</span>`);
+    }
+    for (const tool of Object.keys(expectedTools)) {
+      if (calls && !calls.some((x) => x.tool === tool)) {
+        const missed = take((x) => x.path.startsWith(`mcpCalls.${tool}.arguments.`));
+        if (missed.length) add("bad", `Ledger received <span class="mono">${esc(tool)}</span>`, `<span class="mono">${flatten(expectedTools[tool].arguments).map(([f, cc]) => `${esc(f)} ${esc(constraintText(cc))}`).join("<br>")}</span>`, `<span class="fail">never called</span>`);
+      }
+      const countLabel = { count: "calls", maximumCount: "calls, at most", acceptedCount: "accepted calls", minimumAcceptedCount: "accepted calls, at least" };
+      for (const x of take((x) => new RegExp(`^mcpCalls\\.${tool}\\.(count|maximumCount|acceptedCount|minimumAcceptedCount)$`).test(x.path))) {
+        add(checkStatus(x), `<span class="mono">${esc(tool)}</span> ${countLabel[x.path.split(".").pop()]}`, esc(valueText(x.expected)), esc(valueText(x.actual)));
+      }
+    }
+
+    for (const x of take((x) => x.path === "messageOutcome")) {
+      add(checkStatus(x), `Message finished${isNum(a.measurements?.targetTurnMs) ? ` after ${secs(a.measurements.targetTurnMs)} s` : ""}`, esc(valueText(x.expected)), esc(valueText(x.actual)));
+    }
+    for (const x of take((x) => x.path === "proposals.count")) add(checkStatus(x), "Expenses proposed", esc(valueText(x.expected)), esc(valueText(x.actual)));
+
+    const items = a.expected?.proposals?.items || [];
+    const pairs = a.matching?.pairs || {};
+    const itemOf = new Map(Object.entries(pairs).map(([i, id]) => [String(id), Number(i)]));
+    const unmatchedItems = items.map((_, i) => i).filter((i) => !(String(i) in pairs));
+    take((x) => /^proposals\.items\[\d+\]$/.test(x.path));
+    const itemText = (i) => flatten(items[i]).map(([f, cc]) => `<span class="muted">${esc(f)}</span> ${esc(constraintText(cc))}`).join("<br>");
+    for (const p of a.actual?.proposals || []) {
+      let i = itemOf.get(String(p.id)), status = "";
+      if (i !== undefined) status = "ok";
+      else if (items.length) { i = unmatchedItems.shift(); status = "bad"; }
+      const fields = i !== undefined ? flatten(items[i]) : [];
+      const cell = (field, value) => `<span class="${status === "bad" && fields.some(([f, cc]) => f === field && !holds(cc, value)) ? "fail" : ""}">${esc(value ?? "–")}</span>`;
+      add(status, "Proposed an expense", i !== undefined ? itemText(i) : "",
+        `${esc(p.amount)} ${esc(p.currency)}, ${cell("description", p.description)}${p.merchant ? `, at ${cell("merchant", p.merchant)}` : ""}<br>${cell("category", p.category)} <span class="muted">in ${esc(p.grouping ?? "–")}</span>`);
+    }
+    for (const i of unmatchedItems) add("bad", `Expected expense ${i + 1}`, itemText(i), `<span class="fail">not proposed</span>`);
+
+    for (const x of take(() => true)) {
+      const e = x.status === "pass" ? { path: shortPath(x.path), want: constraintText(x.expected), got: valueText(x.actual) } : explain(x, a);
+      add(checkStatus(x), esc(e.path), esc(e.want), esc(e.got));
+    }
+    for (const p of a.errors || []) add("bad", `Stopped: ${esc(p.stage || "error")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}`, "", esc(p.message ?? ""));
+    for (const p of a.warnings || []) add("", `Warning: ${esc(p.stage || "")}`, "", esc(p.message ?? ""));
+
+    const u = a.measurements?.usage || {};
+    const heading = many ? `<h3>Repetition ${esc(a.repetition)}${a.attempt > 1 ? `, attempt ${esc(a.attempt)}` : ""}: <span class="${esc(a.verdict || "")}">${esc(a.verdict || a.attemptStatus)}</span></h3>` : "";
+    return `<div class="attempt">${heading}
+      <table class="steps"><thead><tr><th></th><th>Step</th><th>Expected</th><th>Actual</th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      <p class="muted">${fmt(u.providerChatCalls)} model calls, ${fmt(u.inputTokens)} tokens in and ${fmt(u.outputTokens)} out, ${fmt(u.ledgerToolCalls)} ledger tool calls by the metric. Dates resolved against ${esc(a.expectedDate ?? "–")}.</p>
+      <details class="raw-toggle"><summary>Raw attempt JSON</summary><pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre></details>
+    </div>`;
+  }
+
+
+
+  // ---- run details ------------------------------------------------------------------------------------------
+
+  function runDetails(d) {
+    const q = d.summary?.quality || {}, p = d.summary?.performance || {}, c = d.config || {};
+    const measures = [["targetTurnMs", "Turn, s", (v) => secs(v)], ["providerChatCalls", "Model calls", (v) => fmt(v, 1)], ["providerChatSeconds", "Model time, s", (v) => fmt(v, 2)], ["inputTokens", "Input tokens", (v) => fmt(v)], ["outputTokens", "Output tokens", (v) => fmt(v)], ["ledgerToolCalls", "Ledger tool calls", (v) => fmt(v, 1)]];
+    const perf = measures.filter(([k]) => p[k]).map(([k, l, f]) => `<tr><td>${l}</td><td class="r num">${f(p[k].median)}</td><td class="r num">${f(p[k].p90)}</td><td class="r num">${f(p[k].mean)}</td><td class="r num muted">${fmt(p[k].n)}</td></tr>`).join("");
+    const covers = Object.entries(q.passRateByCovers || {}).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+      .map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td class="r num ${v < 1 ? "fail" : ""}">${pct(v)}</td></tr>`).join("");
+    const confusion = Object.entries(q.outcomeConfusion || {}).flatMap(([e, acts]) => Object.entries(acts).map(([g, n]) =>
+      `<tr><td class="mono">${esc(e)}</td><td class="mono ${e === g ? "" : "fail"}">${esc(g)}</td><td class="r num">${fmt(n)}</td></tr>`)).join("");
+    const config = Object.entries(c).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(valueText(v))}</dd>`).join("");
+    return `<details class="run-details"><summary>Run details</summary><div class="details-grid">
+      <div><h3>Per turn</h3><table><thead><tr><th></th><th class="r">Median</th><th class="r">p90</th><th class="r">Mean</th><th class="r">n</th></tr></thead><tbody>${perf}</tbody></table></div>
+      <div><h3>Pass rate by behaviour</h3><table><tbody>${covers || `<tr><td class="empty">None recorded.</td></tr>`}</tbody></table>
+        <p class="muted">Precision ${fmt(q.precision?.mean, 2)}, recall ${fmt(q.recall?.mean, 2)}, F1 ${fmt(q.f1?.mean, 2)}; false positives ${pct(q.falsePositiveRate)}. ${plural(d.summary?.attempts ?? 0, "attempt")}, ${fmt(d.summary?.discardedRolloverAttempts)} retried after a date rollover.</p></div>
+      <div><h3>Outcome, expected against actual</h3><table><thead><tr><th>Expected</th><th>Actual</th><th class="r">Attempts</th></tr></thead><tbody>${confusion}</tbody></table></div>
+      <div><h3>Configuration</h3><dl class="kv">${config}</dl></div>
+    </div></details>`;
+  }
+
+  // ---- wiring -----------------------------------------------------------------------------------------------
+
+  $("open").addEventListener("click", () => $("file").click());
+  $("file").addEventListener("change", (e) => { openFiles([...e.target.files]); e.target.value = ""; });
+  $("run-select").addEventListener("change", (e) => { state.current = Number(e.target.value); if (state.baseline === state.current) state.baseline = -1; state.open.clear(); render(); });
+  $("compare-select").addEventListener("change", (e) => { state.baseline = Number(e.target.value); render(); });
+  let depth = 0;
+  window.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { depth++; $("drop").hidden = false; } });
+  window.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) $("drop").hidden = true; });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => { e.preventDefault(); depth = 0; $("drop").hidden = true; if (e.dataTransfer?.files?.length) openFiles([...e.dataTransfer.files]); });
+
+  try { addRun("trial.json", JSON.parse($("sample").textContent), true); } catch (e) { $("notice").textContent = e.message; $("notice").hidden = false; }
+  render();
+})();
+</script>

@@ -1,6 +1,7 @@
 package bot.finance.ai.common.fixtures;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import java.util.List;
 
 /**
@@ -31,6 +32,25 @@ public final class RequestFixtures {
                 .addAllCategoryGroupings(categoryGroupings)
                 .setCatchAllGrouping(catchAllGrouping)
                 .setCurrentDate(DEFAULT_CURRENT_DATE)
+                .addAllCatalogue(categoryGroupings.stream()
+                        .map(grouping -> catalogueEntry(grouping, grouping))
+                        .toList())
+                .build();
+    }
+
+    /**
+     * A valid request carrying the given catalogue, its groupings the request's {@code category_groupings} in the
+     * catalogue's order.
+     */
+    public static ExtractIntentsRequest requestWithCatalogue(
+            String text, List<GroupingCategories> catalogue, String catchAllGrouping) {
+        return ExtractIntentsRequest.newBuilder()
+                .setText(text)
+                .addAllCategoryGroupings(
+                        catalogue.stream().map(GroupingCategories::getGrouping).toList())
+                .setCatchAllGrouping(catchAllGrouping)
+                .setCurrentDate(DEFAULT_CURRENT_DATE)
+                .addAllCatalogue(catalogue)
                 .build();
     }
 
@@ -48,6 +68,14 @@ public final class RequestFixtures {
     public static ExtractIntentsRequest requestWithCurrentDate(String currentDate) {
         return request(DEFAULT_TEXT, DEFAULT_CATEGORY_GROUPINGS, DEFAULT_CATCH_ALL).toBuilder()
                 .setCurrentDate(currentDate)
+                .build();
+    }
+
+    /** One {@code catalogue} entry: a grouping and its categories, in the order given. */
+    public static GroupingCategories catalogueEntry(String grouping, String... categories) {
+        return GroupingCategories.newBuilder()
+                .setGrouping(grouping)
+                .addAllCategories(List.of(categories))
                 .build();
     }
 }

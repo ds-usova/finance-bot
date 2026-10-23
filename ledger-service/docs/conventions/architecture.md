@@ -20,7 +20,7 @@ src/main
 │   └── adapter         # interface adapters
 │       ├── async       # background work dispatched off the request thread, fronting no external system
 │       ├── config      # use-case bean wiring only
-│       ├── logging     # SLF4J-backed Logger/LoggerFactory
+│       ├── logging     # SLF4J-backed Logger/LoggerFactory, and the turn call line
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
 │       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── mcp         # the MCP server's tools and their wire types
@@ -100,8 +100,8 @@ How a port and its adapter are named:
 - Rules:
   - the layer-dependency rules;
   - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC,
-    Micrometer and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
-    `bot.finance.api..`. A library joins as its adapter lands;
+    Micrometer and their kind, and the repository's own generated schema packages `bot.finance.ai..`,
+    `bot.finance.api..` and `bot.finance.ledger..`. A library joins as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
     system's, such as `Telegram`, `Postgres` or `Mcp`;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;

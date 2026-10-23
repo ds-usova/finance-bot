@@ -31,6 +31,12 @@ public final class WireMockStubs {
                 post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(okJson(body)));
     }
 
+    /** Serves {@code body} after {@code delay}, for a scenario proving a turn's time limit is honored. */
+    public static void stubChatCompletionDelayed(String body, Duration delay) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
+                .willReturn(okJson(body).withFixedDelay((int) delay.toMillis())));
+    }
+
     public static void stubChatCompletionServerError() {
         WireMockSupport.SERVER.stubFor(
                 post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(serverError()));

@@ -47,6 +47,7 @@ class CleanArchitectureTest {
                     "org.slf4j..",
                     "io.grpc..",
                     "com.google.protobuf..",
+                    "bot.finance.ledger..",
                     "io.modelcontextprotocol..",
                     "org.springframework.data..",
                     "org.springframework.jdbc..",
@@ -82,6 +83,14 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Jwks")
             .orShould()
             .haveSimpleNameContaining("Redis")
+            .orShould()
+            .haveSimpleNameContaining("Typesafe")
+            .orShould()
+            .haveSimpleNameContaining("TypeSafe")
+            .orShould()
+            .haveSimpleNameContaining("SystemOne")
+            .orShould()
+            .haveSimpleNameContaining("Jev")
             .allowEmptyShould(true);
 
     /**

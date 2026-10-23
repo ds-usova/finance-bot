@@ -84,6 +84,8 @@ public class SecurityConfiguration {
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/expenses/acceptances")
                         .authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/expenses/discards")
+                        .authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/expenses/*")
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/messages")
@@ -225,7 +227,7 @@ public class SecurityConfiguration {
         return decoder;
     }
 
-    private static OAuth2TokenValidator<Jwt> validator(
+    static OAuth2TokenValidator<Jwt> validator(
             JwtTimestampValidator timestampValidator, String issuer, String audience, Duration ttl) {
         return new DelegatingOAuth2TokenValidator<>(
                 timestampValidator,

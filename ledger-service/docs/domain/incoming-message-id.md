@@ -37,7 +37,7 @@ A single unique value.
 - [Telegram — incoming messages](../contracts/in/telegram-updates.md) — read back off the button a user taps.
 - [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md) — finds what that message proposed,
   and what it had confirmed.
-- [Clear the emptied reports](../usecases/clear-emptied-reports.md) — names the messages an acceptance may have
-  emptied, and the reports to reach.
+- [Clear the emptied reports](../usecases/clear-emptied-reports.md) — names the messages an acceptance or a
+  discard may have emptied, and the reports to reach.
 - [Database](../contracts/out/database.md) — kept on every expense confirmed from a report, so it stays tied to
   the message that produced it.

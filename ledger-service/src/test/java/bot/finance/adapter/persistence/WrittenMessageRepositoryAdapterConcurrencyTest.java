@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.UserRowUtils;
@@ -62,26 +63,24 @@ class WrittenMessageRepositoryAdapterConcurrencyTest {
     }
 
     @Nested
-    @DisplayName("claiming the oldest waiting message concurrently")
-    class ClaimOldestWaiting {
+    @DisplayName("settling a message concurrently")
+    class Settle {
 
         @Test
-        @DisplayName("when two threads claim at the same moment - then exactly one gets the message")
-        void whenTwoThreadsClaimTogether_thenExactlyOneGetsTheMessage() throws Exception {
-            userId = UserRowUtils.storedUserId(userEntityRepository, "written-claim-concurrency-user");
+        @DisplayName("when two threads settle one READING text at the same moment - then exactly one answers true")
+        void whenTwoThreadsSettleTogether_thenExactlyOneAnswersTrue() throws Exception {
+            userId = UserRowUtils.storedUserId(userEntityRepository, "written-settle-concurrency-user");
             long id = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, userId, "coffee", WrittenMessageStatus.WAITING, null, NOW);
+                    jdbcAggregateTemplate, userId, "coffee", WrittenMessageStatus.READING, null, NOW);
 
-            List<Future<Optional<WrittenMessageView>>> results = runConcurrently(
-                    () -> adapter.claimOldestWaiting(Instant.now()), () -> adapter.claimOldestWaiting(Instant.now()));
+            List<Future<Boolean>> results = runConcurrently(
+                    () -> adapter.settle(id, ReportOutcome.RECORDED, Instant.now()),
+                    () -> adapter.settle(id, ReportOutcome.RECORDED, Instant.now()));
 
-            Optional<WrittenMessageView> first = results.get(0).get();
-            Optional<WrittenMessageView> second = results.get(1).get();
-            assertThat(List.of(first.isPresent(), second.isPresent())).containsExactlyInAnyOrder(true, false);
-            assertThat(first.or(() -> second).orElseThrow().id()).isEqualTo(id);
+            assertThat(List.of(results.get(0).get(), results.get(1).get())).containsExactlyInAnyOrder(true, false);
             assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
                             .status())
-                    .isEqualTo("READING");
+                    .isEqualTo("DONE");
         }
     }
 

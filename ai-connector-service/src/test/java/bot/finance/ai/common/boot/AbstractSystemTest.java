@@ -1,7 +1,9 @@
 package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
+import bot.finance.ai.common.containers.LedgerTurnServer;
 import bot.finance.ai.common.containers.WireMockSupport;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.junit.jupiter.api.AfterAll;
@@ -61,6 +63,25 @@ public abstract class AbstractSystemTest {
         registry.add("spring.ai.mcp.client.streamable-http.connections.ledger.url", WireMockSupport::baseUrl);
     }
 
+    /**
+     * Points the classifier's base URL at the WireMock singleton, for a context started with the classifier mode
+     * on. It cannot live in {@code application-test.yaml} because the stub server binds a port that is only known
+     * at runtime.
+     */
+    @DynamicPropertySource
+    static void classifierProperties(DynamicPropertyRegistry registry) {
+        registry.add("classifier.base-url", WireMockSupport::baseUrl);
+    }
+
+    /**
+     * Points the ledger turn channel at {@link LedgerTurnServer}. It cannot live in
+     * {@code application-test.yaml} because the fake server binds a port that is only known at runtime.
+     */
+    @DynamicPropertySource
+    static void ledgerTurnProperties(DynamicPropertyRegistry registry) {
+        registry.add("ledger.turn.target", LedgerTurnServer::target);
+    }
+
     @BeforeAll
     void openChannel() {
         channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
@@ -81,10 +102,12 @@ public abstract class AbstractSystemTest {
     @BeforeEach
     void resetStubsBefore() {
         WireMockSupport.SERVER.resetAll();
+        LedgerTurnStubs.reset();
     }
 
     @AfterEach
     void resetStubs() {
         WireMockSupport.SERVER.resetAll();
+        LedgerTurnStubs.reset();
     }
 }

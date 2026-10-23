@@ -5,6 +5,7 @@ import java.util.Optional;
 
 public record ExampleExpense(
         String description,
+        Optional<String> merchant,
         String amount,
         CurrencyCode currency,
         Optional<String> categoryName,
@@ -14,6 +15,9 @@ public record ExampleExpense(
     public ExampleExpense {
         if (description == null || description.isBlank()) {
             throw new InvalidValueException("Description must not be null or blank");
+        }
+        if (merchant == null) {
+            throw new InvalidValueException("Merchant must not be null");
         }
         if (amount == null || amount.isBlank()) {
             throw new InvalidValueException("Amount must not be null or blank");

@@ -8,11 +8,14 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.IntentExtractionFailedException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
@@ -22,6 +25,7 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +53,7 @@ class AiConnectorIntentExtractionAdapterTest {
     private static IntentExtractionRequest requestFor(long userId, IncomingMessageId reference) {
         return new IntentExtractionRequest(
                 "spent 15 on milk",
-                List.of("Groceries"),
+                List.of(new CatalogueEntry("Groceries", List.of("Milk"))),
                 "Groceries",
                 Optional.of(CurrencyCode.of("USD")),
                 userId,
@@ -78,7 +82,9 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     1L,
@@ -92,6 +98,30 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
             assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
+        }
+
+        @Test
+        @DisplayName("when the request carries a catalogue - then the server receives each entry with its categories")
+        void whenRequestCarriesCatalogue_thenServerReceivesEachEntryWithItsCategoriesInOrder() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
+                    "Other",
+                    Optional.of(CurrencyCode.of("USD")),
+                    1L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+
+            adapter.extract(request);
+
+            List<GroupingCategories> received =
+                    GrpcStubServer.lastExtractionRequest().getCatalogueList();
+            assertThat(received).extracting(GroupingCategories::getGrouping).containsExactly("Groceries", "Other");
+            assertThat(received.get(0).getCategoriesList()).containsExactly("Milk");
+            assertThat(received.get(1).getCategoriesList()).containsExactly("Misc");
         }
 
         @Test
@@ -139,14 +169,14 @@ class AiConnectorIntentExtractionAdapterTest {
         @ParameterizedTest
         @EnumSource(
                 value = Status.Code.class,
-                names = {"INVALID_ARGUMENT", "UNAVAILABLE", "FAILED_PRECONDITION", "UNAUTHENTICATED"})
+                names = {"UNAVAILABLE", "FAILED_PRECONDITION", "RESOURCE_EXHAUSTED"})
         @DisplayName("when the stub server fails the call - then throws IntentExtractionFailedException naming the "
                 + "status")
         void whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionNamingTheStatus(Status.Code code) {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "connector unavailable",
-                    List.of("Other"),
+                    List.of(new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     1L,
@@ -161,6 +191,44 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
             StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
             assertThat(cause.getStatus().getCode()).isEqualTo(code);
+        }
+
+        @ParameterizedTest
+        @EnumSource(
+                value = Status.Code.class,
+                names = {"UNAUTHENTICATED", "INVALID_ARGUMENT"})
+        @DisplayName("when the stub server refuses the call - then throws IntentExtractionRefusedException naming "
+                + "the status")
+        void whenStubServerRefusesCall_thenThrowsIntentExtractionRefusedExceptionNamingTheStatus(Status.Code code) {
+            GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub refusal"));
+            IntentExtractionRequest request = requestFor(1L, newIncomingMessageId());
+
+            IntentExtractionRefusedException thrown =
+                    catchThrowableOfType(() -> adapter.extract(request), IntentExtractionRefusedException.class);
+
+            assertThat(thrown).isNotNull();
+            assertThat(thrown.getMessage()).contains(code.name());
+            assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
+            assertThat(cause.getStatus().getCode()).isEqualTo(code);
+        }
+
+        @Test
+        @DisplayName("when the stub answers after the deadline - then throws "
+                + "IntentExtractionFailedException naming DEADLINE_EXCEEDED")
+        void whenStubAnswersAfterDeadline_thenThrowsIntentExtractionFailedExceptionNamingDeadlineExceeded() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            GrpcStubServer.delayExtractionAnswerBy(Duration.ofSeconds(3));
+            IntentExtractionRequest request = requestFor(1L, newIncomingMessageId());
+
+            IntentExtractionFailedException thrown =
+                    catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);
+
+            assertThat(thrown).isNotNull();
+            assertThat(thrown.getMessage()).contains("DEADLINE_EXCEEDED");
+            assertThat(thrown.getCause()).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException cause = (StatusRuntimeException) thrown.getCause();
+            assertThat(cause.getStatus().getCode()).isEqualTo(Status.Code.DEADLINE_EXCEEDED);
         }
 
         @Test

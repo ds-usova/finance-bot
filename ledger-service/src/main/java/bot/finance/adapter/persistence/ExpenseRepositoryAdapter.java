@@ -122,6 +122,20 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     }
 
     @Override
+    @Transactional
+    public List<IncomingMessageId> discardByIds(long userId, ProposalIds ids, Instant now) {
+        try {
+            List<SpendingRowProjection> changed = expenseEntityRepository.discardByIds(userId, ids.ids());
+            ledgerEventOutbox.append(LedgerEventType.ProposalDiscarded, changed, now);
+            return changed.stream()
+                    .map(row -> IncomingMessageId.of(row.incomingMessageId()))
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to discard proposals by id for user " + userId, e);
+        }
+    }
+
+    @Override
     public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
         if (ids.isEmpty()) {
             return Set.of();

@@ -1,7 +1,5 @@
 package bot.finance.ai.adapter.grpc;
 
-import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
-import io.grpc.Status;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.exception.GrpcExceptionHandler;
@@ -11,14 +9,6 @@ public class GrpcStatusConfiguration {
 
     @Bean
     GrpcExceptionHandler grpcExceptionHandler() {
-        return throwable -> {
-            if (throwable instanceof ExpenseRecordingFailedException) {
-                return Status.UNAVAILABLE
-                        .withDescription(throwable.getMessage())
-                        .withCause(throwable)
-                        .asException();
-            }
-            return null;
-        };
+        return throwable -> null;
     }
 }

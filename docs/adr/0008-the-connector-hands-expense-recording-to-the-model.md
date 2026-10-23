@@ -32,3 +32,5 @@ vocabulary, and its hand-rolled MCP client are deleted.
 - The model now performs the minor-units conversion and splits a category label into the tool's two category
   arguments — work the connector's core used to do and could unit test.
 - Nothing caps the tool loop. It runs for as long as the model keeps issuing tool calls.
+- Since 2026-10-14 the connector answers `list_categories` itself, from the request's catalogue, so that tool's
+  schema is no longer the ledger's alone.

@@ -15,8 +15,8 @@ import bot.finance.application.dto.FileWrittenMessageCommand;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.TurnHandOverDispatchPort;
 import bot.finance.application.port.UserRepository;
-import bot.finance.application.port.WrittenMessageReadingDispatchPort;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidWrittenMessageException;
@@ -47,14 +47,14 @@ class FileWrittenMessageUseCaseTest {
 
     private UserRepository userRepository;
     private WrittenMessageRepository writtenMessageRepository;
-    private WrittenMessageReadingDispatchPort dispatchPort;
+    private TurnHandOverDispatchPort dispatchPort;
     private FileWrittenMessageUseCase useCase;
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
         writtenMessageRepository = mock(WrittenMessageRepository.class);
-        dispatchPort = mock(WrittenMessageReadingDispatchPort.class);
+        dispatchPort = mock(TurnHandOverDispatchPort.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(FileWrittenMessageUseCase.class)).thenReturn(mock(Logger.class));
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
@@ -78,8 +78,8 @@ class FileWrittenMessageUseCaseTest {
         @DisplayName("when the caller is stored - then a WAITING message is stored and the reader dispatched after")
         void whenCallerIsStored_thenWaitingMessageIsStoredAndReaderDispatchedAfter() {
             givenStoredUser();
-            WrittenMessageView stored =
-                    new WrittenMessageView(42L, STORED_USER_ID, TEXT, WrittenMessageStatus.WAITING, Optional.empty());
+            WrittenMessageView stored = new WrittenMessageView(
+                    42L, STORED_USER_ID, TEXT, WrittenMessageStatus.WAITING, Optional.empty(), NOW);
             when(writtenMessageRepository.store(any())).thenReturn(stored);
 
             WrittenMessageView answer = useCase.file(commandOf(TEXT));

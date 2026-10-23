@@ -1,5 +1,6 @@
 package bot.finance.ai.adapter.grpc;
 
+import static bot.finance.ai.common.fixtures.RequestFixtures.catalogueEntry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,14 +11,18 @@ import static org.mockito.Mockito.when;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.adapter.security.CallerTokenVerifier;
+import bot.finance.ai.application.dto.AcceptTurnCommand;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.application.dto.TurnAcceptance;
+import bot.finance.ai.application.port.AcceptTurnPort;
 import bot.finance.ai.common.boot.GrpcAdapterTest;
+import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
-import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.value.CatalogueEntry;
 import bot.finance.ai.domain.value.MessageIdentity;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -25,6 +30,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,15 +51,40 @@ class IntentExtractionGrpcServiceTest {
     private IntentExtractionServiceBlockingStub intentExtractionStub;
 
     @MockitoBean
-    private ExtractIntentsPort extractIntentsPort;
+    private AcceptTurnPort acceptTurnPort;
+
+    @BeforeEach
+    void setUp() {
+        when(acceptTurnPort.accept(any())).thenReturn(TurnAcceptance.ACCEPTED);
+    }
 
     private IntentExtractionServiceBlockingStub authenticatedStub() {
-        return AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer opaque-caller-token");
+        return AuthorizedStubs.withCallerToken(intentExtractionStub, CallerTokens.bearer(42L, "incoming-message-42"));
+    }
+
+    private ExtractIntentsCommand acceptedTurn() {
+        ArgumentCaptor<AcceptTurnCommand> commandCaptor = ArgumentCaptor.forClass(AcceptTurnCommand.class);
+        verify(acceptTurnPort).accept(commandCaptor.capture());
+        return commandCaptor.getValue().turn();
     }
 
     @Nested
     @DisplayName("Happy path")
     class HappyPath {
+
+        @Test
+        @DisplayName("when a token names person 42 and message m-1 - then the call answers "
+                + "empty and the port receives that turn key")
+        void whenRequestMadeUnderTokenNamingPersonAndMessage_thenCallAnswersEmptyAndPortReceivesTurnKey() {
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(
+                            intentExtractionStub, CallerTokens.bearer(42L, "m-1"))
+                    .extractIntents(RequestFixtures.request());
+
+            ArgumentCaptor<AcceptTurnCommand> commandCaptor = ArgumentCaptor.forClass(AcceptTurnCommand.class);
+            verify(acceptTurnPort).accept(commandCaptor.capture());
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            assertThat(commandCaptor.getValue().turnKey()).isEqualTo(new MessageIdentity(42L, "m-1"));
+        }
 
         @ParameterizedTest
         @ValueSource(strings = {"EUR", "eur"})
@@ -68,10 +99,9 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.DEFAULT_CATCH_ALL,
                             defaultCurrency));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().defaultCurrency()).isPresent();
-            assertThat(commandCaptor.getValue().defaultCurrency().get().code()).isEqualTo("EUR");
+            ExtractIntentsCommand turn = acceptedTurn();
+            assertThat(turn.defaultCurrency()).isPresent();
+            assertThat(turn.defaultCurrency().get().code()).isEqualTo("EUR");
         }
 
         @Test
@@ -84,10 +114,9 @@ class IntentExtractionGrpcServiceTest {
             ExtractIntentsResponse response = authenticatedStub()
                     .extractIntents(RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().categoryGroupings()).containsExactly("Food", "Insurance");
-            assertThat(commandCaptor.getValue().catchAllGrouping()).isEqualTo(catchAllGrouping);
+            ExtractIntentsCommand turn = acceptedTurn();
+            assertThat(turn.categoryGroupings()).containsExactly("Food", "Insurance");
+            assertThat(turn.catchAllGrouping()).isEqualTo(catchAllGrouping);
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
 
@@ -99,21 +128,34 @@ class IntentExtractionGrpcServiceTest {
             ExtractIntentsResponse response =
                     authenticatedStub().extractIntents(RequestFixtures.requestWithCurrentDate(currentDate));
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().currentDate()).isEqualTo(LocalDate.parse(currentDate));
+            assertThat(acceptedTurn().currentDate()).isEqualTo(LocalDate.parse(currentDate));
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
 
         @Test
-        @DisplayName("when memory is disabled under an opaque token - then the command carries no identity and "
+        @DisplayName("when the request carries a catalogue of two groupings - then the command holds both "
+                + "entries in order with categories")
+        void whenRequestCarriesCatalogueOfTwoGroupings_thenCommandHoldsEntriesInOrderWithCategories() {
+            ExtractIntentsRequest request = RequestFixtures.requestWithCatalogue(
+                    TEXT,
+                    List.of(catalogueEntry("Food", "Cafe", "Groceries"), catalogueEntry("Other", "Gifts")),
+                    "Other");
+
+            authenticatedStub().extractIntents(request);
+
+            assertThat(acceptedTurn().catalogue())
+                    .containsExactly(
+                            new CatalogueEntry("Food", List.of("Cafe", "Groceries")),
+                            new CatalogueEntry("Other", List.of("Gifts")));
+        }
+
+        @Test
+        @DisplayName("when memory is disabled under a caller token - then the command carries no identity and "
                 + "the port is called")
-        void whenValidRequestMadeUnderOpaqueTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled() {
+        void whenValidRequestMadeUnderCallerTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled() {
             authenticatedStub().extractIntents(RequestFixtures.request());
 
-            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().messageIdentity()).isEmpty();
+            assertThat(acceptedTurn().messageIdentity()).isEmpty();
         }
 
         @Nested
@@ -132,10 +174,7 @@ class IntentExtractionGrpcServiceTest {
 
                 authenticatedStub().extractIntents(RequestFixtures.request());
 
-                ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
-                        ArgumentCaptor.forClass(ExtractIntentsCommand.class);
-                verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-                assertThat(commandCaptor.getValue().messageIdentity()).contains(identity);
+                assertThat(acceptedTurn().messageIdentity()).contains(identity);
             }
         }
     }
@@ -145,17 +184,14 @@ class IntentExtractionGrpcServiceTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName(
-                "when the port throws ExpenseRecordingFailedException - then the RPC fails with status UNAVAILABLE")
-        void whenPortThrowsExpenseRecordingFailedException_thenFailsWithUnavailable() {
-            doThrow(new ExpenseRecordingFailedException("provider unreachable"))
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+        @DisplayName("when the port answers BUSY - then the RPC fails with status RESOURCE_EXHAUSTED")
+        void whenPortAnswersBusy_thenFailsWithResourceExhausted() {
+            when(acceptTurnPort.accept(any())).thenReturn(TurnAcceptance.BUSY);
 
             assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
+                    .isEqualTo(Status.Code.RESOURCE_EXHAUSTED);
         }
 
         @Test
@@ -163,9 +199,7 @@ class IntentExtractionGrpcServiceTest {
                 + "leaks no message")
         void whenPortThrowsUnrecognizedRuntimeException_thenFailsWithUnknownAndMessageAbsent() {
             String secretMessage = "sensitive internal detail";
-            doThrow(new RuntimeException(secretMessage))
-                    .when(extractIntentsPort)
-                    .extractIntents(any());
+            doThrow(new RuntimeException(secretMessage)).when(acceptTurnPort).accept(any());
 
             assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
@@ -192,7 +226,7 @@ class IntentExtractionGrpcServiceTest {
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.INVALID_ARGUMENT);
-            verify(extractIntentsPort, never()).extractIntents(any());
+            verify(acceptTurnPort, never()).accept(any());
         }
 
         private static Stream<Arguments> invalidRequests() {
@@ -224,7 +258,70 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.requestWithCurrentDate("27/07/2026")),
                     Arguments.of(
                             "current_date not written YYYY-MM-DD (invalid calendar date)",
-                            RequestFixtures.requestWithCurrentDate("2026-13-01")));
+                            RequestFixtures.requestWithCurrentDate("2026-13-01")),
+                    Arguments.of(
+                            "catalogue has no entry for the catch-all grouping",
+                            catalogueRequest(
+                                    List.of("Food", "Other"), "Other", List.of(catalogueEntry("Food", "Cafe")))),
+                    Arguments.of(
+                            "catalogue entry has no category",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(catalogueEntry("Food", "Cafe"), catalogueEntry("Other")))),
+                    Arguments.of(
+                            "catalogue entry has a blank grouping",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(
+                                            catalogueEntry("Food", "Cafe"),
+                                            catalogueEntry("Other", "Gifts"),
+                                            catalogueEntry(" ", "Misc")))),
+                    Arguments.of(
+                            "catalogue entry has a blank category name",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(catalogueEntry("Food", "Cafe", " "), catalogueEntry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue names a grouping twice",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(
+                                            catalogueEntry("Food", "Cafe"),
+                                            catalogueEntry("Food", "Groceries"),
+                                            catalogueEntry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue entry names a category twice",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(catalogueEntry("Food", "Cafe", "Cafe"), catalogueEntry("Other", "Gifts")))),
+                    Arguments.of(
+                            "catalogue groupings differ from category_groupings",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(
+                                            catalogueEntry("Food", "Cafe"),
+                                            catalogueEntry("Other", "Gifts"),
+                                            catalogueEntry("Travel", "Taxi")))),
+                    Arguments.of(
+                            "catalogue groupings are in another order than category_groupings",
+                            catalogueRequest(
+                                    List.of("Food", "Other"),
+                                    "Other",
+                                    List.of(catalogueEntry("Other", "Gifts"), catalogueEntry("Food", "Cafe")))));
+        }
+
+        private static ExtractIntentsRequest catalogueRequest(
+                List<String> categoryGroupings, String catchAllGrouping, List<GroupingCategories> catalogue) {
+            return RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping).toBuilder()
+                    .clearCatalogue()
+                    .addAllCatalogue(catalogue)
+                    .build();
         }
     }
 }

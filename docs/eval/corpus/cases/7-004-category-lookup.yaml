@@ -1,0 +1,12 @@
+id: "7-004-category-lookup"
+covers: "category.lookup"
+message: "I paid 4000 HUF for cloud storage."
+fixture: "catalogue-v1"
+steps: "../steps/7-004-category-lookup.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"category":{"noneOf":["Uncategorized Expenses"]}}
+notes: "Check the category the message is filed under, not how it was looked up; category spelling is not golden."

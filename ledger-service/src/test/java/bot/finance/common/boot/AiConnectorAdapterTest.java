@@ -48,7 +48,8 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
             AccessTokenMinter.class,
             TokenSigningKeys.class,
             Slf4jLoggerFactory.class
-        })
+        },
+        properties = "spring.grpc.client.channel.ai-connector.default.deadline=1s")
 @EnableConfigurationProperties({AccessTokenProperties.class, TokenSigningProperties.class})
 @ImportAutoConfiguration({
     SslAutoConfiguration.class,

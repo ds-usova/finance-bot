@@ -149,8 +149,8 @@ falls below the module's own minimum.
   free to be under the threshold.
 - **Whole suite or nothing.** Combining `--coverage` with `--tests` or `--compile` is refused: a partial run
   measures partial coverage, and the resulting ratio would mean nothing.
-- **Excluded from the ratio.** The generated protobuf and gRPC stubs under `bot/finance/ai/adapter/grpc/v1`,
-  and each module's `*Application` class.
+- **Excluded from the ratio.** The generated protobuf and gRPC stubs under `bot/finance/ai/adapter/grpc/v1`
+  and `bot/finance/ledger/adapter/grpc/v1`, and each module's `*Application` class.
 - **In the summary.** A `== Coverage ==` section, carrying either the violated rules or a line saying the
   guardrail was met. Tests green and coverage short reads as `COVERAGE BELOW MINIMUM`, not `FAIL`.
 - **Per-class detail.** `<module>/build/reports/jacoco/test/html/index.html` for a Gradle module,

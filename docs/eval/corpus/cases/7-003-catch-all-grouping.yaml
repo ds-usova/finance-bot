@@ -1,0 +1,12 @@
+id: "7-003-catch-all-grouping"
+covers: "category.catch-all"
+message: "Paid 2000 HUF, can't remember what for."
+fixture: "catalogue-v1"
+steps: "../steps/7-003-catch-all-grouping.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"grouping":{"equals":"Miscellaneous"},"category":{"equals":"Uncategorized Expenses"}}
+notes: "Checks only category.catch-all."

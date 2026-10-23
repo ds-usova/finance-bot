@@ -1,0 +1,10 @@
+id: "9-001-direct-statement"
+covers: "wording.direct"
+message: "I paid 850 HUF for coffee."
+fixture: "catalogue-v1"
+steps: "../steps/9-001-direct-statement.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+notes: "Checks only wording.direct."

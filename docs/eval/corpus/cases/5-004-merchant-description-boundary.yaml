@@ -1,0 +1,12 @@
+id: "5-004-merchant-description-boundary"
+covers: "merchant.ambiguous-boundary"
+message: "At The Lunch Box I paid 1500 HUF for a sandwich."
+fixture: "catalogue-v1"
+steps: "../steps/5-004-merchant-description-boundary.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"merchant":{"equals":"The Lunch Box"}}
+notes: "The ambiguity is lexical: 'The Lunch Box' resembles a purchased item or meal description but is the merchant name. The sentence resolves its role through 'At'; the case checks that the merchant is not mistaken for the purchased item, not that the sentence has two equally valid interpretations."

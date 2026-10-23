@@ -5,11 +5,23 @@ import static org.awaitility.Awaitility.await;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnRequest;
+import bot.finance.ledger.adapter.grpc.v1.EndTurnResponse;
+import bot.finance.ledger.adapter.grpc.v1.LedgerTurnEndServiceGrpc;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import com.sun.net.httpserver.HttpServer;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.ServerInterceptors;
+import io.grpc.Status;
 import io.grpc.stub.MetadataUtils;
+import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -22,19 +34,24 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Boots the {@code /mcp} callback mode {@link GrpcStubServer#armMcpCallbacks} arms: compiling proves nothing about
- * whether the callback actually reaches an HTTP endpoint, so this drives a real {@code extractIntents} call
- * against a throwaway HTTP server and asserts the callbacks landed there, in the order they were armed.
+ * Boots the {@code /mcp} callback mode {@link GrpcStubServer#armMcpCallbacks} arms and the turn end that follows an
+ * answer: compiling proves nothing about whether the callback actually reaches an HTTP endpoint or the end reaches a
+ * gRPC one, so this drives real {@code extractIntents} calls against a throwaway HTTP server and a throwaway
+ * {@code LedgerTurnEndService} and asserts what landed there, in the order it was armed.
  */
 class GrpcStubServerCallbackTest {
 
     private HttpServer callbackServer;
+    private Server endTurnServer;
 
     @AfterEach
     void tearDown() {
         GrpcStubServer.reset();
         if (callbackServer != null) {
             callbackServer.stop(0);
+        }
+        if (endTurnServer != null) {
+            endTurnServer.shutdownNow();
         }
     }
 
@@ -82,10 +99,65 @@ class GrpcStubServerCallbackTest {
                 channel.shutdownNow();
             }
 
-            await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(() -> assertThat(receivedBodies).containsExactly(firstBody, secondBody));
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                assertThat(receivedBodies).containsExactly(firstBody, secondBody);
+                assertThat(receivedAuthorization.get()).isEqualTo("Bearer test-token");
+                assertThat(GrpcStubServer.mcpCallbackResponses()).hasSize(2);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("ending the turn it accepts")
+    class EndTurn {
+
+        @Test
+        @DisplayName("when a call is answered - then the turn is ended with the credential the call carried")
+        void whenExtractIntentsIsAnswered_thenTheTurnIsEndedWithTheForwardedCredential() throws IOException {
+            AtomicReference<String> receivedAuthorization = new AtomicReference<>();
+            AtomicReference<TurnEnd> receivedEnd = new AtomicReference<>();
+            endTurnServer = ServerBuilder.forPort(0)
+                    .addService(ServerInterceptors.intercept(
+                            new LedgerTurnEndServiceGrpc.LedgerTurnEndServiceImplBase() {
+                                @Override
+                                public void endTurn(EndTurnRequest request, StreamObserver<EndTurnResponse> observer) {
+                                    receivedEnd.set(request.getEnd());
+                                    observer.onNext(EndTurnResponse.getDefaultInstance());
+                                    observer.onCompleted();
+                                }
+                            },
+                            new ServerInterceptor() {
+                                @Override
+                                public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                                        ServerCall<ReqT, RespT> call,
+                                        Metadata headers,
+                                        ServerCallHandler<ReqT, RespT> next) {
+                                    receivedAuthorization.set(headers.get(
+                                            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)));
+                                    return next.startCall(call, headers);
+                                }
+                            }))
+                    .build()
+                    .start();
+            GrpcStubServer.endTurnsOn(endTurnServer.getPort());
+
+            ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", GrpcStubServer.SERVER.getPort())
+                    .usePlaintext()
+                    .build();
+            try {
+                IntentExtractionServiceGrpc.newBlockingStub(channel)
+                        .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(authorizationHeader()))
+                        .extractIntents(ExtractIntentsRequest.newBuilder()
+                                .setText("test")
+                                .build());
+            } finally {
+                channel.shutdownNow();
+            }
+
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(GrpcStubServer.endTurnStatuses())
+                    .containsExactly(Status.Code.OK));
             assertThat(receivedAuthorization.get()).isEqualTo("Bearer test-token");
-            assertThat(GrpcStubServer.mcpCallbackResponses()).hasSize(2);
+            assertThat(receivedEnd.get()).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
         }
     }
 }

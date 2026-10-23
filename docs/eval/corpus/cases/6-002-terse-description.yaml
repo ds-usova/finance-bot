@@ -1,0 +1,12 @@
+id: "6-002-terse-description"
+covers: "description.terse"
+message: "coffee 850 HUF"
+fixture: "catalogue-v1"
+steps: "../steps/6-002-terse-description.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"description":{"oneOf":["coffee","Coffee"]}}
+notes: "Checks only description.terse."

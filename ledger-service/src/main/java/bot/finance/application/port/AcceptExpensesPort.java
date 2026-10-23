@@ -9,7 +9,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 public interface AcceptExpensesPort {
 
     /**
-     * @throws InvalidExpenseAcceptanceException if the command or its ids are absent or malformed
+     * @throws InvalidExpenseAcceptanceException if the command is absent
      * @throws EntityNotFoundException if the caller names no stored user
      * @throws PersistenceFailedException if the write fails
      */

@@ -2,6 +2,7 @@ package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.metrics.MicrometerChangeStreamMeters;
 import bot.finance.ai.adapter.metrics.MicrometerRecallMeters;
+import bot.finance.ai.adapter.metrics.MicrometerTurnMeters;
 import bot.finance.ai.application.port.PendingEntryCountPort;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,7 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Boots only the metrics adapter — {@link MicrometerRecallMeters} and {@link MicrometerChangeStreamMeters} —
+ * Boots only the metrics adapter — {@link MicrometerRecallMeters}, {@link MicrometerChangeStreamMeters} and
+ * {@link MicrometerTurnMeters} —
  * with autoconfiguration on over a random port, so the actuator's prometheus endpoint renders their meters for
  * a scrape test to read. {@code memory.enabled=true} switches both beans on; the datasource, Redis and the
  * provider are excluded, and {@link PendingEntryCountPort} is a Mockito mock for the pending gauge to sample.
@@ -43,7 +45,7 @@ import org.springframework.test.context.TestPropertySource;
 public @interface MetricsAdapterTest {
 
     @EnableAutoConfiguration
-    @Import({MicrometerRecallMeters.class, MicrometerChangeStreamMeters.class})
+    @Import({MicrometerRecallMeters.class, MicrometerChangeStreamMeters.class, MicrometerTurnMeters.class})
     class MetricsAdapterConfiguration {
 
         @Bean

@@ -15,6 +15,7 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.WrittenMessageStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +52,7 @@ class BrowseWrittenMessagesUseCaseTest {
         void whenRepositoryAnswersOneUnsettledMessage_thenAnswerIsThatMessage() {
             when(userRepository.requireById(CALLER_ID)).thenReturn(User.stored(STORED_USER_ID, "555"));
             WrittenMessageView view = new WrittenMessageView(
-                    42L, STORED_USER_ID, "coffee 3.40", WrittenMessageStatus.READING, Optional.empty());
+                    42L, STORED_USER_ID, "coffee 3.40", WrittenMessageStatus.READING, Optional.empty(), Instant.EPOCH);
             when(writtenMessageRepository.findUnsettledForUser(STORED_USER_ID)).thenReturn(List.of(view));
 
             List<WrittenMessageView> answer = useCase.browse(newCommand());

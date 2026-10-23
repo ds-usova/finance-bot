@@ -1,0 +1,14 @@
+id: "10-006-current-input-overrides-history"
+covers: "learned-history.current-input-priority"
+message: "I paid 850 HUF for coffee at Corner Shop. Put this expense under Dining / Cafés, not Property Tax."
+fixture: "catalogue-v1"
+steps: "../steps/10-006-current-input-overrides-history.yaml"
+learning:
+  - {"id":"coffee","message":"I paid 850 HUF for coffee at Corner Shop.","proposalCount":1,"classification":{"grouping":"Housing","category":"Property Tax"},"decision":"approve"}
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"grouping":{"equals":"Dining"},"category":{"equals":"Cafés"}}
+notes: "The approved coffee example teaches Housing/Property Tax. The target explicitly selects Dining/Cafés for the same purchase; the current instruction must override the learned preference. Recall details remain diagnostic."

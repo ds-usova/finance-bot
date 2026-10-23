@@ -1,0 +1,14 @@
+{
+  "plan": "docs/implemented/51-the-ledger-takes-a-turns-writes-over-http/ledger-service/plan.md",
+  "commit": "4fe38707",
+  "branch": "eval",
+  "workingTree": "clean",
+  "generated": "2026-10-14T10:12:27Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 403, "passed": 403, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "94.8%", "minimum": "85%", "format": "clean"},
+    {"module": "eval-runner", "verdict": "PASS", "tests": 21, "passed": 21, "failed": 0, "skipped": 0, "instructions": "n/a", "branches": "n/a", "minimum": "n/a", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1447, "passed": 1447, "failed": 0, "skipped": 0, "instructions": "96.9%", "branches": "93.8%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 357, "passed": 357, "failed": 0, "skipped": 0, "instructions": "98.3%", "branches": "92.5%", "minimum": "80%", "format": "clean"}
+  ]
+}

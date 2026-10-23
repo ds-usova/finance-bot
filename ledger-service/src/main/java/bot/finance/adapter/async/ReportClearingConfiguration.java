@@ -18,7 +18,8 @@ public class ReportClearingConfiguration {
 
     @Bean
     Executor reportClearingExecutor(ReportClearingProperties properties) {
-        // a pool with no room drops the work rather than blocking or running it on the caller's thread
+        // a pool with no room refuses the work to the dispatcher rather than blocking or running it on the caller's
+        // thread
         return new ThreadPoolExecutor(
                 properties.coreSize(),
                 properties.maxSize(),
@@ -26,6 +27,6 @@ public class ReportClearingConfiguration {
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(properties.queueCapacity()),
                 new CustomizableThreadFactory(THREAD_NAME_PREFIX),
-                new ThreadPoolExecutor.DiscardPolicy());
+                new ThreadPoolExecutor.AbortPolicy());
     }
 }

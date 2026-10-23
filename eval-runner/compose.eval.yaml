@@ -1,0 +1,15 @@
+# Layered over infrastructure/docker-compose.yaml by eval.sh: the runner scrapes both management ports, which the
+# base stack keeps off the host, and eval.sh --mode picks the connector's extraction mode.
+services:
+  ledger-service:
+    environment:
+      TURN_CALL_LOG_ENABLED: "true"
+    ports:
+      - "127.0.0.1:1010:1010"
+  ai-connector-service:
+    environment:
+      EXTRACTION_MODE: ${FINANCE_BOT_EXTRACTION_MODE:-tools}
+      TYPESAFE_API_KEY: ${FINANCE_BOT_TYPESAFE_API_KEY:-}
+      CLASSIFIER_MODEL: ${FINANCE_BOT_CLASSIFIER_MODEL:-}
+    ports:
+      - "127.0.0.1:1011:1011"

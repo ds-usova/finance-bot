@@ -1,17 +1,18 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
@@ -25,31 +26,39 @@ import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.IntentExtractionFailedException;
+import bot.finance.domain.exception.IntentExtractionRefusedException;
 import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
-import bot.finance.domain.value.SpendingPeriod;
 import bot.finance.domain.value.WrittenMessageStatus;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 class HandleWrittenMessageUseCaseTest {
 
     private static final long USER_ID = 7L;
     private static final long MESSAGE_ID = 42L;
     private static final String TEXT = "coffee 3.40, taxi home 14";
-    private static final Instant NOW = Instant.parse("2026-08-05T10:15:30Z");
+    private static final Instant FILED_AT = Instant.parse("2026-08-04T23:50:00Z");
+    private static final Instant NOW = Instant.parse("2026-08-05T00:10:00Z");
+    private static final Duration MAX_QUEUE_WAIT = Duration.ofMinutes(10);
     private static final IncomingMessageId REFERENCE = IncomingMessageId.of("web:42");
-    private static final LocalDate DAY = LocalDate.parse("2026-08-05");
 
     private WrittenMessageRepository writtenMessageRepository;
     private GroupingRepository groupingRepository;
@@ -58,8 +67,8 @@ class HandleWrittenMessageUseCaseTest {
     private ExpenseRepository expenseRepository;
     private SpendingQueryRepository spendingQueryRepository;
     private TurnMeters turnMeters;
-    private Clock clock;
-    private List<String> groupings;
+    private Logger log;
+    private List<CatalogueEntry> catalogue;
     private HandleWrittenMessageUseCase useCase;
 
     @BeforeEach
@@ -71,9 +80,9 @@ class HandleWrittenMessageUseCaseTest {
         expenseRepository = mock(ExpenseRepository.class);
         spendingQueryRepository = mock(SpendingQueryRepository.class);
         turnMeters = mock(TurnMeters.class);
-        clock = Clock.fixed(NOW, ZoneOffset.UTC);
+        log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
-        when(loggerFactory.getLogger(HandleWrittenMessageUseCase.class)).thenReturn(mock(Logger.class));
+        when(loggerFactory.getLogger(HandleWrittenMessageUseCase.class)).thenReturn(log);
         useCase = new HandleWrittenMessageUseCase(
                 writtenMessageRepository,
                 groupingRepository,
@@ -82,34 +91,35 @@ class HandleWrittenMessageUseCaseTest {
                 expenseRepository,
                 spendingQueryRepository,
                 turnMeters,
-                clock,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                MAX_QUEUE_WAIT,
                 loggerFactory);
 
-        groupings = List.of("Food", "Auto", Grouping.catchAllName());
-        WrittenMessageView claimed =
-                new WrittenMessageView(MESSAGE_ID, USER_ID, TEXT, WrittenMessageStatus.READING, Optional.empty());
-        when(writtenMessageRepository.claimOldestWaiting(NOW)).thenReturn(Optional.of(claimed));
-        when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(groupings);
+        WrittenMessageView waiting = new WrittenMessageView(
+                MESSAGE_ID, USER_ID, TEXT, WrittenMessageStatus.WAITING, Optional.empty(), FILED_AT);
+        catalogue = catalogueOf(List.of("Food", "Auto", Grouping.catchAllName()));
+        when(writtenMessageRepository.findOldestWaitingFiledSince(NOW.minus(MAX_QUEUE_WAIT)))
+                .thenReturn(Optional.of(waiting));
+        when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogue);
         when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenReturn(Optional.empty());
-        when(writtenMessageRepository.stampHandOver(MESSAGE_ID, NOW)).thenReturn(true);
+        when(writtenMessageRepository.markHandedOver(MESSAGE_ID, NOW)).thenReturn(true);
         when(writtenMessageRepository.settle(anyLong(), any(), any())).thenReturn(true);
-        when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE)).thenReturn(List.of());
-        when(spendingQueryRepository.findPeriodsByMessageReference(USER_ID, REFERENCE))
-                .thenReturn(List.of());
     }
 
-    private void givenOneDay() {
-        when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE)).thenReturn(List.of(DAY));
+    private static List<CatalogueEntry> catalogueOf(List<String> groupings) {
+        return groupings.stream()
+                .map(grouping -> new CatalogueEntry(grouping, List.of("category")))
+                .toList();
     }
 
-    private void givenOnePeriod() {
-        SpendingPeriod period = new SpendingPeriod(LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-07"));
-        when(spendingQueryRepository.findPeriodsByMessageReference(USER_ID, REFERENCE))
-                .thenReturn(List.of(period));
+    private IntentExtractionRequest extractedRequest() {
+        ArgumentCaptor<IntentExtractionRequest> captor = ArgumentCaptor.forClass(IntentExtractionRequest.class);
+        verify(intentExtractionPort).extract(captor.capture());
+        return captor.getValue();
     }
 
-    private void givenExtractionFails() {
-        doThrow(new IntentExtractionFailedException("turn failed", new RuntimeException()))
+    private void givenRefused() {
+        doThrow(new IntentExtractionRefusedException("refused", new RuntimeException()))
                 .when(intentExtractionPort)
                 .extract(any());
     }
@@ -118,8 +128,9 @@ class HandleWrittenMessageUseCaseTest {
         return new PersistenceFailedException("failed", new RuntimeException());
     }
 
-    private void verifySettledAs(ReportOutcome outcome) {
-        verify(writtenMessageRepository).settle(MESSAGE_ID, outcome, NOW);
+    enum Read {
+        CATALOGUE,
+        DEFAULT_CURRENCY
     }
 
     @Nested
@@ -127,15 +138,16 @@ class HandleWrittenMessageUseCaseTest {
     class HandleNext {
 
         @Test
-        @DisplayName("when nothing waits - then it answers false and asks no other port")
-        void whenNothingWaits_thenAnswersFalseAndAsksNoOtherPort() {
-            when(writtenMessageRepository.claimOldestWaiting(NOW)).thenReturn(Optional.empty());
+        @DisplayName("when no text is waiting - then it answers false and asks the store since the wait before now")
+        void whenNoTextIsWaiting_thenItAnswersFalseAndAsksTheStoreSinceTheWaitBeforeNow() {
+            when(writtenMessageRepository.findOldestWaitingFiledSince(any())).thenReturn(Optional.empty());
 
             boolean handled = useCase.handleNext();
 
             assertThat(handled).isFalse();
-            verify(writtenMessageRepository).claimOldestWaiting(NOW);
-            verify(writtenMessageRepository, never()).stampHandOver(anyLong(), any());
+            verify(writtenMessageRepository).findOldestWaitingFiledSince(NOW.minus(MAX_QUEUE_WAIT));
+            verify(writtenMessageRepository, never()).recordAttempt(anyLong(), any());
+            verify(writtenMessageRepository, never()).markHandedOver(anyLong(), any());
             verify(writtenMessageRepository, never()).settle(anyLong(), any(), any());
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(userPreferenceRepository);
@@ -146,196 +158,170 @@ class HandleWrittenMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a message is claimed and a day is stored - then the extraction request carries the turn")
-        void whenMessageIsClaimedAndADayIsStored_thenTheExtractionRequestCarriesTheTurn() {
-            givenOneDay();
+        @DisplayName(
+                "when a text is waiting - then the request carries the text, its catalogue and the day it was filed")
+        void whenATextIsWaiting_thenTheRequestCarriesTheTextItsCatalogueAndTheDayItWasFiled() {
+            when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenReturn(Optional.of(CurrencyCode.of("EUR")));
 
-            boolean handled = useCase.handleNext();
+            useCase.handleNext();
 
-            assertThat(handled).isTrue();
-            ArgumentCaptor<IntentExtractionRequest> captor = ArgumentCaptor.forClass(IntentExtractionRequest.class);
-            verify(intentExtractionPort).extract(captor.capture());
-            IntentExtractionRequest request = captor.getValue();
+            IntentExtractionRequest request = extractedRequest();
             assertThat(request.text()).isEqualTo(TEXT);
-            assertThat(request.categoryGroupings()).isEqualTo(groupings);
+            assertThat(request.catalogue()).isEqualTo(catalogue);
             assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
+            assertThat(request.defaultCurrency()).contains(CurrencyCode.of("EUR"));
             assertThat(request.userId()).isEqualTo(USER_ID);
             assertThat(request.incomingMessageId()).isEqualTo(REFERENCE);
-            assertThat(request.currentDate()).isEqualTo(LocalDate.now(clock));
+            assertThat(request.currentDate()).isEqualTo(LocalDate.parse("2026-08-04"));
         }
 
         @Test
-        @DisplayName("when a day is stored and no period - then the message is settled RECORDED and counted")
-        void whenADayIsStoredAndNoPeriod_thenMessageIsSettledRecordedAndCounted() {
-            givenOneDay();
-
+        @DisplayName(
+                "when a text is waiting - then the attempt is recorded at the clock's instant before the hand-over")
+        void whenATextIsWaiting_thenTheAttemptIsRecordedAtTheClocksInstantBeforeTheHandOver() {
             useCase.handleNext();
 
-            verifySettledAs(ReportOutcome.RECORDED);
-            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
+            InOrder order = inOrder(writtenMessageRepository, intentExtractionPort);
+            order.verify(writtenMessageRepository).recordAttempt(MESSAGE_ID, NOW);
+            order.verify(intentExtractionPort).extract(any(IntentExtractionRequest.class));
         }
 
         @Test
-        @DisplayName("when no day and no period is stored - then the message is settled NOTHING_IDENTIFIED")
-        void whenNoDayAndNoPeriodIsStored_thenMessageIsSettledNothingIdentified() {
-            useCase.handleNext();
+        @DisplayName("when the hand-over returns - then the text is moved to READING and the look answers true")
+        void whenTheHandOverReturns_thenTheTextIsMovedToReadingAndTheLookAnswersTrue() {
+            boolean handled = useCase.handleNext();
 
-            verifySettledAs(ReportOutcome.NOTHING_IDENTIFIED);
+            assertThat(handled).isTrue();
+            verify(writtenMessageRepository).markHandedOver(MESSAGE_ID, NOW);
+            verify(writtenMessageRepository, never()).settle(anyLong(), any(), any());
         }
 
         @Test
-        @DisplayName("when no day and one period is stored - then the message is settled ANSWERED")
-        void whenNoDayAndOnePeriodIsStored_thenMessageIsSettledAnswered() {
-            givenOnePeriod();
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.ANSWERED);
-        }
-
-        @Test
-        @DisplayName("when no day and one period is stored - then the periods under the message are discarded")
-        void whenNoDayAndOnePeriodIsStored_thenThePeriodsUnderTheMessageAreDiscarded() {
-            givenOnePeriod();
-
-            useCase.handleNext();
-
-            verify(spendingQueryRepository).discard(USER_ID, REFERENCE);
-        }
-
-        @Test
-        @DisplayName("when discarding the periods fails - then the message is still settled ANSWERED")
-        void whenDiscardingThePeriodsFails_thenTheMessageIsStillSettledAnswered() {
-            givenOnePeriod();
-            when(spendingQueryRepository.discard(anyLong(), any())).thenThrow(persistenceFailure());
-
-            assertThatCode(() -> useCase.handleNext()).doesNotThrowAnyException();
-
-            verifySettledAs(ReportOutcome.ANSWERED);
-        }
-
-        @Test
-        @DisplayName("when the extraction fails and no day is stored - then the message is settled FAILED")
-        void whenExtractionFailsAndNoDayIsStored_thenMessageIsSettledFailed() {
-            givenExtractionFails();
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.FAILED);
-        }
-
-        @Test
-        @DisplayName("when the extraction fails and a day is stored - then the message is settled PARTIAL")
-        void whenExtractionFailsAndADayIsStored_thenMessageIsSettledPartial() {
-            givenExtractionFails();
-            givenOneDay();
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.PARTIAL);
-        }
-
-        @Test
-        @DisplayName("when the extraction fails with only a period stored - then the message is settled FAILED")
-        void whenExtractionFailsWithOnlyAPeriodStored_thenMessageIsSettledFailed() {
-            givenExtractionFails();
-            givenOnePeriod();
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.FAILED);
-        }
-
-        @Test
-        @DisplayName("when the groupings read fails - then the message is settled FAILED and counted")
-        void whenGroupingsReadFails_thenMessageIsSettledFailedAndCounted() {
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenThrow(persistenceFailure());
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.FAILED);
-            verify(turnMeters).countTurn(ReportOutcome.FAILED);
-            verify(writtenMessageRepository, never()).stampHandOver(anyLong(), any());
-            verifyNoInteractions(intentExtractionPort);
-        }
-
-        @Test
-        @DisplayName("when the groupings lack the catch-all - then the message is settled FAILED and counted")
-        void whenGroupingsLackTheCatchAll_thenMessageIsSettledFailedAndCounted() {
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of("Food", "Auto"));
-
-            useCase.handleNext();
-
-            verifySettledAs(ReportOutcome.FAILED);
-            verify(turnMeters).countTurn(ReportOutcome.FAILED);
-            verify(writtenMessageRepository, never()).stampHandOver(anyLong(), any());
-            verifyNoInteractions(intentExtractionPort);
-        }
-
-        @Test
-        @DisplayName("when the default currency read fails - then the extraction request carries no currency")
-        void whenDefaultCurrencyReadFails_thenTheExtractionRequestCarriesNoCurrency() {
-            when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenThrow(persistenceFailure());
-
-            useCase.handleNext();
-
-            ArgumentCaptor<IntentExtractionRequest> captor = ArgumentCaptor.forClass(IntentExtractionRequest.class);
-            verify(intentExtractionPort).extract(captor.capture());
-            assertThat(captor.getValue().defaultCurrency()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("when the stamp answers false - then it answers true and neither extracts nor settles")
-        void whenStampAnswersFalse_thenAnswersTrueAndNeitherExtractsNorSettles() {
-            when(writtenMessageRepository.stampHandOver(MESSAGE_ID, NOW)).thenReturn(false);
+        @DisplayName("when the hand-over is refused and nothing is under the message - then the text is settled FAILED")
+        void whenTheHandOverIsRefusedAndNothingIsUnderTheMessage_thenTheTextIsSettledFailed() {
+            givenRefused();
 
             boolean handled = useCase.handleNext();
 
             assertThat(handled).isTrue();
+            verify(writtenMessageRepository).settle(MESSAGE_ID, ReportOutcome.FAILED, NOW);
+            verify(turnMeters).countTurn(ReportOutcome.FAILED);
+        }
+
+        @Test
+        @DisplayName("when the hand-over is refused - then one error line names the message and the outcome")
+        void whenTheHandOverIsRefused_thenOneErrorLineNamesTheMessageAndTheOutcome() {
+            givenRefused();
+
+            useCase.handleNext();
+
+            ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<Object[]> args = ArgumentCaptor.forClass(Object[].class);
+            verify(log).error(message.capture(), args.capture());
+            String line = message.getValue() + " "
+                    + Arrays.stream(args.getValue()).map(String::valueOf).collect(Collectors.joining(" "));
+            assertThat(line)
+                    .contains(String.valueOf(MESSAGE_ID))
+                    .contains(ReportOutcome.FAILED.name())
+                    .doesNotContain(TEXT);
+        }
+
+        @Test
+        @DisplayName("when the hand-over is refused and the settle throws - then it propagates and nothing is counted")
+        void whenTheHandOverIsRefusedAndTheSettleThrows_thenItPropagatesAndNothingIsCounted() {
+            givenRefused();
+            PersistenceFailedException failure = persistenceFailure();
+            when(writtenMessageRepository.settle(anyLong(), any(), any())).thenThrow(failure);
+
+            assertThatThrownBy(() -> useCase.handleNext()).isSameAs(failure);
+
+            verifyNoInteractions(turnMeters);
+        }
+
+        @Test
+        @DisplayName("when the hand-over fails - then it answers false and the text is neither moved nor settled")
+        void whenTheHandOverFails_thenItAnswersFalseAndTheTextIsNeitherMovedNorSettled() {
+            doThrow(new IntentExtractionFailedException("not accepted", new RuntimeException()))
+                    .when(intentExtractionPort)
+                    .extract(any());
+
+            boolean handled = useCase.handleNext();
+
+            assertThat(handled).isFalse();
+            verify(writtenMessageRepository).recordAttempt(MESSAGE_ID, NOW);
+            verify(intentExtractionPort).extract(any(IntentExtractionRequest.class));
+            verify(writtenMessageRepository, never()).markHandedOver(anyLong(), any());
+            verify(writtenMessageRepository, never()).settle(anyLong(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when the catalogue lacks the catch-all - then nothing is recorded or handed over")
+        void whenTheCatalogueLacksTheCatchAll_thenNothingIsRecordedOrHandedOver() {
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(List.of("Food", "Auto")));
+
+            useCase.handleNext();
+
+            verify(groupingRepository).findCatalogue(USER_ID);
+            verify(writtenMessageRepository, never()).recordAttempt(anyLong(), any());
+            verifyNoInteractions(intentExtractionPort);
+        }
+
+        @Test
+        @DisplayName(
+                "when the catalogue lacks the catch-all - then the text is settled FAILED, counted, and it answers true")
+        void whenTheCatalogueLacksTheCatchAll_thenTheTextIsSettledFailedCountedAndItAnswersTrue() {
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(List.of("Food", "Auto")));
+
+            boolean handled = useCase.handleNext();
+
+            assertThat(handled).isTrue();
+            verify(writtenMessageRepository).settle(MESSAGE_ID, ReportOutcome.FAILED, NOW);
+            verify(turnMeters).countTurn(ReportOutcome.FAILED);
+        }
+
+        @ParameterizedTest
+        @EnumSource(Read.class)
+        @DisplayName("when a preparing read throws PersistenceFailedException - then it answers false and does no more")
+        void whenAPreparingReadThrowsPersistenceFailedException_thenItAnswersFalseAndDoesNoMore(Read read) {
+            switch (read) {
+                case CATALOGUE ->
+                    when(groupingRepository.findCatalogue(USER_ID)).thenThrow(persistenceFailure());
+                case DEFAULT_CURRENCY ->
+                    when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenThrow(persistenceFailure());
+            }
+
+            boolean handled = useCase.handleNext();
+
+            assertThat(handled).isFalse();
+            switch (read) {
+                case CATALOGUE -> verify(groupingRepository).findCatalogue(USER_ID);
+                case DEFAULT_CURRENCY -> verify(userPreferenceRepository).findDefaultCurrency(USER_ID);
+            }
+            verify(writtenMessageRepository, never()).recordAttempt(anyLong(), any());
             verifyNoInteractions(intentExtractionPort);
             verify(writtenMessageRepository, never()).settle(anyLong(), any(), any());
         }
 
         @Test
-        @DisplayName("when the stamp throws PersistenceFailedException - then no extraction and the message is FAILED")
-        void whenStampThrows_thenNoExtractionAndTheMessageIsSettledFailed() {
-            when(writtenMessageRepository.stampHandOver(MESSAGE_ID, NOW)).thenThrow(persistenceFailure());
+        @DisplayName("when recording the attempt throws PersistenceFailedException - then nothing is handed over")
+        void whenRecordingTheAttemptThrowsPersistenceFailedException_thenNothingIsHandedOver() {
+            PersistenceFailedException failure = persistenceFailure();
+            doThrow(failure).when(writtenMessageRepository).recordAttempt(MESSAGE_ID, NOW);
 
-            useCase.handleNext();
+            assertThatThrownBy(() -> useCase.handleNext()).isSameAs(failure);
 
             verifyNoInteractions(intentExtractionPort);
-            verifySettledAs(ReportOutcome.FAILED);
         }
 
         @Test
-        @DisplayName("when the settle throws PersistenceFailedException - then it reaches the caller")
-        void whenSettleThrows_thenItReachesTheCaller() {
+        @DisplayName("when moving the text to READING throws PersistenceFailedException - then it is never settled")
+        void whenMovingTheTextToReadingThrowsPersistenceFailedException_thenItIsNeverSettled() {
             PersistenceFailedException failure = persistenceFailure();
-            when(writtenMessageRepository.settle(anyLong(), any(), any())).thenThrow(failure);
-
-            assertThatThrownBy(() -> useCase.handleNext()).isSameAs(failure);
-        }
-
-        @Test
-        @DisplayName("when the settle answers false - then nothing is thrown and no turn is counted")
-        void whenSettleAnswersFalse_thenNothingIsThrownAndNoTurnIsCounted() {
-            when(writtenMessageRepository.settle(anyLong(), any(), any())).thenReturn(false);
-
-            assertThatCode(() -> useCase.handleNext()).doesNotThrowAnyException();
-
-            verify(writtenMessageRepository).settle(anyLong(), any(), any());
-            verifyNoInteractions(turnMeters);
-        }
-
-        @Test
-        @DisplayName("when the days read throws PersistenceFailedException - then it reaches the caller unsettled")
-        void whenDaysReadThrows_thenItReachesTheCallerAndTheMessageIsNeverSettled() {
-            PersistenceFailedException failure = persistenceFailure();
-            when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE))
-                    .thenThrow(failure);
+            when(writtenMessageRepository.markHandedOver(MESSAGE_ID, NOW)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handleNext()).isSameAs(failure);
 
+            verify(intentExtractionPort).extract(any(IntentExtractionRequest.class));
             verify(writtenMessageRepository, never()).settle(anyLong(), any(), any());
         }
     }

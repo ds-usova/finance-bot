@@ -18,13 +18,13 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                                                                                 | Through                                                                      | For                                                                                 |
-|-----------|--------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| in        | [File a text for reading](file-written-message.md)                                                           | [File a text for reading](file-written-message.md)                           | waking the reader the moment a text is filed                                        |
-| in        | [The reader's schedule](../configuration.md)                                                                 | [Configuration](../configuration.md)                                         | looking for a waiting text every poll interval                                      |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)               | claiming and settling the text, reading the person, reading back what the turn left |
+| Direction | Collaborator                                                                                                 | Through                                                                        | For                                                                                 |
+|-----------|--------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| in        | [File a text for reading](file-written-message.md)                                                           | [File a text for reading](file-written-message.md)                             | waking the reader the moment a text is filed                                        |
+| in        | [The reader's schedule](../configuration.md)                                                                 | [Configuration](../configuration.md)                                           | looking for a waiting text every poll interval                                      |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                 | claiming and settling the text, reading the person, reading back what the turn left |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md) | acting on the text, as that person                                                  |
-| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)               | picking up the periods the text asked about, so they can be discarded               |
+| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)                 | picking up the periods the text asked about, so they can be discarded               |
 
 ## Outcomes
 
@@ -34,7 +34,7 @@
 | Spending recorded      | the connector finished, and an entry is under the text                           | settled `RECORDED`                                                                  |
 | Period answered        | the connector finished, no entry is under the text, and a period was asked about | settled `ANSWERED`                                                                  |
 | Nothing identified     | the connector finished, and nothing is under the text                            | settled `NOTHING_IDENTIFIED`                                                        |
-| Person unprepared      | the person's groupings cannot be read, or lack the designated catch-all          | settled `FAILED`, the connector never called, and a warning logged                  |
+| Person unprepared      | the person's catalogue cannot be read, or lacks the designated catch-all         | settled `FAILED`, the connector never called, and a warning logged                  |
 | Currency unread        | the person's assumed currency cannot be read                                     | the turn runs, assuming no currency, and the failure is logged                      |
 | Swept before hand-over | the text stopped being `READING` before the connector was called                 | the connector is never called, and the text is left as it was settled               |
 | Hand-over unstamped    | recording the hand-over fails                                                    | settled `FAILED`, and the connector never called                                    |
@@ -77,7 +77,7 @@ ContainerDb(db, "Database", "PostgreSQL")
 
 Rel_D(reader, useCase, "Reads the next text through")
 Rel_D(useCase, writtenPort, "Claims, stamps, settles")
-Rel_D(useCase, groupingPort, "Reads the groupings")
+Rel_D(useCase, groupingPort, "Reads the catalogue")
 Rel_D(useCase, preferencePort, "Reads the currency")
 Rel_D(useCase, expensePort, "Reads the days")
 Rel_D(useCase, queryPort, "Reads, discards periods")
@@ -116,7 +116,7 @@ Container(connector, "AI Connector Service", "Java, Spring Boot")
 Rel_R(useCase, extractionPort, "Hands the text over")
 Rel_U(extractionAdapter, extractionPort, "Implements")
 Rel_R(extractionAdapter, minter, "Mints with")
-Rel_D(extractionAdapter, connector, "Text and credential", "gRPC")
+Rel_D(extractionAdapter, connector, "Text, catalogue and credential", "gRPC")
 
 Lay_D(extractionPort, extractionAdapter)
 @enduml
@@ -139,7 +139,7 @@ alt nothing waits
   UC --> Reader : nothing claimed
 else one claimed
   DB --> UC : the text, now READING
-  UC -> DB : the person's groupings and currency
+  UC -> DB : the person's catalogue and currency
   alt unreadable, or no catch-all
     UC -> DB : settle FAILED
   else prepared
@@ -149,7 +149,7 @@ else one claimed
     else the stamp fails
       UC -> DB : settle FAILED
     else stamped
-      UC -> AI : the text, as the person, under web:<id>
+      UC -> AI : the text and the catalogue, as the person, under web:<id>
       AI -> SS : any period asked about
       AI --> UC : handled, refused, or unreachable
       UC -> DB : the days and periods under web:<id>

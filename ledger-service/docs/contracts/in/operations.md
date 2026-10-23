@@ -1,4 +1,4 @@
-# An operator running the service — health, meters and slot recovery (HTTP)
+# An operator running the service — health, meters, slot recovery and the call line (HTTP, console)
 
 The boundary a deployment is watched and repaired through: everything an operator needs to see how the service
 is doing, and the one operation they can run against it by hand.
@@ -6,8 +6,9 @@ is doing, and the one operation they can run against it by hand.
 It is served on its own port, `MANAGEMENT_PORT`, which is never published alongside the service's own. Nothing
 the product is used with is reachable here, and nothing here is reachable there.
 
-- **Counterpart:** an operator, or the monitoring that stands in for one
-- **Transport:** HTTP on the management port
+- **Counterpart:** an operator, or the monitoring that stands in for one, and the
+  [evaluation runner](../../../../eval-runner/README.md) for the call line
+- **Transport:** HTTP on the management port; the service's console for the call line
 - **Schema:** none held in a file
 
 ## Operations
@@ -37,19 +38,20 @@ What each of these states costs the database is [what change capture owes](../ou
 
 ## Meters
 
-| Meter                               | Kind    | Says                                                                                       |
-|-------------------------------------|---------|--------------------------------------------------------------------------------------------|
-| `ledger_mcp_tool_calls_total`       | counter | tool calls answered, tagged by `tool`, `outcome` and `reason`                              |
-| `ledger_turns_total`                | counter | messages and filed texts handled, tagged by the `outcome` each came to                     |
-| `ledger_proposals_resolved_total`   | counter | expenses a tap resolved, tagged by `resolution`                                            |
-| `ledger_cdc_events_published_total` | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))  |
-| `ledger_cdc_publish_failures_total` | counter | appends the stream refused                                                                 |
-| `ledger_cdc_facts_dropped_total`    | counter | facts the ledger could not record, tagged by `type` — each one reaches no consumer, ever |
-| `ledger_cdc_event_lag_seconds`      | gauge   | now, less the instant stamped on the last fact appended                                    |
-| `ledger_cdc_state`                  | gauge   | the capture state, as an ordinal                                                           |
-| `ledger_cdc_outbox_rows`            | gauge   | rows left in the outbox — anything but zero is a write that did not delete its own       |
-| `ledger_cdc_slot_retained_bytes`    | gauge   | how much log the replication slot is holding — the one to alarm on                       |
-| `ledger_cdc_slot_wal_status`        | gauge   | what the database says about that slot, as an ordinal                                      |
+| Meter                               | Kind    | Says                                                                                                                         |
+|-------------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------|
+| `ledger_mcp_tool_calls_total`       | counter | tool calls answered, tagged by `tool`, `outcome` and `reason`                                                                |
+| `ledger_turns_total`                | counter | messages and filed texts handled, tagged by the `outcome` each came to                                                       |
+| `ledger_proposals_resolved_total`   | counter | expenses a tap resolved, tagged by `resolution`                                                                              |
+| `ledger_cdc_events_published_total` | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))                                    |
+| `ledger_cdc_publish_failures_total` | counter | appends the stream refused                                                                                                   |
+| `ledger_cdc_facts_dropped_total`    | counter | facts the ledger could not record, tagged by `type` — each one reaches no consumer, ever                                   |
+| `ledger_cdc_event_lag_seconds`      | gauge   | now, less the instant stamped on the last fact appended                                                                      |
+| `ledger_cdc_state`                  | gauge   | the capture state, as an ordinal                                                                                             |
+| `ledger_cdc_outbox_rows`            | gauge   | rows left in the outbox — anything but zero is a write that did not delete its own                                         |
+| `ledger_cdc_slot_retained_bytes`    | gauge   | how much log the replication slot is holding — the one to alarm on                                                         |
+| `ledger_cdc_slot_wal_status`        | gauge   | what the database says about that slot, as an ordinal                                                                        |
+| `grpc_server_seconds`               | timer   | calls the [turn operations](turn-operations.md)' port answered, tagged by `rpc_service`, `rpc_method` and `grpc_status_code` |
 
 The first three counters count a [redelivered batch](telegram-updates.md#failures) again. They are read as rates
 and ratios, never as exact business counts.
@@ -168,6 +170,28 @@ records which hours are missing.
 
 Every endpoint keeps serving throughout, capture alone being what stops.
 
+## The turn call line
+
+One console line per call a turn makes on the ledger, as a [tool](mcp.md) or as a
+[turn operation](turn-operations.md).
+
+```
+turn_call operation=<operation> via=<mcp|grpc> outcome=<ok|rejected> userId=<id|none> message=<id|none> arguments=<json>
+```
+
+| Part        | Holds                                                                                                      |
+|-------------|------------------------------------------------------------------------------------------------------------|
+| `operation` | the tool's name: `create_expense_proposal`, `list_categories` or `summarize_spending`                      |
+| `via`       | `mcp` for a tool call, `grpc` for a turn operation                                                         |
+| `outcome`   | `ok`, or `rejected` for any refusal                                                                        |
+| `userId`    | the caller's [id](../../domain/authenticated-user-id.md), or `none` where it cannot be read                |
+| `message`   | the [message](../../domain/incoming-message-id.md) the credential names, or `none` where it cannot be read |
+| `arguments` | the call's arguments as a JSON object, named as the tool names them                                        |
+
+- `FileExpenseProposal` writes `create_expense_proposal`. `RecordSpendingPeriod` writes `summarize_spending`.
+- It is written at debug level, and only with `TURN_CALL_LOG_ENABLED` on ([configuration](../../configuration.md)).
+- A call refused for its credential writes none.
+
 ## Compatibility
 
 A meter renamed or a tag added is a change to whatever alerts on it, including the provisioned dashboard,
@@ -176,3 +200,6 @@ A meter renamed or a tag added is a change to whatever alerts on it, including t
 Moving the management port changes where a probe and a collector point, and nothing else. Publishing it beside
 the service's own port would put the rebuild operation on a reachable address, guarded by the shared secret
 alone.
+
+The evaluation runner matches its expected calls against the call line. A tool or an argument renamed, or a part
+of the line changed, is a change to it too.

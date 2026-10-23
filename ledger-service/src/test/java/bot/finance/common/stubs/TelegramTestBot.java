@@ -100,6 +100,12 @@ public final class TelegramTestBot {
      */
     public static final TelegramScenario ACCEPT_EXPENSES = new TelegramScenario(701, 1007, 2007);
 
+    /**
+     * Scenario owned by {@code DiscardExpensesSystemTest}. Nothing is polled here — the clearing it asserts on is
+     * dispatched off the request thread, and the conversation is what tells it from another class's traffic.
+     */
+    public static final TelegramScenario DISCARD_EXPENSES = new TelegramScenario(1001, 1010, 2010);
+
     /** Scenario owned by {@code PipelineMetersSystemTest}. */
     public static final TelegramScenario PIPELINE_METERS = new TelegramScenario(801, 1008, 2008);
 
@@ -108,6 +114,15 @@ public final class TelegramTestBot {
      * exists, with a preference row set before the turn runs.
      */
     public static final TelegramScenario RECEIVE_MESSAGE_WITH_DEFAULT_CURRENCY = new TelegramScenario(901, 1009, 2009);
+
+    /** Scenario owned by {@code EndTurnSystemTest}. Nothing is polled here; a turn is stored directly. */
+    public static final TelegramScenario END_TURN = new TelegramScenario(1101, 1011, 2011);
+
+    /** Scenario owned by {@code SweepIncomingTurnsSystemTest}. Nothing is polled here; turns are stored directly. */
+    public static final TelegramScenario SWEEP_INCOMING_TURN = new TelegramScenario(1201, 1012, 2012);
+
+    /** Scenario owned by {@code HandleIncomingMessageFailureSystemTest}'s refused hand-over. */
+    public static final TelegramScenario HANDLE_MESSAGE_REFUSED = new TelegramScenario(1301, 1013, 2013);
 
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 

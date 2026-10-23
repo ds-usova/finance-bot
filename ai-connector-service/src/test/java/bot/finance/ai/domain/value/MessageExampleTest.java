@@ -22,6 +22,7 @@ class MessageExampleTest {
 
     private static final ExampleExpense EXPENSE = new ExampleExpense(
             "lunch",
+            Optional.empty(),
             "15.00",
             CurrencyCode.of("EUR"),
             Optional.of("Restaurants"),

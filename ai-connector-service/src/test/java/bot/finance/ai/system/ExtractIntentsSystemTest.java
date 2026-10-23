@@ -1,20 +1,32 @@
 package bot.finance.ai.system;
 
+import static bot.finance.ai.common.PrometheusScrapeUtils.sampleOrZero;
+import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.metrics.MeterName;
 import bot.finance.ai.common.boot.AbstractSystemTest;
+import bot.finance.ai.common.containers.LedgerTurnServer.RecordedCall;
+import bot.finance.ai.common.containers.WireMockSupport;
+import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.ClassifierStubs;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -26,17 +38,10 @@ import org.junit.jupiter.api.Test;
  */
 class ExtractIntentsSystemTest extends AbstractSystemTest {
 
-    private static final String CALLER_TOKEN = "Bearer opaque-caller-token";
+    private static final String CALLER_TOKEN = CallerTokens.bearer(1001L, "message-1001-1");
 
     /** The grouping the scenarios file under — one of the fixture's own, so no literal is repeated. */
     private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
 
     private static String summarizeSpendingArguments(String from, String to) {
         return """
@@ -54,7 +59,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
@@ -62,6 +67,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitTheEnd();
 
             List<LoggedRequest> toolCalls = CapturedRequestUtils.toolCallRequests();
             assertThat(toolCalls).hasSize(1);
@@ -75,37 +81,38 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when the provider looks up categories and then records - then both calls reach the ledger "
-                + "under the request's token")
-        void whenProviderLooksUpCategoriesThenRecords_thenBothToolCallsReachLedgerUnderToken() {
+        @DisplayName("when the provider looks up a catalogued grouping - then only the proposal reaches the ledger "
+                + "and the lookup counts")
+        void whenProviderLooksUpCataloguedGroupingThenRecords_thenLedgerReceivesOnlyProposalAndLookupCountsAnswered() {
+            String lookups = MeterName.CATEGORY_LOOKUPS.meterName();
+            double before = sampleOrZero(scrape(actuatorPort), lookups, "outcome=\"answered\"");
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesAnswering(GROUPING, List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
                             "call-list-1",
                             ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
                             "{\"grouping\":\"" + GROUPING + "\"}")),
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-2", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-2", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
-                    .extractIntents(RequestFixtures.request());
+                    .extractIntents(RequestFixtures.requestWithCatalogue(
+                            RequestFixtures.request().getText(),
+                            List.of(RequestFixtures.catalogueEntry(GROUPING, "Lunch")),
+                            GROUPING));
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitTheEnd();
 
-            List<LoggedRequest> listCategoriesCalls = CapturedRequestUtils.toolCallRequests("list_categories");
+            assertThat(CapturedRequestUtils.toolCallRequests("list_categories")).isEmpty();
             List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
-            assertThat(listCategoriesCalls).hasSize(1);
             assertThat(createExpenseProposalCalls).hasSize(1);
-            assertThat(listCategoriesCalls.getFirst().getHeader("Authorization"))
-                    .isEqualTo(CALLER_TOKEN);
             assertThat(createExpenseProposalCalls.getFirst().getHeader("Authorization"))
                     .isEqualTo(CALLER_TOKEN);
-
-            JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
-            assertThat(lookupArguments.get("grouping").asText()).isEqualTo(GROUPING);
+            assertThat(sampleOrZero(scrape(actuatorPort), lookups, "outcome=\"answered\""))
+                    .isEqualTo(before + 1);
         }
 
         @Test
@@ -127,6 +134,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             log.info("response: {}", response);
 
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitTheEnd();
 
             List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
             assertThat(summarizeSpendingCalls).hasSize(1);
@@ -136,6 +144,54 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(arguments.get("from").asText()).isEqualTo(from);
             assertThat(arguments.get("to").asText()).isEqualTo(to);
         }
+
+        @Test
+        @DisplayName("when the mode is unset - then the classifier receives no request and the turn counts under "
+                + "tools and acted_on")
+        void whenModeUnset_thenClassifierReceivesNoRequestAndToolsTurnCounts() {
+            String turns = MeterName.TURNS.meterName();
+            double before = toolsActedOnTurns(scrape(actuatorPort), turns);
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+            LedgerTurnStubs.awaitTheEnd();
+
+            assertThat(WireMockSupport.SERVER.findAll(
+                            postRequestedFor(urlPathEqualTo(ClassifierStubs.SYSTEM_ONE_PATH))))
+                    .isEmpty();
+            assertThat(toolsActedOnTurns(scrape(actuatorPort), turns)).isEqualTo(before + 1);
+        }
+
+        @Test
+        @DisplayName("when the provider answers after a second - then the call answers empty first and the turn "
+                + "ends acted on under the token")
+        void whenProviderAnswersAfterOneSecond_thenCallAnswersEmptyBeforeProviderAndEndsActedOnUnderToken() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            WireMockStubs.stubChatCompletionDelayed(
+                    ChatCompletionFixtures.textResponse("nothing to record"), Duration.ofSeconds(1));
+
+            long startedAt = System.nanoTime();
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+            Duration took = Duration.ofNanos(System.nanoTime() - startedAt);
+            log.info("response: {} after {}", response, took);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            assertThat(took).isLessThan(Duration.ofSeconds(1));
+
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_ACTED_ON);
+            assertThat(end.authorization()).isEqualTo(CALLER_TOKEN);
+        }
+
+        private double toolsActedOnTurns(String body, String metric) {
+            return sampleOrZero(body, metric, "mode=\"tools\"", "outcome=\"acted_on\"");
+        }
     }
 
     @Nested
@@ -143,17 +199,20 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when a tokened request arrives and the provider responds with a server error - then the RPC "
-                + "fails with UNAVAILABLE")
-        void whenProviderRespondsServerError_thenFailsWithUnavailable() {
+        @DisplayName("when the provider returns a server error - then the call answers empty and the turn "
+                + "ends unavailable under the token")
+        void whenProviderRespondsServerError_thenCallAnswersEmptyAndTurnEndsUnavailable() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionServerError();
 
-            assertThatThrownBy(() -> AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
-                            .extractIntents(RequestFixtures.request()))
-                    .isInstanceOf(StatusRuntimeException.class)
-                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+            log.info("response: {}", response);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            RecordedCall end = LedgerTurnStubs.awaitTheEnd();
+            assertThat(LedgerTurnStubs.endOf(end)).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
+            assertThat(end.authorization()).isEqualTo(CALLER_TOKEN);
         }
 
         @Test

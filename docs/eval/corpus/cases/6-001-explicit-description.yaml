@@ -1,0 +1,12 @@
+id: "6-001-explicit-description"
+covers: "description.explicit"
+message: "I paid 500 HUF for a bus ticket."
+fixture: "catalogue-v1"
+steps: "../steps/6-001-explicit-description.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"description":{"oneOf":["bus ticket","Bus ticket","Bus Ticket"]}}
+notes: "Checks only description.explicit."

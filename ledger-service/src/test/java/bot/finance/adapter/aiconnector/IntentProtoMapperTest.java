@@ -4,6 +4,7 @@ import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
 import java.time.LocalDate;
@@ -27,7 +28,10 @@ class IntentProtoMapperTest {
         void whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Transport", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Transport", List.of("Bus")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.of(CurrencyCode.of("EUR")),
                     42L,
@@ -45,12 +49,39 @@ class IntentProtoMapperTest {
         }
 
         @Test
+        @DisplayName(
+                "when the catalogue holds two entries - then the generated request carries them in order with their categories")
+        void whenCatalogueHoldsTwoEntries_thenGeneratedRequestCarriesEntriesInOrderWithTheirCategories() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(
+                            new CatalogueEntry("Dining", List.of("Cafés", "Restaurants")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
+                    "Other",
+                    Optional.empty(),
+                    42L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+
+            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
+
+            assertThat(protoRequest.getCatalogueList()).hasSize(2);
+            assertThat(protoRequest.getCatalogue(0).getGrouping()).isEqualTo("Dining");
+            assertThat(protoRequest.getCatalogue(0).getCategoriesList()).containsExactly("Cafés", "Restaurants");
+            assertThat(protoRequest.getCatalogue(1).getGrouping()).isEqualTo("Other");
+            assertThat(protoRequest.getCatalogue(1).getCategoriesList()).containsExactly("Misc");
+            assertThat(protoRequest.getCategoryGroupingsList()).containsExactly("Dining", "Other");
+        }
+
+        @Test
         @DisplayName("when the request's default currency is empty - then the generated request reports "
                 + "hasDefaultCurrency() as false")
         void whenRequestDefaultCurrencyIsEmpty_thenGeneratedRequestReportsHasDefaultCurrencyAsFalse() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     42L,
@@ -67,7 +98,9 @@ class IntentProtoMapperTest {
         void whenRequestCarriesCurrentDate_thenGeneratedRequestCarriesItAsCurrentDate() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     42L,

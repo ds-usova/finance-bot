@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.rows.StreamEntryFailureRowUtils;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
@@ -24,7 +23,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @PersistenceAdapterTest
-@Import({JdbcChangeAttemptStoreAdapter.class, MemoryConfiguration.class})
+@Import(JdbcChangeAttemptStoreAdapter.class)
 class JdbcChangeAttemptStoreAdapterTest {
 
     @Autowired

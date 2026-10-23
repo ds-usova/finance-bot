@@ -51,6 +51,7 @@ dependencies {
     implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
 
     implementation "org.springframework.boot:spring-boot-starter-grpc-server"
+    implementation "org.springframework.boot:spring-boot-starter-grpc-client"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "org.springframework.boot:spring-boot-starter-webmvc"
@@ -97,7 +98,11 @@ jacoco {
 // The report and the rule share one filter, so a reported percentage is the one being enforced.
 def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
-        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "**/*Application.class"])
+        fileTree(dir: it, exclude: [
+            "bot/finance/ai/adapter/grpc/v1/**",
+            "bot/finance/ledger/adapter/grpc/v1/**",
+            "**/*Application.class"
+        ])
     }))
 }
 

@@ -2,7 +2,6 @@ package bot.finance.ai.system;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.metrics.MeterName;
@@ -12,10 +11,10 @@ import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
 import bot.finance.ai.common.fixtures.EmbeddingFixtures;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
+import bot.finance.ai.common.stubs.LedgerTurnStubs;
 import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import bot.finance.ledger.adapter.grpc.v1.TurnEnd;
 import io.restassured.response.Response;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,15 +29,6 @@ import org.junit.jupiter.api.Test;
  * observations ({@code ChatObservationAutoConfiguration}); nothing here records them by hand.
  */
 class MetersSystemTest extends AbstractMemorySystemTest {
-
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
-
-    private static String proposalArguments() {
-        return """
-                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
-                "currencyCode":"EUR","merchant":"Deli Co"}"""
-                .formatted(GROUPING);
-    }
 
     private static double gaugeValue(String body, String metricName) {
         Matcher matcher = Pattern.compile("(?m)^" + Pattern.quote(metricName) + "\\s+(\\S+)$")
@@ -61,7 +51,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
             WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponse(EmbeddingFixtures.unitVector(0)));
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
+                            ChatCompletionFixtures.toolCall("call-1", ChatCompletionFixtures.lunchProposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             String token = CallerTokens.bearer(userId, incomingMessageId);
@@ -69,6 +59,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
                     .extractIntents(RequestFixtures.request());
             log.info("response: {}", response);
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            LedgerTurnStubs.awaitEnds(1);
 
             Response scrape = given().port(actuatorPort).when().get("/actuator/prometheus");
             scrape.then().statusCode(200);
@@ -115,19 +106,20 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the provider refuses the chat call - then the rpc fails and the chat sample carries "
-                + "the error tag")
-        void whenProviderRefusesChatCall_thenRpcFailsAndChatSampleCarriesErrorTag() {
+        @DisplayName("when the provider refuses the chat call - then the turn ends unavailable and the chat sample "
+                + "carries the error tag")
+        void whenProviderRefusesChatCall_thenTurnEndsUnavailableAndChatSampleCarriesErrorTag() {
             long userId = 9002L;
             String incomingMessageId = "message-9002-meters";
             WireMockStubs.stubChatCompletionServerError();
 
             String token = CallerTokens.bearer(userId, incomingMessageId);
-            assertThatThrownBy(() -> AuthorizedStubs.withCallerToken(intentExtractionStub, token)
-                            .extractIntents(RequestFixtures.request()))
-                    .isInstanceOf(StatusRuntimeException.class)
-                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, token)
+                    .extractIntents(RequestFixtures.request());
+            log.info("response: {}", response);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+            assertThat(LedgerTurnStubs.endOf(LedgerTurnStubs.awaitTheEnd())).isEqualTo(TurnEnd.TURN_END_UNAVAILABLE);
 
             Response scrape = given().port(actuatorPort).when().get("/actuator/prometheus");
             scrape.then().statusCode(200);

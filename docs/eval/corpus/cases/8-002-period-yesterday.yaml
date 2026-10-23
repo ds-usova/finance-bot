@@ -1,0 +1,18 @@
+id: "8-002-period-yesterday"
+covers: "spending-period.yesterday"
+message: "How much did I spend yesterday?"
+fixture: "catalogue-v1"
+steps: "../steps/8-002-period-yesterday.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "run-date-minus-1-day"
+        to:
+          equals: "run-date-minus-1-day"
+notes: "Checks only spending-period.yesterday."

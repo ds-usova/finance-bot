@@ -1,24 +1,27 @@
 # AI provider — reading and embedding a message (HTTPS)
 
-The service hands a user's message to a language model, with the ledger's tools attached. It also has the
-provider turn a message into the vector by which messages are compared for meaning.
+The service hands a user's message to a language model. In the tools mode the model acts on it with the ledger's
+tools attached. In the classifier mode it only reads the message out. The service also has the provider turn a
+message into the vector by which messages are compared for meaning.
 
 - **Counterpart:** an OpenAI-compatible API — the address, the credential and the two models are
-  [configuration](../../configuration.md). Both operations use the same address and the same credential.
+  [configuration](../../configuration.md). Every operation uses the same address and the same credential.
 - **Transport:** HTTPS
-- **Schema:** none — the provider owns the request and response format of both operations
+- **Schema:** none — the provider owns the request and response format of every operation
 
 ## Operations
 
-| Operation           | Purpose                                                                             | Used by                                                                              |
-|---------------------|-------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| Act on the message  | calls the ledger's tools — one recording call per expense, one summary per question | [Record the spending a user's message names](../../usecases/extract-intents.md)      |
-| Embed one message   | the vector a turn is given its own examples by                                       | [Recall the person's own worked examples](../../usecases/recall-examples.md)         |
-| Embed a batch       | the vectors for messages no turn managed to embed                                    | [Embed the messages nothing has embedded yet](../../usecases/backfill-embeddings.md) |
+| Operation            | Purpose                                                                               | Used by                                                                                          |
+|----------------------|---------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Act on the message   | calls the ledger's tools — one recording call per expense, one summary per question | [Record the spending a user's message names](../../usecases/extract-intents.md), tools mode      |
+| Read the message out | the expenses and the periods the message names, with no tools                         | [Record the spending a user's message names](../../usecases/extract-intents.md), classifier mode |
+| Embed one message    | the vector a turn is given its own examples by                                        | [Recall the person's own worked examples](../../usecases/recall-examples.md)                     |
+| Embed a batch        | the vectors for messages no turn managed to embed                                     | [Embed the messages nothing has embedded yet](../../usecases/backfill-embeddings.md)             |
 
-## Reading a message
+## Acting on a message
 
-**Sent:** two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool schemas.
+**Sent:** two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool schemas,
+its `list_categories` replaced by [this service's own](#the-category-lookup).
 
 **Returned:** a sequence of tool calls, each answered with that tool's result, until the model answers with text.
 
@@ -35,7 +38,7 @@ One exchange per turn, as many requests as the model asks for tool calls.
 ### What the two messages carry
 
 | Message               | Contents                                                                                           |
-|-----------------------|------------------------------------------------------------------------------------------------------|
+|-----------------------|----------------------------------------------------------------------------------------------------|
 | Standing instructions | the task, the order, the retry policy, what an example is. Never changes, never mentions a user.   |
 | Per-turn message      | the text, the person's own worked examples, the groupings, the catch-all, the day the turn runs on |
 
@@ -59,6 +62,27 @@ What they do not say:
   rule is the tool's own argument schema, not an instruction.
 - The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
 
+### The category lookup
+
+`list_categories` is answered by this service, from the request's catalogue.
+
+- Offered under the name, description and argument of
+  [the ledger's tool](../../../../ledger-service/docs/contracts/in/mcp.md#what-list_categories-takes), copied to
+  the letter.
+- Built per turn from that turn's catalogue. Two turns never share one.
+- Answered in [the ledger's form](../../../../ledger-service/docs/contracts/in/mcp.md#what-list_categories-answers-with),
+  the categories in the order [the request](../in/intent-extraction.md) lists them.
+- A name is matched exactly, case included.
+
+| The name the model sends                                      | Answer                                                      |
+|---------------------------------------------------------------|-------------------------------------------------------------|
+| a grouping the catalogue holds                                | that grouping's categories                                  |
+| a category the catalogue holds, and no grouping of it         | refused: `<name> is a category, not a grouping`             |
+| neither                                                       | refused: `no grouping named <name> is stored for this user` |
+| blank, absent or not a string, or arguments that are not JSON | refused: `list categories command has no grouping name`     |
+
+A name that is both a grouping and a category answers as the grouping.
+
 ### Cost and latency
 
 - Every tool call is a further round trip.
@@ -71,16 +95,59 @@ What they do not say:
 
 ### Failures
 
-| Condition                                                     | What this side does                                                        |
-|---------------------------------------------------------------|----------------------------------------------------------------------------|
-| The provider is unreachable, refuses the call, or errors      | the exchange raises a failure, and the turn ends on it                     |
-| The model ends the exchange with text instead of a tool call  | nothing — whatever it recorded or asked by then stands, and may be nothing |
-| The model sends an argument the tool cannot read              | the failure goes back as that call's answer, for the model to correct      |
-| The turn outlives the caller's deadline                       | nothing — the exchange runs on, and what it recorded stands                |
+| Condition                                                    | What this side does                                                          |
+|--------------------------------------------------------------|------------------------------------------------------------------------------|
+| The provider is unreachable, refuses the call, or errors     | the exchange raises a failure, and the turn ends on it                       |
+| The model ends the exchange with text instead of a tool call | nothing — whatever it recorded or asked by then stands, and may be nothing |
+| The model sends an argument the tool cannot read             | the failure goes back as that call's answer, for the model to correct        |
+| The turn outlives the caller's deadline                      | nothing — the exchange runs on, and what it recorded stands                |
 
 What the person who sent the message is told in each case is
 [the turn's Outcomes](../../usecases/extract-intents.md#outcomes). A tool call that the ledger refuses, or that
 cannot reach it at all, is [the ledger's edge](ledger-mcp.md#failures), not this one.
+
+## Reading a message out
+
+**Sent:** two messages and a JSON-schema response format.
+
+**Returned:** the expenses the message says were paid, in the user's order, and the periods it asks about.
+
+One request per turn.
+
+### What the read-out carries
+
+| Message               | Contents                                                        |
+|-----------------------|-----------------------------------------------------------------|
+| Standing instructions | the task, the order, what to leave null. Never mentions a user. |
+| Per-turn message      | the day the turn runs on, the currency to assume, the text      |
+
+- No grouping, no category, no example and no tool is ever sent.
+- The instructions are two files:
+  [`read-out-spending.st`](../../../src/main/resources/prompts/read-out-spending.st), the standing instructions,
+  and [`read-out-message.st`](../../../src/main/resources/prompts/read-out-message.st), the per-turn message.
+- The response format is the connector's own.
+
+### What is read back
+
+| Per expense   | Holds                                                         |
+|---------------|---------------------------------------------------------------|
+| `description` | what was bought, in the user's words                          |
+| `merchant`    | who it was bought from; null when the message names no one    |
+| `amount`      | the amount as written, in the currency's main unit            |
+| `currency`    | an ISO 4217 code; null when the message names or implies none |
+
+- Each period is its first and last day, `from` and `to`, written `YYYY-MM-DD`.
+- What becomes of an expense that cannot be filed is
+  [the turn's Outcomes](../../usecases/extract-intents.md#outcomes).
+
+### Failures
+
+| Condition                                                       | What this side does                                |
+|-----------------------------------------------------------------|----------------------------------------------------|
+| The provider is unreachable, refuses the call, or errors        | the call raises a failure, and the turn ends on it |
+| The answer does not fit the shape, or a day is not `YYYY-MM-DD` | the same                                           |
+
+The call has no timeout of its own.
 
 ## Embedding a message
 
@@ -106,8 +173,8 @@ What a failure costs is [the recall's](../../usecases/recall-examples.md#outcome
 
 ## What a person's history may leave over this boundary
 
-- Only when the memory is on and the turn's message was registered. Otherwise the per-turn message carries no
-  examples section at all.
+- Only the tools mode's per-turn message carries examples, and only those
+  [the recall](../../usecases/recall-examples.md) answers. With none answered it carries no examples section.
 - The bound on how much and how far back is
   [the recall use case's](../../usecases/recall-examples.md), by way of
   [configuration](../../configuration.md).
@@ -117,9 +184,10 @@ What a failure costs is [the recall's](../../usecases/recall-examples.md#outcome
 
 ## Compatibility
 
-- Anything speaking the OpenAI chat-completions and embeddings formats, with tool calling, is reached by
-  pointing the service at a different address. Nothing else moves with it.
-- The tool schema is the ledger's. An argument added there reaches the model with no change here.
+- Anything speaking the OpenAI chat-completions and embeddings formats is reached by pointing the service at a
+  different address. Nothing else moves with it.
+- The tools mode needs tool calling of it, and the classifier mode a JSON-schema response format.
+- A model that cannot call tools answers the tools mode with text, so the turn succeeds having recorded nothing.
 - Changing the model or the instructions changes what gets recorded without changing any schema. No build
   announces it, and only the tests that pin the recording behaviour will notice.
 - The chat model and the embedding model are chosen separately, and either may change without the other.

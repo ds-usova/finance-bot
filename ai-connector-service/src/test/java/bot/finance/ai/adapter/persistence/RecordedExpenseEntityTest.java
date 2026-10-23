@@ -57,6 +57,16 @@ class RecordedExpenseEntityTest {
             assertThat(example.outcome()).isEqualTo(ExampleOutcome.DISCARDED);
         }
 
+        @Test
+        @DisplayName("when the row holds a merchant - then the example carries that merchant")
+        void whenRowHoldsMerchant_thenExampleCarriesMerchant() {
+            RecordedExpenseEntity entity = expense("12.34", "EUR", "Groceries", "Food", "ACCEPTED");
+
+            ExampleExpense example = entity.toExampleExpense();
+
+            assertThat(example.merchant()).contains("Market");
+        }
+
         private RecordedExpenseEntity expense(
                 String amount, String currencyCode, String categoryName, String groupingName, String status) {
             return new RecordedExpenseEntity(

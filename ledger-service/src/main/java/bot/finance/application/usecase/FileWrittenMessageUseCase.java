@@ -5,8 +5,8 @@ import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.FileWrittenMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.TurnHandOverDispatchPort;
 import bot.finance.application.port.UserRepository;
-import bot.finance.application.port.WrittenMessageReadingDispatchPort;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.model.User;
@@ -17,14 +17,14 @@ public class FileWrittenMessageUseCase implements FileWrittenMessagePort {
 
     private final UserRepository userRepository;
     private final WrittenMessageRepository writtenMessageRepository;
-    private final WrittenMessageReadingDispatchPort dispatchPort;
+    private final TurnHandOverDispatchPort dispatchPort;
     private final Clock clock;
     private final Logger log;
 
     public FileWrittenMessageUseCase(
             UserRepository userRepository,
             WrittenMessageRepository writtenMessageRepository,
-            WrittenMessageReadingDispatchPort dispatchPort,
+            TurnHandOverDispatchPort dispatchPort,
             Clock clock,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;

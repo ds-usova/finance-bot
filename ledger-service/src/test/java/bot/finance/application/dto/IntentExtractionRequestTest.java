@@ -26,10 +26,16 @@ class IntentExtractionRequestTest {
 
     private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
+    private static List<CatalogueEntry> catalogue(String... groupings) {
+        return Arrays.stream(groupings)
+                .map(grouping -> new CatalogueEntry(grouping, List.of("category")))
+                .toList();
+    }
+
     private static IntentExtractionRequest requestWithTwoGroupings() {
         return new IntentExtractionRequest(
                 "lunch 12 euro",
-                List.of("groceries", "transport"),
+                catalogue("groceries", "transport"),
                 "transport",
                 Optional.empty(),
                 1L,
@@ -46,7 +52,7 @@ class IntentExtractionRequestTest {
         void whenTextOneCategoryAndDefaultCurrencyAreValid_thenItHoldsAllThree() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("groceries"),
+                    catalogue("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     1L,
@@ -86,7 +92,7 @@ class IntentExtractionRequestTest {
         void whenTextIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String text) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             text,
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -99,14 +105,14 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments("   "));
         }
 
-        @ParameterizedTest(name = "categoryGroupings={0}")
-        @MethodSource("nullOrEmptyCategoryGroupings")
+        @ParameterizedTest(name = "catalogue={0}")
+        @MethodSource("nullOrEmptyCatalogue")
         @DisplayName("when category groupings is null or empty - then throws InvalidExtractionRequestException")
         void whenCategoryGroupingsIsNullOrEmpty_thenThrowsInvalidExtractionRequestException(
-                List<String> categoryGroupings) {
+                List<CatalogueEntry> catalogue) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            categoryGroupings,
+                            catalogue,
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -115,19 +121,19 @@ class IntentExtractionRequestTest {
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
-        static Stream<Arguments> nullOrEmptyCategoryGroupings() {
+        static Stream<Arguments> nullOrEmptyCatalogue() {
             return Stream.of(arguments((Object) null), arguments(List.of()));
         }
 
-        @ParameterizedTest(name = "categoryGroupings={0}")
-        @MethodSource("categoryGroupingsWithNullOrBlankElement")
+        @ParameterizedTest(name = "catalogue={0}")
+        @MethodSource("catalogueWithNullOrBlankGrouping")
         @DisplayName("when category groupings carries a null or blank element - then throws "
                 + "InvalidExtractionRequestException")
         void whenCategoryGroupingsContainsNullOrBlankElement_thenThrowsInvalidExtractionRequestException(
-                List<String> categoryGroupings) {
+                List<CatalogueEntry> catalogue) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            categoryGroupings,
+                            catalogue,
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -136,9 +142,9 @@ class IntentExtractionRequestTest {
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
-        static Stream<Arguments> categoryGroupingsWithNullOrBlankElement() {
-            return Stream.of(arguments((Object) Arrays.asList("groceries", null)), arguments((Object)
-                    List.of("groceries", "   ")));
+        static Stream<Arguments> catalogueWithNullOrBlankGrouping() {
+            return Stream.of(arguments((Object) catalogue("groceries", null)), arguments((Object)
+                    catalogue("groceries", "   ")));
         }
 
         @ParameterizedTest(name = "catchAllGrouping={0}")
@@ -147,7 +153,7 @@ class IntentExtractionRequestTest {
         void whenCatchAllGroupingIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String catchAllGrouping) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             catchAllGrouping,
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -166,7 +172,7 @@ class IntentExtractionRequestTest {
         void whenCatchAllGroupingIsNotOneOfCategoryGroupings_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries", "transport"),
+                            catalogue("groceries", "transport"),
                             "utilities",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -180,7 +186,7 @@ class IntentExtractionRequestTest {
         void whenDefaultCurrencyIsNull_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             "groceries",
                             null,
                             1L,
@@ -194,7 +200,7 @@ class IntentExtractionRequestTest {
         void whenDefaultCurrencyIsEmpty_thenDefaultCurrencyComesBackEmpty() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("groceries"),
+                    catalogue("groceries"),
                     "groceries",
                     Optional.empty(),
                     1L,
@@ -210,7 +216,7 @@ class IntentExtractionRequestTest {
         void whenUserIdIsZeroOrNegative_thenThrowsInvalidExtractionRequestException(long userId) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             userId,
@@ -219,21 +225,75 @@ class IntentExtractionRequestTest {
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
+        @ParameterizedTest(name = "catalogue={0}")
+        @MethodSource("catalogueWithInvalidEntry")
+        @DisplayName(
+                "when a catalogue entry is null or has invalid categories - then throws InvalidExtractionRequestException")
+        void whenCatalogueHoldsInvalidEntry_thenThrowsInvalidExtractionRequestException(
+                List<CatalogueEntry> catalogue) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            catalogue,
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            1L,
+                            newIncomingMessageId(),
+                            CURRENT_DATE))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> catalogueWithInvalidEntry() {
+            CatalogueEntry valid = new CatalogueEntry("groceries", List.of("Milk"));
+            return Stream.of(
+                    arguments((Object) Arrays.asList(valid, null)),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", null))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", List.of()))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", Arrays.asList("Bus", null)))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", List.of("Bus", "   ")))));
+        }
+
+        @Test
+        @DisplayName(
+                "when the passed catalogue is changed afterwards - then catalogue() keeps the original entries and is unmodifiable")
+        void whenCatalogueIsChangedAfterConstruction_thenCatalogueHoldsEntriesAsAtConstructionAndIsUnmodifiable() {
+            List<CatalogueEntry> mutableCatalogue = new ArrayList<>(List.of(
+                    new CatalogueEntry("groceries", List.of("Milk", "Bread")),
+                    new CatalogueEntry("transport", List.of("Bus"))));
+
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    mutableCatalogue,
+                    "transport",
+                    Optional.empty(),
+                    1L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+            mutableCatalogue.add(new CatalogueEntry("utilities", List.of("Water")));
+            mutableCatalogue.remove(0);
+
+            assertThat(request.catalogue())
+                    .containsExactly(
+                            new CatalogueEntry("groceries", List.of("Milk", "Bread")),
+                            new CatalogueEntry("transport", List.of("Bus")));
+            assertThatThrownBy(() -> request.catalogue().add(new CatalogueEntry("utilities", List.of("Water"))))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+
         @Test
         @DisplayName("when the mutable grouping list handed to the constructor is modified afterwards - "
                 + "then category groupings is unchanged")
         void whenGroupingListIsModifiedAfterConstruction_thenCategoryGroupingsIsUnchanged() {
-            List<String> mutableGroupings = new ArrayList<>(List.of("groceries"));
+            List<CatalogueEntry> mutableCatalogue = new ArrayList<>(catalogue("groceries"));
 
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    mutableGroupings,
+                    mutableCatalogue,
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
-            mutableGroupings.add("transport");
+            mutableCatalogue.addAll(catalogue("transport"));
 
             assertThat(request.categoryGroupings()).containsExactly("groceries");
         }
@@ -245,7 +305,7 @@ class IntentExtractionRequestTest {
 
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("groceries"),
+                    catalogue("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     1L,
@@ -260,7 +320,7 @@ class IntentExtractionRequestTest {
         void whenMessageReferenceIsNull_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -274,7 +334,7 @@ class IntentExtractionRequestTest {
         void whenCurrentDateIsNull_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of("groceries"),
+                            catalogue("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             1L,
@@ -289,7 +349,7 @@ class IntentExtractionRequestTest {
         void whenRequestIsOtherwiseValidWithACurrentDate_thenCurrentDateReadsBackUnchanged() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("groceries"),
+                    catalogue("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     1L,

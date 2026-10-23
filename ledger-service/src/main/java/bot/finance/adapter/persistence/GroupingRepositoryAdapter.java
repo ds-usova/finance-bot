@@ -1,11 +1,14 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -40,11 +43,19 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
     }
 
     @Override
-    public List<String> findNamesWithCategories(long userId) {
+    public List<CatalogueEntry> findCatalogue(long userId) {
         try {
-            return categoryEntityRepository.findNonEmptyGroupingNames(userId);
+            return categoryEntityRepository.findCategoryEntriesForUser(userId, null).stream()
+                    .collect(Collectors.groupingBy(
+                            CategoryEntryProjection::groupingName,
+                            LinkedHashMap::new,
+                            Collectors.mapping(CategoryEntryProjection::name, Collectors.toList())))
+                    .entrySet()
+                    .stream()
+                    .map(entry -> new CatalogueEntry(entry.getKey(), entry.getValue()))
+                    .toList();
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
+            throw new PersistenceFailedException("failed to find catalogue for user " + userId, e);
         }
     }
 

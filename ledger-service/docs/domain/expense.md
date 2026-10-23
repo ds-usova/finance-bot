@@ -21,16 +21,17 @@ Two stored expenses with the same `id` are the same expense. An unstored one equ
 
 ## Lifecycle
 
-| Event    | By                                                                            | Notes                                                  |
-|----------|-------------------------------------------------------------------------------|--------------------------------------------------------|
-| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)       | pending, one per spending read out of a message        |
-| Created  | [Create an expense](../usecases/create-an-expense.md)                         | recorded, naming no message                            |
-| Recorded | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | every pending entry under the message, on a Confirm    |
-| Recorded | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | the pending entries a person ticked on the page        |
-| Changed  | [Change an entry's category](../usecases/change-an-expense-category.md)       | its category, and nothing else, under either status    |
-| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | a Delete removes every pending entry under the message |
-| Removed  | never, once recorded                                                          | only with its user, by the store's own cascade         |
-| Expired  | never                                                                         | a pending entry waits indefinitely                     |
+| Event    | By                                                                              | Notes                                                  |
+|----------|---------------------------------------------------------------------------------|--------------------------------------------------------|
+| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)         | pending, one per spending read out of a message        |
+| Created  | [Create an expense](../usecases/create-an-expense.md)                           | recorded, naming no message                            |
+| Recorded | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)       | every pending entry under the message, on a Confirm    |
+| Recorded | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md)   | the pending entries a person ticked on the page        |
+| Changed  | [Change an entry's category](../usecases/change-an-expense-category.md)         | its category, and nothing else, under either status    |
+| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)       | a Delete removes every pending entry under the message |
+| Removed  | [Discard the proposals a person chose](../usecases/discard-chosen-proposals.md) | the pending entries a person named by id               |
+| Removed  | never, once recorded                                                            | only with its user, by the store's own cascade         |
+| Expired  | never                                                                           | a pending entry waits indefinitely                     |
 
 ```plantuml
 @startuml
@@ -39,6 +40,7 @@ Two stored expenses with the same `id` are the same expense. An unstored one equ
 Pending --> Recorded : confirmed in the chat
 Pending --> Recorded : accepted on the page
 Pending --> [*] : discarded in the chat
+Pending --> [*] : discarded by id
 Recorded --> [*] : deleted with its user
 @enduml
 ```

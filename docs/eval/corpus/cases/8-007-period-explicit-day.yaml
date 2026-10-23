@@ -1,0 +1,18 @@
+id: "8-007-period-explicit-day"
+covers: "spending-period.explicit-day"
+message: "How much did I spend on October 10 this year?"
+fixture: "catalogue-v1"
+steps: "../steps/8-007-period-explicit-day.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "current-year-october-10"
+        to:
+          equals: "current-year-october-10"
+notes: "Checks a single named-month date with the same start and end day."

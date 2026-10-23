@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.grpc.server.lifecycle.GrpcServerLifecycle;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -30,6 +31,9 @@ public abstract class AbstractSystemTest {
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private GrpcServerLifecycle grpcServerLifecycle;
 
     static {
         log.info("Postgres is running: {}", PostgresContainers.POSTGRES_CONTAINER.isRunning());
@@ -69,7 +73,9 @@ public abstract class AbstractSystemTest {
     }
 
     @BeforeEach
-    void setUp() {}
+    void setUp() {
+        GrpcStubServer.endTurnsOn(grpcServerLifecycle.getPort());
+    }
 
     @AfterEach
     void tearDown() {
