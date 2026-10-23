@@ -12,11 +12,13 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  eval-runner/eval.sh [--keep-stack] [runner arguments]  start the stack, then run the corpus
-  eval-runner/eval.sh compare <before> <after>           compare two runs; starts nothing
+  eval-runner/eval.sh [--keep-stack] [--mode tools|classifier] [runner arguments]  start the stack, then run the corpus
+  eval-runner/eval.sh compare <before> <after>                                    compare two runs; starts nothing
 
 Runner arguments are passed through: --label, --repetitions, --cases, --budget-enforced, --corpus, --out.
 --keep-stack leaves the services running after the run.
+--mode sets the connector's extraction mode, tools by default; classifier needs FINANCE_BOT_TYPESAFE_API_KEY and
+FINANCE_BOT_CLASSIFIER_MODEL in infrastructure/.env.
 EOF
 }
 
@@ -36,14 +38,23 @@ case "${1:-}" in
 esac
 
 keep_stack=0
+mode=tools
 runner_args=()
-for arg in "$@"; do
-    if [[ "$arg" == --keep-stack ]]; then
-        keep_stack=1
-    else
-        runner_args+=("$arg")
-    fi
+while (($#)); do
+    case "$1" in
+        --keep-stack) keep_stack=1 ;;
+        --mode)
+            mode="${2:-}"
+            shift
+            ;;
+        *) runner_args+=("$1") ;;
+    esac
+    shift
 done
+if [[ "$mode" != tools && "$mode" != classifier ]]; then
+    printf -- '--mode must be tools or classifier, not "%s"\n' "$mode" >&2
+    exit 2
+fi
 
 env_file=infrastructure/.env
 if [[ ! -f "$env_file" ]]; then
@@ -54,6 +65,8 @@ set -a
 # shellcheck disable=SC1090
 . <(tr -d '\r' < "$env_file")
 set +a
+# The shell's value wins over --env-file when compose interpolates eval-runner/compose.eval.yaml.
+export FINANCE_BOT_EXTRACTION_MODE="$mode"
 
 compose=(docker compose --env-file "$env_file"
     -f infrastructure/docker-compose.yaml -f eval-runner/compose.eval.yaml)

@@ -9,6 +9,7 @@ run. It is the demo cut of the [evaluation plan](../docs/eval/plan.md): verdicts
 ```
 eval-runner/eval.sh --label before
 eval-runner/eval.sh --label after --cases 8-,10-003 --repetitions 1
+eval-runner/eval.sh --label classifier --mode classifier
 eval-runner/eval.sh compare build/eval/before.json build/eval/after.json
 ```
 
@@ -30,7 +31,11 @@ when it exits.
 | `--repetitions`     | `3`                              | attempts of each case                                   |
 | `--cases`           | every case                       | comma-separated id prefixes                             |
 | `--budget-enforced` | off                              | runs cases declaring `executionLimits`; else blocked    |
+| `--mode`            | `tools`                          | the connector's mode, `tools` or `classifier`           |
 | `--corpus`, `--out` | `docs/eval/corpus`, `build/eval` | paths from the repository root                          |
+
+`--mode classifier` needs `FINANCE_BOT_TYPESAFE_API_KEY` and `FINANCE_BOT_CLASSIFIER_MODEL` in `infrastructure/.env`;
+without them the connector does not start and the run stops at the health wait.
 
 [`run-viewer.html`](run-viewer.html), opened in a browser, shows a run file case by case: verdicts, failed checks,
 MCP calls, proposals and timings.
